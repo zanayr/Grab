@@ -7,57 +7,9 @@
 
 (function () {
     "use strict";
+    var engine;
     //  HELPER FUNCTIONS --------------------------------------------------------------
-    /*
-    //  Normally I would add these to their respective object prototypes,
-    //  but to keep this rather vanilla, I have created helper functions
-    */
-    //  For Numbers
-    /*
-    function parse10(number) {
-        return parseFloat(number, 10);
-    }
-    function parse16(number) {
-        return parseInt(number, 16);
-    }
-    function isNumber(number) {
-        if (!Number.isNaN(number) && typeof number === "number") {
-            return true;
-        } else {
-            return false;
-        }
-    }
-    //  For Strings
-    function isString(string) {
-        if (typeof string === "string") {
-            return true;
-        } else {
-            return false;
-        }
-    }
-    function isDOMTag (string) {
-        if (isString(string) && string.match(/^<[a-zA-Z]+>$/)) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-    function isPercent(string) {
-        if (isString(string) && string.match(/^-?\d*.?\d+?%$/)) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-    function isPixel(string) {
-        if (isString(string) && string.match(/^-?\d*.?\d+?px$/)) {
-            return true;
-        } else {
-            return false;
-        }
-    }*/
-
-    //  For CSS
+    //  Get a DOM element's style
     function getStyle (element, property) {
         if (element.style[property]) {
             if (element.currentStyle) {
@@ -70,7 +22,7 @@
         }
     }
     
-    //  For Colors
+    //  Convert a color string into an array of RGB values
     function convertColor (value) {
         //  Helper Functions
         function rgb (color) {
@@ -205,8 +157,204 @@
         }
     }
     
+    //  ANIMATION ENGINE --------------------------------------------------------------
+    engine = (function () {
+        var state = false,
+            lastFrameTime = 0,
+            maxFPS = 60,
+            delta = 0,
+            timestamp = 1000 / 60,
+            frameId = 0,
+            FPS = 0,
+            framesThisSecond = 0,
+            lastFPSUpdate = 0,
+            updatesArray = [],
+            garbageArray = [];
+        function add(object, easing, duration, complete, element, i) {
+            if (i && i < updatesArray.length) {
+                updatesArray.splce(i, 0, {
+                    complete: complete,
+                    duration: duration,
+                    easing: loop.easing[easing],
+                    element: element,
+                    object: object
+                });
+            } else if (i < 0) {
+                updatesArray.shift({
+                    complete: complete,
+                    duration: duration,
+                    easing: loop.easing[easing],
+                    element: element,
+                    object: object
+                });
+            } else {
+                updatesArray.push({
+                    complete: complete,
+                    duration: duration,
+                    easing: loop.easing[easing],
+                    element: element,
+                    object: object
+                });
+            }
+        }
+        function getIndex(reference) {
+            if (typeof reference === "string") {
+                updatesArray.forEach(function (update, i) {
+                    if (update.object.id === reference) {
+                        return i;
+                    }
+                });
+            } else {
+                updatesArray.forEach(function (update, i) {
+                    if (update.object.id === reference.id) {
+                        return i;
+                    }
+                });
+            }
+            return -1;
+        }
+        function remove(reference) {
+            var index;
+            if ((!Number.isNaN(reference) && typeof reference === "number") && reference < updatesArray.length) {
+                index = reference;
+            } else if (typeof reference === "string") {
+                updatesArray.forEach(function (update, i) {
+                    if (update.id === reference) {
+                        index = i;
+                    }
+                })
+            } else if (updatesArray.indexOf(reference) > -1) {
+                index = updatesArray.indexOf(reference);
+            }
+            updatesArray = updatesArray.splice(index, 1);
+        }
+        function update(ts) {
+            updatesArray.forEach(function (update) {
+                var animation = update.object.animation;
+                Object.keys(animation).forEach(function (key) {
+                    animation[key].time = ts + animation[key].time;
+                    animation[key].update(update.easing(animation[key].time / update.duration));
+                    if (update.element) {
+                        update.element[key] = update.object[key];
+                    }
+                    if (animation[key].traveled >= animation[key].distance) {
+                        animation[key].current = animation[key].target;
+                        if (update.element) {
+                            update.element[key] = animation[key].target;
+                        }
+                        garbageArray.push(update);
+                    }
+                });
+            });
+        }
+        function render(interpolation) {
+            updatesArray.forEach(function (update) {
+                Object.keys(update.object.animation).forEach(function (key) {
+                    update.object.animation[key].render(interpolation);
+                });
+            });
+        }
+        function garbage() {
+            garbageArray.forEach(function (item) {
+                if (typeof item.complete === "function") {
+                    item.complete();
+                }
+                remove(updatesArray.indexOf(item));
+            });
+            garbageArray.length = 0;
+        }
+        function panic() {
+            delta = 0;
+        }
+        function loop(timestamp) {
+            var updateStepCount = 0;
+            if (state) {
+                if (timestamp < lastFPSUpdate + (1000 / maxFPS)) {
+                    frameId = window.requestAnimationFrame(loop);
+                    return;
+                }
+                delta = delta + (timestamp - lastFrameTime);
+                lastFrameTime = timestamp;
+                if (timestamp > lastFPSUpdate + 1000) {
+                    FPS = 0.25 * framesThisSecond + 0.75 * FPS;
+                    lastFPSUpdate = timestamp;
+                    framesThisSecond = 0;
+                }
+                framesThisSecond = framesThisSecond + 1;
+                while (delta >= timestamp) {
+                    update(timestamp);
+                    delta = delta - timestamp;
+                    updateStepCount = updateStepCount + 1;
+                    if (updateStepCount >= 240) {
+                        panic();
+                        break;
+                    }
+                }
+                render(delta / timestamp);
+                garbage();
+                frameId = window.requestAnimationFrame(loop);
+            }
+        }
+        function toggle() {
+            state = !state;
+            if (state) {
+                cancelAnimationFrame(frameId);
+            } else {
+                frameId = window.requestAnimationFrame(loop);
+            }
+        }
+        function start() {
+            if (!state) {
+                frameId = window.requestAnimationFrame(function (timestamp) {
+                    state = true;
+                    render(1);
+                    lastFrameTime = timestamp;
+                    lastFPSUpdate = timestamp;
+                    framesThisSecond = 0;
+                    frameId = window.requestAnimationFrame(loop);
+                });
+            }
+        }
+        return {
+            add: add,
+            easing: {
+                linear: function (d) {
+                    return d;
+                },
+                easeInQuad: function (d) {
+                    return Math.pow(d, 2);
+                },
+                easeInCubic: function (d) {
+                    return Math.pow(d, 3);
+                },
+                easeInQuart: function (d) {
+                    return Math.pow(d, 4);
+                },
+                easeInQuint: function (d) {
+                    return Math.pow(d, 5);
+                },
+                easeOutQuad: function (d) {
+                    return 1 - Math.pow(1 - d, 2);
+                },
+                easeOutCubic: function (d) {
+                    return 1 - Math.pow(1 - d, 3);
+                },
+                easeOutQuart: function (d) {
+                    return 1 - Math.pow(1 - d, 4);
+                },
+                easeOutQuint: function (d) {
+                    return 1 - Math.pow(1 - d, 5);
+                }
+            },
+            getIndex: getIndex,
+            remove: remove,
+            start: start,
+            toogle: toggle,
+        }
+    }());
+    
     //  GRAB --------------------------------------------------------------------------
-    window.Grab2 = function (selectorString) {
+    window.Grab = function (selectorString) {
         function createGrab(object) {
             var grabObject = {
                 animation: {},
