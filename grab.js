@@ -158,12 +158,12 @@
     }
     
     //  ANIMATION ENGINE --------------------------------------------------------------
-    engine = (function () {
+    window.engine2 = (function () {
         var state = false,
             lastFrameTime = 0,
             maxFPS = 60,
             delta = 0,
-            timestamp = 1000 / 60,
+            timestep = 1000 / 60,
             frameId = 0,
             FPS = 0,
             framesThisSecond = 0,
@@ -191,7 +191,7 @@
                 updatesArray.push({
                     complete: complete,
                     duration: duration,
-                    easing: loop.easing[easing],
+                    easing: window.engine2.easing[easing],
                     element: element,
                     object: object
                 });
@@ -281,27 +281,23 @@
                     framesThisSecond = 0;
                 }
                 framesThisSecond = framesThisSecond + 1;
-                while (delta >= timestamp) {
-                    update(timestamp);
-                    delta = delta - timestamp;
+                while (delta >= timestep) {
+                    update(timestep);
+                    delta = delta - timestep;
                     updateStepCount = updateStepCount + 1;
                     if (updateStepCount >= 240) {
                         panic();
                         break;
                     }
                 }
-                render(delta / timestamp);
+                render(delta / timestep);
                 garbage();
                 frameId = window.requestAnimationFrame(loop);
             }
         }
-        function toggle() {
+        function stop() {
             state = !state;
-            if (state) {
-                cancelAnimationFrame(frameId);
-            } else {
-                frameId = window.requestAnimationFrame(loop);
-            }
+            window.cancelAnimationFrame(frameId);
         }
         function start() {
             if (!state) {
@@ -349,7 +345,7 @@
             getIndex: getIndex,
             remove: remove,
             start: start,
-            toogle: toggle,
+            stop: stop,
         }
     }());
     
@@ -375,6 +371,130 @@
                     visibility: false,
                     zIndex: NaN
                 }
+            }
+            function animated(reference) {
+                var r = reference,
+                    a = {values: {
+                            current: 0,
+                            direction: 0,
+                            distance: 0,
+                            last: 0,
+                            origin: 0,
+                            target: 0,
+                            time: 0,
+                            traveled: 0,
+                    }
+                };
+                
+                Object.defineProperties(a, {
+                    current: {
+                        get: function () {
+                            return this.values.current;
+                        },
+                        set: function (value) {
+                            if (!Number.isNaN(value) && typeof value === "number") {
+                                this.values.current = value;
+                            }
+                        }
+                    },
+                    direction: {
+                        get: function () {
+                            return this.values.direction;
+                        },
+                        set: function (value) {
+                            if (!Number.isNaN(value) && typeof value === "number") {
+                                this.values.direction = value;
+                            }
+                        }
+                    },
+                    distance: {
+                        get: function () {
+                            return this.values.distance;
+                        },
+                        set: function (value) {
+                            if (!Number.isNaN(value) && typeof value === "number") {
+                                this.direction = Math.sign(value);
+                                this.values.distance = value * this.direction;
+                            }
+                        }
+                    },
+                    last: {
+                        get: function () {
+                            return this.values.last
+                        },
+                        set: function (value) {
+                            if (!Number.isNaN(value) && typeof value === "number") {
+                                this.values.last = value;
+                            }
+                        }
+                    },
+                    origin: {
+                        get: function () {
+                            return this.values.origin;
+                        },
+                        set: function (value) {
+                            if (!Number.isNaN(value) && typeof value === "number") {
+                                this.values.oring = value;
+                            }
+                        }
+                    },
+                    target: {
+                        get: function () {
+                            return this.values.target;
+                        },
+                        set: function (value) {
+                            if (typeof value === "string") {
+                                if (value.match(/^-?\d*.?\d+?px$/)) {
+                                    value = parseFloat(value, 10);
+                                } else if (value.match(/^-?\d*.?\d+?%$/)) {
+                                    if (r.match(/^height|top$/)) {
+                                        value = grabObject.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
+                                    } else if (r.match(/^left|width$/)) {
+                                        value = grabObject.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
+                                    }
+                                }
+                            }
+                            if (!Number.isNaN(value) && typeof value === "number") {
+                                this.current = this.origin;
+                                this.distance = value - this.origin;
+                                this.values.target = value;
+                            } else {
+                                this.values.target = false;
+                            }
+                        }
+                    },
+                    time: {
+                        get: function () {
+                            return this.values.time;
+                        },
+                        set: function (value) {
+                            if (!Number.isNaN(value) && typeof value === "number") {
+                                this.values.time = value;
+                            }
+                        }
+                    },
+                    traveled: {
+                        get: function () {
+                            return this.values.traveled;
+                        },
+                        set: function (value) {
+                            if (!Number.isNaN(value) && typeof value === "number") {
+                                this.values.traveled = value;
+                            }
+                        }
+                    }
+                });
+                
+                a.update = function (d) {
+                    this.last = this.current;
+                    this.current = this.distance * d * this.direction + this.origin;
+                    this.traveled = this.distance * d;
+                }
+                a.render = function (i) {
+                    grabObject[r] = this.last + (this.current - this.last) * i;
+                }
+                
+                return a;
             }
             Object.defineProperties(grabObject, {
                 backgroundColor: {
@@ -808,11 +928,25 @@
             }
             
             // Animations
-            grabObject.animate = function () {
-                //  Do stuff
+            grabObject.animate = function (object, easing, duration, complete, element) {
+                var index = window.engine2.getIndex(grabObject.id);
+                if (index > -1) {
+                    engine.remove(index);
+                    if (grabObject.animation) {
+                        Object.keys(grabObject.animation).forEach(function (key) {
+                            delete grabObject.animation[key];
+                        });
+                    }
+                }
+                Object.keys(object).forEach(function (key) {
+                    grabObject.animation[key] = animated(key);
+                    grabObject.animation[key].origin = grabObject[key];
+                    grabObject.animation[key].target = object[key];
+                });
+                window.engine2.add(grabObject, easing, duration, complete, element);
             }
             grabObject.fadeIn = function () {
-                //  Do stuff
+                
             }
             grabObject.fadeOut = function () {
                 //  Do stuff
