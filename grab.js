@@ -13,6 +13,7 @@
     //  but to keep this rather vanilla, I have created helper functions
     */
     //  For Numbers
+    /*
     function parse10(number) {
         return parseFloat(number, 10);
     }
@@ -54,34 +55,33 @@
         } else {
             return false;
         }
-    }
+    }*/
 
     //  For CSS
-    function getStyleValue (element, property) {/*
-        if (element.currentStyle) {
-            return element.currentStyle[property];
-        } else if (document.defaultView && document.defaultView.getComputedStyle) {
-            return document.defaultView.getComputedStyle(element, '')[property];
-        } else {
-            return element.style[property];
-        }*/
-        return element.style[property];
+    function getStyle (element, property) {
+        if (element.style[property]) {
+            if (element.currentStyle) {
+                return element.currentStyle[property];
+            } else if (document.defaultView && document.defaultView.getComputedStyle) {
+                return document.defaultView.getComputedStyle(element, '')[property];
+            } else {
+                return element.style[property];
+            }
+        }
     }
     
     //  For Colors
-    function convert2RGB (value) {
-        var temp;
-            
+    function convertColor (value) {
         //  Helper Functions
         function rgb (color) {
             var colors = [];
             if (color.match(/a\(/)) {
                 color.match(/^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d*\.?\d*)\s*\)$/).slice(1).forEach(function (c) {
-                    colors.push(parse10(c));
+                    colors.push(parseFloat(c, 10));
                 });
             } else {
                 color.match(/^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/).slice(1).forEach(function (c) {
-                    colors.push(parse10(c));
+                    colors.push(parseFloat(c, 10));
                 });
             }
             return colors;
@@ -91,25 +91,25 @@
             color = color.match(/\s*([0-9a-f]{2,8})/)[1];
             if (color.length === 2) {
                 //  Hex shorthand (i.g. #ab)
-                colors = [parse16(color), parse16(color), parse16(color)];
+                colors = [parseInt(color, 10), parseInt(color, 10), parseInt(color, 10)];
             } else if (color.length === 3) {
                 //  Hex shorthand (i.g. #abc)
-                colors = [parse16(color[0] + color[0]), parse16(color[1] + color[1]), parse16(color[2] + color[2])];
+                colors = [parseInt(color[0] + color[0], 16), parseInt(color[1] + color[1], 16), parseInt(color[2] + color[2], 16)];
             } else if (color.length === 4) {
                 //  Hexa shorthand (e.g. #abcd)
-                colors = [parse16(color[0] + color[0]), parse16(color[1] + color[1]), parse16(color[2] + color[2]), parse16(color[3] + color[3]) / 255];
+                colors = [parseInt(color[0] + color[0], 16), parseInt(color[1] + color[1], 16), parseInt(color[2] + color[2], 16), parseInt(color[3] + color[3], 16) / 255];
             } else if (color.length === 6) {
                 //  Hex (i.g. #abcdef)
                 color.match(/([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/).slice(1).forEach(function (c) {
-                    colors.push(parse16(c));
+                    colors.push(parseInt(c, 16));
                 });
             } else if (color.length === 8) {
                 //  Hexa (i.g. #abcdefff)
                 color.match(/([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/).slice(1).forEach(function (c, i) {
                     if (i === 3) {
-                        colors.push(parse16(c) / 255);
+                        colors.push(parseInt(c, 16) / 255);
                     } else {
-                        colors.push(parse16(c));
+                        colors.push(parseInt(c, 16));
                     }
                 });
             }
@@ -138,7 +138,7 @@
                     n = 0;
                 }
                 //  Get numbers from passed string values
-                n = parse10(v);
+                n = parseFloat(v, 10);
                 //  Check all values for the minimum of 0
                 if (v < 0) {
                     n = 0;
@@ -183,14 +183,16 @@
             }
         }
         //  Convert Colors
-        if (isString(value)) {
+        if (typeof value === "string") {
             if (!value.match(/^rgba|rgb|#|0x|0X|hsla|hsl/)) {
                 //  Browser standard color passed (i.g. "pink")
-                temp = document.createElement('div');
-                temp.style.color = value;
-                document.body.appendChild(temp);
-                value = window.getComputedStyle(temp).getPropertyValue("color");
-                document.body.removeChild(temp);
+                (function () {
+                    var temp = document.createElement("div");
+                    temp.style.color = value;
+                    document.body.appendChild(temp);
+                    value = window.getComputedStyle(temp).getPropertyValue("color");
+                    document.body.removeChild(temp);
+                }());
                 return rgb(value);
             }
             if (value.match(/^rgb/)) {
@@ -202,43 +204,30 @@
             }
         }
     }
-    function toBoolean(boolean) {
-        if (typeof boolean === "boolean") {
-            return boolean;
-        } else if (isString(boolean) && boolean.length > 0 && boolean !== "false") {
-            return true;
-        } else if (isNumber(boolean) && boolean > 0) {
-            return true;
-        }
-        return false;
-    }
     
-    window.Grab = function (selector) {
-        var grabElement;
-        function grab(element) {
-            var $element = element,
-                grabObject = {
-                    animation: {},
-                    children: [],
-                    element: $element,
-                    id: Math.floor(((Date.now() + Math.random()) * 10)).toString(36).substr(2, 9),
-                    parent: {},
-                    values: {
-                        backgroundColor: {},
-                        color: {},
-                        display: false,
-                        height: NaN,
-                        left: NaN,
-                        lineHeight: NaN,
-                        opacity: NaN,
-                        top: NaN,
-                        width: NaN,
-                        visibility: false,
-                        zIndex: NaN
-                    }
-                };
-            
-            //  GETTERS & SETTERS -----------------------------------------------------
+    //  GRAB --------------------------------------------------------------------------
+    window.Grab2 = function (selectorString) {
+        function createGrab(object) {
+            var grabObject = {
+                animation: {},
+                children: [],
+                element: object,
+                id: Math.floor(((Date.now() + Math.random()) * 10)).toString(36).substr(2, 9),
+                parent: {},
+                values: {
+                    backgroundColor: {},
+                    color: {},
+                    display: false,
+                    height: NaN,
+                    left: NaN,
+                    lineHeight: NaN,
+                    opacity: NaN,
+                    top: NaN,
+                    width: NaN,
+                    visibility: false,
+                    zIndex: NaN
+                }
+            }
             Object.defineProperties(grabObject, {
                 backgroundColor: {
                     get: function() {
@@ -246,7 +235,7 @@
                         return this.values.backgroundColor;
                     },
                     set: function(value) {
-                        var colorArray = convert2RGB(value),
+                        var colorArray = convertColor(value.replace(/\s/g, '')),
                             colorString = "";
                         //  Set the backgroundColor object
                         this.values.backgroundColor = {
@@ -272,7 +261,7 @@
                         return this.values.color;
                     },
                     set: function(value) {
-                        var colorArray = convert2RGB(value),
+                        var colorArray = convertColor(value.replace(/\s/g, '')),
                             colorString = "";
                         //  Set the color object
                         this.values.color = {
@@ -297,13 +286,8 @@
                         return this.values.display;
                     },
                     set: function (value) {
-                        if (value) {
-                            value = toBoolean(value);
-                            if (value) {
-                                this.element.style.display = "initial";
-                            } else {
-                                this.element.style.display = "none";
-                            }
+                        if (value && value !== "false") {
+                            this.element.style.display = "initial";
                         } else {
                             this.element.style.display = "none";
                         }
@@ -316,19 +300,17 @@
                         return this.values.height;
                     },
                     set: function(value) {
-                        if (isString(value)) {
+                        if (typeof value === "string") {
                             if (value.match(/^auto|initial$/)) {
                                 this.element.style.height = value;
                                 value = this.element.offsetHeight;
-                            } else if (isPercent(value)) {
-                                value = this.element.parentNode.offsetHeight * (parse10(value) / 100);
-                            } else if (isPixel(value)) {
-                                value = parse10(value);
-                            } else {
-                                //  Throw error
+                            } else if (value.match(/^-?\d*.?\d+?%$/)) {
+                                value = this.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
+                            } else if (value.match(/^-?\d*.?\d+?px$/)) {
+                                value = parseFloat(value, 10);
                             }
                         }
-                        if (isNumber(value)) {
+                        if (!Number.isNaN(value) && typeof value === "number") {
                             this.element.style.height = value + "px";
                             this.values.height = value;
                         } else {
@@ -342,17 +324,17 @@
                         return this.values.left;
                     },
                     set: function(value) {
-                        if (isString(value)) {
+                        if (typeof value === "string") {
                             if (value.match(/^auto|initial$/)) {
                                 this.element.style.left = value;
                                 value = this.element.offsetLeft;
-                            } else if (isPercent(value)) {
-                                value = this.element.parentNode.offsetWidth * (parse10(value) / 100);
-                            } else if (isPixel(value)) {
-                                value = parse10(value);
+                            } else if (value.match(/^-?\d*.?\d+?%$/)) {
+                                value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
+                            } else if (value.match(/^-?\d*.?\d+?px$/)) {
+                                value = parseFloat(value, 10);
                             }
                         }
-                        if (isNumber(value)) {
+                        if (!Number.isNaN(value) && typeof value === "number") {
                             this.element.style.left = value + "px";
                             this.values.left = value;
                         }
@@ -363,12 +345,12 @@
                         return this.values.lineHeight;
                     },
                     set: function(value) {
-                        if (isString(value)) {
-                            if (value.match(/^auto|initial$/) || isPixel(value)) {
+                        if (typeof value === "string") {
+                            if (value.match(/^auto|initial$/) || value.match(/^-?\d*.?\d+?px$/)) {
                                 this.element.style.lineHeight = value;
                                 this.values.lineHeight = value;
                             }
-                        } else if (isNumber(value)) {
+                        } else if (!Number.isNaN(value) && typeof value === "number") {
                             this.element.style.lineHeight = value + "px";
                             this.values.lineHeight = value;
                         }
@@ -379,26 +361,22 @@
                         return this.values.opacity;
                     },
                     set: function(value) {
-                        if (isString(value)) {
-                            if (isPercent(value)) {
-                                value = parse10(value);
+                        if (typeof value === "string") {
+                            if (value.match(/^-?\d*.?\d+?%$/)) {
+                                value = parseFloat(value, 10);
                                 if (value > 100) {
                                     value = 100;
                                 } else if (value < 0) {
                                     value = 0;
                                 }
                                 value = value / 100;
-                            } else if (isNumber(parse10(value))) {
-                                value = parse10(value);
-                            } else {
-                                //  Throw error
+                            } else if (!Number.isNaN(parseFloat(value, 10)) && typeof parseFloat(value, 10) === "number") {
+                                value = parseFloat(value, 10);
                             }
                         }
-                        if (isNumber(value)) {
+                        if (!Number.isNaN(value) && typeof value === "number") {
                             this.values.opacity = value;
                             this.element.style.opacity = value;
-                        } else {
-                            //  Throw error
                         }
                     }
                 },
@@ -407,17 +385,17 @@
                         return this.values.top;
                     },
                     set: function (value) {
-                        if (isString(value)) {
+                        if (typeof value === "string") {
                             if (value.match(/^auto|initial$/)) {
                                 this.element.style.top = value;
                                 value = this.element.offsetTop;
-                            } else if (isPercent(value)) {
-                                value = this.element.parentNode.offsetHeight * (parse10(value) / 100);
-                            } else if (isPixel(value)) {
-                                value = parse10(value);
+                            } else if (value.match(/^-?\d*.?\d+?%$/)) {
+                                value = this.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
+                            } else if (value.match(/^-?\d*.?\d+?px$/)) {
+                                value = parseFloat(value, 10);
                             }
                         }
-                        if (isNumber(value)) {
+                        if (!Number.isNaN(value) && typeof value === "number") {
                             this.element.style.top = value + "px";
                             this.values.top = value;
                         }
@@ -428,19 +406,19 @@
                         return this.values.width;
                     },
                     set: function (value) {
-                        if (isString(value)) {
+                        if (typeof value === "string") {
                             if (value.match(/^auto|initial$/)) {
                                 this.element.style.width = value;
                                 value = this.element.offsetWidth;
-                            } else if (isPercent(value)) {
-                                value = this.element.parentNode.offsetWidth * (parse10(value) / 100);
-                            } else if (isPixel(value)) {
-                                value = parse10(value);
+                            } else if (value.match(/^-?\d*.?\d+?%$/)) {
+                                value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
+                            } else if (value.match(/^-?\d*.?\d+?px$/)) {
+                                value = parseFloat(value, 10);
                             } else {
                                 //  Throw error
                             }
                         }
-                        if (isNumber(value)) {
+                        if (!Number.isNaN(value) && typeof value === "number") {
                             this.element.style.width = value + "px";
                             this.values.width = value;
                         } else {
@@ -453,13 +431,8 @@
                         return this.values.visibilty;
                     },
                     set: function (value) {
-                        if (value) {
-                            value = toBoolean(value);
-                            if (value) {
-                                this.element.style.visibility = "visible";
-                            } else {
-                                this.element.style.visiblity = "hidden";
-                            }
+                        if (value && value !== "false") {
+                            this.element.style.visibility = "visible";
                         } else {
                             this.element.style.visibility = "hidden";
                         }
@@ -471,10 +444,10 @@
                         return this.values.zIndex;
                     },
                     set: function(value) {
-                        if (isString(value)) {
-                            value = parse10(value);
+                        if (typeof value === "string") {
+                            value = parseInt(value, 10);
                         }
-                        if (isNumber(value)) {
+                        if (!Number.isNaN(value) && typeof value === "number") {
                             this.element.style.zIndex = value;
                             this.values.zIndex = value;
                         } else {
@@ -484,7 +457,6 @@
                 }
             });
             
-            //  METHODS ---------------------------------------------------------------
             //  Show & Hide self
             grabObject.show = function () {
                 grabObject.display = true;
@@ -497,8 +469,8 @@
             
             //  Add children
             grabObject.append = function (child) {
-                if (isDOMTag(child)) {
-                    child = grab(document.createElement(child.slice(1, -1).replace(/\s/g, '')));
+                if ((typeof child === "string" && child.match(/^<[a-zA-Z]+>$/)) || child.tagName) {
+                    child = grab(child);
                     grabObject.element.appendChild(child.element);
                     grabObject.children.push(child);
                 } else if (child.id) {
@@ -516,8 +488,8 @@
                 return children;
             }
             grabObject.prepend = function (child) {
-                if (isDOMTag(child)) {
-                    child = grab(document.createElement(child.slice(1, -1).replace(/\s/g, '')));
+                if ((typeof child === "string" && child.match(/^<[a-zA-Z]+>$/)) || child.tagName) {
+                    child = grab(child);
                     grabObject.element.appendChild(child.element);
                     grabObject.children.shift(child);
                 } else if (child.id) {
@@ -535,8 +507,8 @@
                 return children;
             }
             grabObject.insert = function (child, index) {
-                if (isDOMTag(child)) {
-                    child = grab(document.createElement(child.slice(1, -1).replace(/\s/g, '')));
+                if ((typeof child === "string" && child.match(/^<[a-zA-Z]+>$/)) || child.tagName) {
+                    child = grab(child);
                     grabObject.element.insertBefore(child, grabObject.element.childNodes[index]);
                     grabObject.children.splice(index, 0, child);
                 }
@@ -565,12 +537,12 @@
                                 index = i;
                             }
                         });
-                        if (isNumber(index)) {
+                        if (!Number.isNaN(index) && typeof index === "number") {
                             grabObject.children.slice(index, 1);
                             grabObject.element.removeChild(child.element);
                         }
-                    } else if (isString(child)) {
-                        child = grab(grabObject.element.querySelector(child));
+                    } else if (typeof child === "string") {
+                        child = grab(child);
                         grabObject.element.removeChild(child.element);
                     }
                     child.parent = {};
@@ -611,14 +583,14 @@
             
             //  Search for children
             grabObject.grab = function (child) {
-                if (isString(child)) {
+                if (typeof child === "string") {
                     return grab(grabObject.element.querySelector(child));
                 }
             }
             
             //  Add and remove css classes
             grabObject.addClass = function (name) {
-                if (isString(name)) {
+                if (typeof name === "string") {
                     if (name.length > 0) {
                         name.split(' ').forEach(function (n) {
                             if (!grabObject.element.classList.contains(n)) {
@@ -629,7 +601,7 @@
                 }
             }
             grabObject.removeClass = function (name) {
-                if (isString(name)) {
+                if (typeof name === "string") {
                     if (name.length > 0) {
                         name.split(' ').forEach(function (n) {
                             if (grabObject.element.classList.contains(n)) {
@@ -646,19 +618,19 @@
             
             //  Set css ID
             grabObject.setID = function (id) {
-                if (isString(id)) {
+                if (typeof id === "string") {
                     grabObject.element.id = id.replace(/\s/g, '');
                 }
             }
             
             //  Add and remove user events
             grabObject.on = function (event, callback) {
-                if (isString(event)) {
+                if (typeof event === "string") {
                     grabObject.element.addEventListener(event, callback, false);
                 }
             }
             grabObject.off = function (event, callback) {
-                if (isString(event)) {
+                if (typeof event === "string") {
                     grabObject.element.removeEventListener(event, callback, false);
                 }
             }
@@ -698,20 +670,46 @@
                 //  Do stuff
             }
             
+            Object.keys(grabObject.values).forEach(function (key) {
+                var value = getStyle(grabObject.element, key);
+                if (value) {
+                    grabObject[key] = value;
+                }
+            });
+            
             //  Return finialized object
             return grabObject;
         }
-        if (isDOMTag(selector)) {
-            grabElement = grab(document.createElement(selector.slice(1, -1).replace(/\s/g, '')));
-        } else if (isString(selector)) {
-            grabElement = grab(document.querySelector(selector));
-            Object.keys(grabElement.values).forEach(function (key) {
-                var value = getStyleValue(grabElement.element, key);
-                if (value) {
-                    grabElement[key] = value;
+        
+        function grab(it) {
+            var element,
+                elementArray = [],
+                i;
+            if (typeof it === "string") {
+                if (it.match(/^<[a-zA-Z]+>$/)) {
+                    return createGrab(document.createElement(it.slice(1, -1).replace(/\s/g, '')));
+                } else if (it.match(/^#[a-zA-Z]/)) {
+                    return createGrab(document.getElementById(it.slice(1).replace(/\s/g, '')));
+                } else if (it.match(/^\.[a-zA-Z]/)) {
+                    element = document.getElementsByClassName(it.slice(1).replace(/\s/g, ''));
+                    for (i = 0; i < element.length; i = i + 1) {
+                        elementArray.push(createGrab(element.item(i)));
+                    }
+                    return elementArray;
+                } else {
+                    return createGrab(document.querySelector(it));
                 }
-            });
+            } else if (Array.isArray(it)) {
+                it.forEach(function (item) {
+                    elementArray.push(grab(item));
+                });
+                return elementArray.slice();
+            } else {
+                return null;
+            }
         }
-        return grabElement;
+        
+        //  Return a new grab object or grab object array
+        return grab(selectorString);
     }
 }());
