@@ -361,14 +361,14 @@
                 values: {
                     backgroundColor: {},
                     color: {},
-                    display: false,
+                    display: true,
                     height: NaN,
                     left: NaN,
                     lineHeight: NaN,
                     opacity: NaN,
                     top: NaN,
                     width: NaN,
-                    visibility: false,
+                    visibility: true,
                     zIndex: NaN
                 }
             }
@@ -402,6 +402,7 @@
                             return this.values.direction;
                         },
                         set: function (value) {
+                            console.log("r",value);
                             if (!Number.isNaN(value) && typeof value === "number") {
                                 this.values.direction = value;
                             }
@@ -413,6 +414,7 @@
                         },
                         set: function (value) {
                             if (!Number.isNaN(value) && typeof value === "number") {
+                                console.log("d",value);
                                 this.direction = Math.sign(value);
                                 this.values.distance = value * this.direction;
                             }
@@ -434,7 +436,8 @@
                         },
                         set: function (value) {
                             if (!Number.isNaN(value) && typeof value === "number") {
-                                this.values.oring = value;
+                                console.log("origin:", value);
+                                this.values.origin = value;
                             }
                         }
                     },
@@ -456,6 +459,7 @@
                             }
                             if (!Number.isNaN(value) && typeof value === "number") {
                                 this.current = this.origin;
+                                console.log("t",this.origin);
                                 this.distance = value - this.origin;
                                 this.values.target = value;
                             } else {
@@ -940,6 +944,7 @@
                 }
                 Object.keys(object).forEach(function (key) {
                     grabObject.animation[key] = animated(key);
+                    console.log("current:", grabObject[key]);
                     grabObject.animation[key].origin = grabObject[key];
                     grabObject.animation[key].target = object[key];
                 });
@@ -952,12 +957,42 @@
                 //  Do stuff
             }
             
-            Object.keys(grabObject.values).forEach(function (key) {
-                var value = getStyle(grabObject.element, key);
-                if (value) {
-                    grabObject[key] = value;
-                }
-            });
+                
+            if (grabObject.element.style.backgroundColor) {
+                grabObject.backgroundColor = getStyle("backgroundColor", grabObject.element);
+            } else {
+                grabObject.backgroundColor = "rgb(255,255,255)";
+            }
+            if (grabObject.element.style.color) {
+                grabObject.color = getStyle("color", grabObject.element);
+            } else {
+                grabObject.color = "rgb(0,0,0)";
+            }
+            if (grabObject.element.style.height) {
+                grabObject.height = getStyle("height", grabObject.element);
+            } else {
+                grabObject.height = grabObject.element.offsetHeight;
+            }
+            if (grabObject.element.style.width) {
+                grabObject.width = getStyle("width", grabObject.element);
+            } else {
+                grabObject.width = grabObject.element.offsetWidth;
+            }
+            if (grabObject.element.style.left) {
+                grabObject.left = getStyle("left", grabObject.element);
+            } else {
+                grabObject.left = 0;
+            }
+            if (grabObject.element.style.top) {
+                grabObject.top = getStyle("top", grabObject.element);
+            } else {
+                grabObject.top = 0;
+            }
+            if (grabObject.element.style.opacity) {
+                grabObject.opacity = getStyle("opacity", grabObject.element);
+            } else {
+                grabObject.opacity = 1;
+            }
             
             //  Return finialized object
             return grabObject;
