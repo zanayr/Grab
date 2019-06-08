@@ -180,7 +180,6 @@
             });
         }
         function collect() {
-            console.log(garbage);
             garbage.forEach(function (item) {
                 if (typeof item.complete === "function") {
                     item.complete();
@@ -195,7 +194,6 @@
         function loop(ts) {
             var updateStepCount = 0;
             if (state) {
-                console.log("looping");
                 if (ts < lastFPS + (1000 / maxFPS)) {
                     frame = window.requestAnimationFrame(loop);
                     return;
