@@ -115,8 +115,9 @@
         function add(object, values, easing, duration, complete) {
             var i = index(object.id),
                 v = {};
+            console.log(i);
             if (i > -1) {
-                remove(i);
+                remove2(object);
             }
             Object.keys(values).forEach(function (key) {
                 v[key] = animationObject(object[key], values[key]);
@@ -133,15 +134,20 @@
             }
         }
         function index(reference) {
+            var index = -1;
             if (typeof reference === "string") {
                 updates.forEach(function(update, i) {
                     if (update.object.id === reference) {
-                        return i;
-                    } else {
-                        return -1;
+                        index = i;
                     }
                 });
             }
+            return index;
+        }
+        function remove2 (o) {
+            updates = updates.filter(function (update) {
+                return update.id !== o.id;
+            });
         }
         function remove(i) {
             var array = [];
@@ -162,6 +168,7 @@
                     d = update.easing(a.time / update.duration);
                     if (a.distance * d >= a.distance) {
                         a.current = a.target;
+                        update.complete();
                         if (garbage.indexOf(update) < 0) {
                             garbage.push(update);
                         }
@@ -182,7 +189,7 @@
         function collect() {
             garbage.forEach(function (item) {
                 if (typeof item.complete === "function") {
-                    item.complete();
+                    //item.complete();
                 }
                 remove(updates.indexOf(item));
             });
@@ -271,7 +278,7 @@
                                 value = parseFloat(value, 10);
                             }
                         }
-                        if (!Number.isNaN(value) && typeof value === "number") {
+                        if (typeof value === "number" && !Number.isNaN(value)) {
                             this.element.style.left = value + "px";
                             this.values.left = value;
                         }
