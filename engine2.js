@@ -20,6 +20,7 @@
             waiting = [], // Array of animations waiting to be added into updates
             updates = [], // Array of animations that are updated every loop
             garbage = [], // Array of animations that need to be removed from updates
+//            completes = {},
             easingFunctions = {
                     linear: function (d) {
                         return d;
@@ -115,7 +116,6 @@
         function add(object, values, easing, duration, complete) {
             var i = index(object.id),
                 v = {};
-            console.log(i);
             if (i > -1) {
                 remove2(object);
             }
@@ -129,6 +129,7 @@
                 duration: duration,
                 complete: complete
             });
+//            completes[object.id] = complete;
             if (!state) {
                 start();
             }
@@ -149,15 +150,15 @@
                 return update.id !== o.id;
             });
         }
-        function remove(i) {
-            var array = [];
-            updates.forEach(function (update, j) {
-                if (i !== j) {
-                    array.push(update);
-                }
-            })
-            updates = array;
-        }
+//        function remove(i) {
+//            var array = [];
+//            updates.forEach(function (update, j) {
+//                if (i !== j) {
+//                    array.push(update);
+//                }
+//            })
+//            updates = array;
+//        }
         function update() {
             updates.forEach(function (update) {
                 Object.keys(update.animations).forEach(function (key) {
@@ -168,7 +169,7 @@
                     d = update.easing(a.time / update.duration);
                     if (a.distance * d >= a.distance) {
                         a.current = a.target;
-                        update.complete();
+//                        update.complete();
                         if (garbage.indexOf(update) < 0) {
                             garbage.push(update);
                         }
@@ -188,10 +189,11 @@
         }
         function collect() {
             garbage.forEach(function (item) {
-                if (typeof item.complete === "function") {
-                    //item.complete();
-                }
-                remove(updates.indexOf(item));
+//                if (typeof item.complete === "function") {
+//                    item.complete();
+//                }
+                remove2(updates.indexOf(item));
+                
             });
             garbage.length = 0;
         }

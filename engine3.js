@@ -77,6 +77,10 @@
                     return _create(document.getElementById(it.slice(1).replace(/\s/g, '')));
                 } else if (it.match(/^\.[a-zA-Z]/)) {
                     return _grabMany(document.getElementsByClassName(it.slice(1).replace(/\s/g, '')));
+                } else if (it.search(',' > -1)) {
+                    return it.split(',').map(function (o) {
+                        return _grab(o);
+                    });
                 } else {
                     return _create(document.querySelector(it));
                 }
