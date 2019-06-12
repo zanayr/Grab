@@ -10,9 +10,9 @@
     var animation = (function () {
         var state = false,
             lastFT = 0, // Last frame time in milliseconds
-            maxFPS = 60, // Max frames per second
+            maxFPS = 30, // Max frames per second
             delta = 0,
-            timestep = 1000 / 60, // Timestep
+            timestep = 1000 / 30, // Timestep
             frame = 0, // Frame id from request animation frame
             FPS = 0, // Frames per second
             FTS = 0, // Frames this second
@@ -127,7 +127,8 @@
                 animations: v,
                 easing: easingFunctions[easing],
                 duration: duration,
-                complete: complete
+                complete: complete,
+                flag: false
             });
 //            completes[object.id] = complete;
             if (!state) {
@@ -145,9 +146,9 @@
             }
             return index;
         }
-        function remove2 (o) {
+        function remove2 (u) {
             updates = updates.filter(function (update) {
-                return update.id !== o.id;
+                return update.object.id !== u.id;
             });
         }
 //        function remove(i) {
@@ -161,38 +162,56 @@
 //        }
         function update() {
             updates.forEach(function (update) {
-                Object.keys(update.animations).forEach(function (key) {
-                    var d = 0,
-                        a = update.animations[key];
-                    a.time = a.time + timestep;
-                    a.last = a.current;
-                    d = update.easing(a.time / update.duration);
-                    if (a.distance * d >= a.distance) {
-                        a.current = a.target;
-//                        update.complete();
-                        if (garbage.indexOf(update) < 0) {
-                            garbage.push(update);
+                if (!update.flag) {
+                    Object.keys(update.animations).forEach(function (key) {
+                        var d = 0,
+                            a = update.animations[key];
+                        a.time = a.time + timestep;
+                        a.last = a.current;
+                        d = update.easing(a.time / update.duration);
+                        if (a.distance * d >= a.distance) {
+                            a.current = a.target;
+                            update.flag = true;
+                        } else {
+                            a.current = a.vector * d + a.original;
                         }
-                    } else {
-                        a.current = a.vector * d + a.original;
+                    });
+                    if (update.flag) {
+                        if (update.complete) {
+                            update.complete();
+                        }
+                        garbage.push(update);
                     }
-                });
+                }
             });
         }
         function render(interpolation) {
             updates.forEach(function (update) {
-                Object.keys(update.animations).forEach(function (key) {
-                    var a = update.animations[key];
-                    update.object[key] = a.last + (a.current - a.last) * interpolation;
-                });
+                if (update.flag) {
+                    Object.keys(update.animations).forEach(function (key) {
+                        var a = update.animations[key];
+                        update.object[key] = a.target;
+                    });
+                } else {
+                    Object.keys(update.animations).forEach(function (key) {
+                        var a = update.animations[key];
+                        update.object[key] = a.last + (a.current - a.last) * interpolation;
+                    });
+                }
             });
         }
         function collect() {
-            garbage.forEach(function (item) {
+            garbage.forEach(function (update) {
 //                if (typeof item.complete === "function") {
 //                    item.complete();
 //                }
-                remove2(updates.indexOf(item));
+//                remove2(updates.findIndex(function (update) {
+//                    return id === update.object.id;
+//                }));
+                console.log('collecting garbage...');
+                updates = updates.filter(function (u) {
+                    return update.object.id !== u.object.id;
+                });
                 
             });
             garbage.length = 0;
@@ -230,6 +249,7 @@
                 }
                 render(delta / timestep);
                 collect();
+//                frame = window.requestAnimationFrame(loop);
                 if (updates.length) {
                     frame = window.requestAnimationFrame(loop);
                 } else {
@@ -281,6 +301,7 @@
                             }
                         }
                         if (typeof value === "number" && !Number.isNaN(value)) {
+                            console.log(value);
                             this.element.style.left = value + "px";
                             this.values.left = value;
                         }
