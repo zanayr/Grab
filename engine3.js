@@ -2,6 +2,7 @@
 
 (function () {
     "use-strict";
+    var animation;
     function _getID (i) {
         return ('xxxxxxxx-xxxx-' + i % 10 + 'xxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g, function(c) {
             var r = Math.random() * 16 | 0,
@@ -15,7 +16,69 @@
         return window.getComputedStyle(element, '')[property];
     }
     
+    //  ANIMATION ENGINE  =========================================================  //
+    animation = (function () {
+        var state = false,
+            lastFT = 0, // Last frame time in ms
+            maxFPS = 60, // Maximum frames per second
+            delta = 0,
+            timestemp = 1000 / maxFPS,
+            frame = 0, // Frame id from request animation frame,
+            FPS = 0,
+            FTS = 0, // Frames this second
+            lastFPS = 0, // Last frames per second update,
+            waiting = [],
+            updates = [],
+            garbage = [],
+            easing = {
+                linear: function (d) {
+                    return d;
+                },
+                easeInQuad: function (d) {
+                    return Math.pow(d, 2);
+                },
+                easeInCubic: function (d) {
+                    return Math.pow(d, 3);
+                },
+                easeInQuart: function (d) {
+                    return Math.pow(d, 4);
+                },
+                easeInQuint: function (d) {
+                    return Math.pow(d, 5);
+                },
+                easeOutQuad: function (d) {
+                    return 1 - Math.pow(1 - d, 2);
+                },
+                easeOutCubic: function (d) {
+                    return 1 - Math.pow(1 - d, 3);
+                },
+                easeOutQuart: function (d) {
+                    return 1 - Math.pow(1 - d, 4);
+                },
+                easeOutQuint: function (d) {
+                    return 1 - Math.pow(1 - d, 5);
+                }
+            };
+            
+        function _animation(a, b) {
+            var c = {
+                values: {
+                    current: a,
+                    last: undefined,
+                    original: a,
+                    target: b,
+                    time: 0,
+                    vector: b - a
+                }
+            };
+            
+            Object.defineProperties(c, {
+                
+            });
+        }
+    }()); 
     
+    //  ===========================================================================  //
     //  GRAB
     window.grab2 = function (selector) {
         //  _create should create and return a grab object
