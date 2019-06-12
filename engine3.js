@@ -15,6 +15,64 @@
     function _getStyle (element, property) {
         return window.getComputedStyle(element, '')[property];
     }
+    function _parseValue (value, property) {
+        if (typeof value === 'string') {
+            if (property === 'height') {
+                if (value.match(/^auto&/)) {
+                    this.element.style.height = 'auto';
+                    value = this.element.offsetHeight;
+                } else if (value.match(/^initial$/)) {
+                    this.element.style.height = 'initial';
+                    value = this.element.offsetHeight;
+                } else if (value.match(/^\d+.?\d+%$/)) {
+                    value = this.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
+                } else if (value.match(/^\d+.?\d+vw$/)) {
+                    value = window.innerWidth * (parseFloat(value, 10) / 100);
+                } else if (value.match(/^\d+.?\d+vh$/)) {
+                    value = window.innerHeight * (parseFloat(value, 10) / 100);
+                } else {
+                    value = parseFloat(value, 10);
+                }
+            } else if (property === 'left') {
+                if (typeof value === 'string') {
+                    if (value.match(/^auto&/)) {
+                        this.element.style.left = 'auto';
+                        value = this.element.offsetLeft;
+                    } else if (value.match(/^initial$/)) {
+                        this.element.style.left = 'initial';
+                        value = this.element.offsetLeft;
+                    } else if (value.match(/^\d+.?\d+%$/)) {
+                        value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
+                    } else if (value.match(/^\d+.?\d+vw$/)) {
+                        value = window.innerWidth * (parseFloat(value, 10) / 100);
+                    } else if (value.match(/^\d+.?\d+vh$/)) {
+                        value = window.innerHeight * (parseFloat(value, 10) / 100);
+                    } else {
+                        value = parseFloat(value, 10);
+                    }
+                }
+            } else if (property === 'width') {
+                if (value.match(/^auto&/)) {
+                    this.element.style.width = 'auto';
+                    value = this.element.offsetWidth;
+                } else if (value.match(/^initial$/)) {
+                    this.element.style.width = 'initial';
+                    value = this.element.offsetWidth;
+                } else if (value.match(/^\d+.?\d+%$/)) {
+                    value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
+                } else if (value.match(/^\d+.?\d+vw$/)) {
+                    value = window.innerWidth * (parseFloat(value, 10) / 100);
+                } else if (value.match(/^\d+.?\d+vh$/)) {
+                    value = window.innerHeight * (parseFloat(value, 10) / 100);
+                } else {
+                    value = parseFloat(value, 10);
+                }
+            }
+        }
+        if (!Number.isNaN(parseFloat(value, 10))) {
+            return value;
+        }
+    }
     
     //  ANIMATION ENGINE  =========================================================  //
     animation = (function () {
@@ -60,15 +118,16 @@
                 }
             };
             
-        function _animation(a, b) {
-            var c = {
+        function _animation(a, b, property) {
+            var B = _parseValue(b, property),
+                c = {
                 values: {
                     current: a,
                     last: undefined,
                     origin: a,
-                    target: b,
+                    target: B,
                     time: 0,
-                    vector: b - a
+                    vector: B - a
                 }
             };
             Object.defineProperties(c, {
@@ -209,7 +268,7 @@
                 _remove(object);
             }
             Object.keys(values).forEach(function (property) {
-                animations[property] = _animation(object[property], values[property]);
+                animations[property] = _animation(object[property], values[property], property);
             });
             waiting.push({
                 object: object,
@@ -276,7 +335,8 @@
                 id: _getID(0),
                 values: {
                     height: undefined,
-                    left: undefined
+                    left: undefined,
+                    width: undefined
                 }
             }
             
@@ -287,7 +347,27 @@
                         return this.values.height;
                     },
                     set: function (value) {
-                        
+                        if (typeof value === 'string') {
+                            if (value.match(/^auto$/)) {
+                                this.element.style.height = 'auto';
+                                value = this.element.offsetHeight;
+                            } else if (value.match(/^initial$/)) {
+                                this.element.style.height = 'initial';
+                                value = this.element.offsetHeight;
+                            } else if (value.match(/^\d+.?\d+%$/)) {
+                                value = this.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
+                            } else if (value.match(/^\d+.?\d+vw$/)) {
+                                value = window.innerWidth * (parseFloat(value, 10) / 100);
+                            } else if (value.match(/^\d+.?\d+vh$/)) {
+                                value = window.innerHeight * (parseFloat(value, 10) / 100);
+                            } else {
+                                value = parseFloat(value, 10);
+                            }
+                        }
+                        if (!Number.isNaN(parseFloat(value, 10))) {
+                            this.values.height = value;
+                            this.element.style.height = value + 'px';
+                        }
                     }
                 },
                 left: {
@@ -296,16 +376,56 @@
                     },
                     set: function (value) {
                         if (typeof value === 'string') {
-                            if (value.match(/^-?\d+.?\d*?px$/)) {
+                            if (value.match(/^auto$/)) {
+                                this.element.style.left = 'auto';
+                                value = this.element.offsetLeft;
+                            } else if (value.match(/^initial$/)) {
+                                this.element.style.left = 'initial';
+                                value = this.element.offsetLeft;
+                            } else if (value.match(/^\d+.?\d+%$/)) {
+                                value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
+                            } else if (value.match(/^\d+.?\d+vw$/)) {
+                                value = window.innerWidth * (parseFloat(value, 10) / 100);
+                            } else if (value.match(/^\d+.?\d+vh$/)) {
+                                value = window.innerHeight * (parseFloat(value, 10) / 100);
+                            } else {
                                 value = parseFloat(value, 10);
                             }
                         }
                         if (!Number.isNaN(parseFloat(value, 10))) {
-                            this.element.style.left = value + 'px';
                             this.values.left = value;
+                            this.element.style.left = value + 'px';
                         }
                     }
-                }
+                },
+                width: {
+                    get: function () {
+                        return this.values.width;
+                    },
+                    set: function (value) {
+                        if (typeof value === 'string') {
+                            if (value.match(/^auto$/)) {
+                                this.element.style.width = 'auto';
+                                value = this.element.offsetWidth;
+                            } else if (value.match(/^initial$/)) {
+                                this.element.style.width = 'initial';
+                                value = this.element.offsetWidth;
+                            } else if (value.match(/^\d+.?\d+%$/)) {
+                                value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
+                            } else if (value.match(/^\d+.?\d+vw$/)) {
+                                value = window.innerWidth * (parseFloat(value, 10) / 100);
+                            } else if (value.match(/^\d+.?\d+vh$/)) {
+                                value = window.innerHeight * (parseFloat(value, 10) / 100);
+                            } else {
+                                value = parseFloat(value, 10);
+                            }
+                        }
+                        if (!Number.isNaN(parseFloat(value, 10))) {
+                            this.values.width = value;
+                            this.element.style.width = value + 'px';
+                        }
+                    }
+                },
             });
             //  Animate method
             grab.animate = function(values, duration, easing, complete) {
@@ -313,7 +433,9 @@
             }
             
             //  Get default values of DOM object
+            grab.height = _getStyle(grab.element, 'height');
             grab.left = _getStyle(grab.element, 'left');
+            grab.width = _getStyle(grab.element, 'width');
             
             //  Return grab object
             return grab;
