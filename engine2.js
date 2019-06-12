@@ -130,7 +130,6 @@
                 complete: complete,
                 flag: false
             });
-//            completes[object.id] = complete;
             if (!state) {
                 start();
             }
@@ -177,9 +176,6 @@
                         }
                     });
                     if (update.flag) {
-                        if (update.complete) {
-                            update.complete();
-                        }
                         garbage.push(update);
                     }
                 }
@@ -202,13 +198,9 @@
         }
         function collect() {
             garbage.forEach(function (update) {
-//                if (typeof item.complete === "function") {
-//                    item.complete();
-//                }
-//                remove2(updates.findIndex(function (update) {
-//                    return id === update.object.id;
-//                }));
-                console.log('collecting garbage...');
+                if (update.complete) {
+                    update.complete();
+                }
                 updates = updates.filter(function (u) {
                     return update.object.id !== u.object.id;
                 });
@@ -249,8 +241,7 @@
                 }
                 render(delta / timestep);
                 collect();
-//                frame = window.requestAnimationFrame(loop);
-                if (updates.length) {
+                if (updates.length || waiting.length) {
                     frame = window.requestAnimationFrame(loop);
                 } else {
                     stop();
@@ -301,7 +292,6 @@
                             }
                         }
                         if (typeof value === "number" && !Number.isNaN(value)) {
-                            console.log(value);
                             this.element.style.left = value + "px";
                             this.values.left = value;
                         }
