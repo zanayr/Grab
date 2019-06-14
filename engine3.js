@@ -15,64 +15,6 @@
     function _getStyle (element, property) {
         return window.getComputedStyle(element, '')[property];
     }
-    function _parseValue (value, property) {
-        if (typeof value === 'string') {
-            if (property === 'height') {
-                if (value.match(/^auto&/)) {
-                    this.element.style.height = 'auto';
-                    value = this.element.offsetHeight;
-                } else if (value.match(/^initial$/)) {
-                    this.element.style.height = 'initial';
-                    value = this.element.offsetHeight;
-                } else if (value.match(/^\d+.?\d+%$/)) {
-                    value = this.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
-                } else if (value.match(/^\d+.?\d+vw$/)) {
-                    value = window.innerWidth * (parseFloat(value, 10) / 100);
-                } else if (value.match(/^\d+.?\d+vh$/)) {
-                    value = window.innerHeight * (parseFloat(value, 10) / 100);
-                } else {
-                    value = parseFloat(value, 10);
-                }
-            } else if (property === 'left') {
-                if (typeof value === 'string') {
-                    if (value.match(/^auto&/)) {
-                        this.element.style.left = 'auto';
-                        value = this.element.offsetLeft;
-                    } else if (value.match(/^initial$/)) {
-                        this.element.style.left = 'initial';
-                        value = this.element.offsetLeft;
-                    } else if (value.match(/^\d+.?\d+%$/)) {
-                        value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
-                    } else if (value.match(/^\d+.?\d+vw$/)) {
-                        value = window.innerWidth * (parseFloat(value, 10) / 100);
-                    } else if (value.match(/^\d+.?\d+vh$/)) {
-                        value = window.innerHeight * (parseFloat(value, 10) / 100);
-                    } else {
-                        value = parseFloat(value, 10);
-                    }
-                }
-            } else if (property === 'width') {
-                if (value.match(/^auto&/)) {
-                    this.element.style.width = 'auto';
-                    value = this.element.offsetWidth;
-                } else if (value.match(/^initial$/)) {
-                    this.element.style.width = 'initial';
-                    value = this.element.offsetWidth;
-                } else if (value.match(/^\d+.?\d+%$/)) {
-                    value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
-                } else if (value.match(/^\d+.?\d+vw$/)) {
-                    value = window.innerWidth * (parseFloat(value, 10) / 100);
-                } else if (value.match(/^\d+.?\d+vh$/)) {
-                    value = window.innerHeight * (parseFloat(value, 10) / 100);
-                } else {
-                    value = parseFloat(value, 10);
-                }
-            }
-        }
-        if (!Number.isNaN(parseFloat(value, 10))) {
-            return value;
-        }
-    }
     
     //  ANIMATION ENGINE  =========================================================  //
     animation = (function () {
@@ -118,16 +60,15 @@
                 }
             };
             
-        function _animation(a, b, property) {
-            var B = _parseValue(b, property),
-                c = {
+        function _animation(a, b) {
+            var c = {
                 values: {
                     current: a,
                     last: undefined,
                     origin: a,
-                    target: B,
+                    target: b,
                     time: 0,
-                    vector: B - a
+                    vector: b - a
                 }
             };
             Object.defineProperties(c, {
@@ -285,7 +226,8 @@
                 });
             }
             Object.keys(values).forEach(function (property) {
-                animations[property] = _animation(object[property], values[property], property);
+                animations[property] = _animation(object[property], values[property]);
+
             });
             waiting.push({
                 animations: animations,
@@ -354,6 +296,7 @@
                 values: {
                     height: undefined,
                     left: undefined,
+                    top: undefined,
                     width: undefined
                 }
             }
@@ -365,27 +308,8 @@
                         return this.values.height;
                     },
                     set: function (value) {
-                        if (typeof value === 'string') {
-                            if (value.match(/^auto$/)) {
-                                this.element.style.height = 'auto';
-                                value = this.element.offsetHeight;
-                            } else if (value.match(/^initial$/)) {
-                                this.element.style.height = 'initial';
-                                value = this.element.offsetHeight;
-                            } else if (value.match(/^\d+.?\d+%$/)) {
-                                value = this.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
-                            } else if (value.match(/^\d+.?\d+vw$/)) {
-                                value = window.innerWidth * (parseFloat(value, 10) / 100);
-                            } else if (value.match(/^\d+.?\d+vh$/)) {
-                                value = window.innerHeight * (parseFloat(value, 10) / 100);
-                            } else {
-                                value = parseFloat(value, 10);
-                            }
-                        }
-                        if (!Number.isNaN(parseFloat(value, 10))) {
-                            this.values.height = value;
-                            this.element.style.height = value + 'px';
-                        }
+                        this.values.height = this.parse({height: value}).height;
+                        this.element.style.height = this.values.height + 'px';
                     }
                 },
                 left: {
@@ -393,27 +317,17 @@
                         return this.values.left;
                     },
                     set: function (value) {
-                        if (typeof value === 'string') {
-                            if (value.match(/^auto$/)) {
-                                this.element.style.left = 'auto';
-                                value = this.element.offsetLeft;
-                            } else if (value.match(/^initial$/)) {
-                                this.element.style.left = 'initial';
-                                value = this.element.offsetLeft;
-                            } else if (value.match(/^\d+.?\d+%$/)) {
-                                value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
-                            } else if (value.match(/^\d+.?\d+vw$/)) {
-                                value = window.innerWidth * (parseFloat(value, 10) / 100);
-                            } else if (value.match(/^\d+.?\d+vh$/)) {
-                                value = window.innerHeight * (parseFloat(value, 10) / 100);
-                            } else {
-                                value = parseFloat(value, 10);
-                            }
-                        }
-                        if (!Number.isNaN(parseFloat(value, 10))) {
-                            this.values.left = value;
-                            this.element.style.left = value + 'px';
-                        }
+                        this.values.left = this.parse({left: value}).left;
+                        this.element.style.left = this.values.left + 'px';
+                    }
+                },
+                top: {
+                    get: function () {
+                        return this.values.top;
+                    },
+                    set: function (value) {
+                        this.values.top = this.parse({top: value}).top;
+                        this.element.style.top = this.values.top + 'px';
                     }
                 },
                 width: {
@@ -421,40 +335,74 @@
                         return this.values.width;
                     },
                     set: function (value) {
-                        if (typeof value === 'string') {
-                            if (value.match(/^auto$/)) {
-                                this.element.style.width = 'auto';
-                                value = this.element.offsetWidth;
-                            } else if (value.match(/^initial$/)) {
-                                this.element.style.width = 'initial';
-                                value = this.element.offsetWidth;
-                            } else if (value.match(/^\d+.?\d+%$/)) {
-                                value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
-                            } else if (value.match(/^\d+.?\d+vw$/)) {
-                                value = window.innerWidth * (parseFloat(value, 10) / 100);
-                            } else if (value.match(/^\d+.?\d+vh$/)) {
-                                value = window.innerHeight * (parseFloat(value, 10) / 100);
-                            } else {
-                                value = parseFloat(value, 10);
-                            }
-                        }
-                        if (!Number.isNaN(parseFloat(value, 10))) {
-                            this.values.width = value;
-                            this.element.style.width = value + 'px';
-                        }
+                        this.values.width = this.parse({width: value}).width;
+                        this.element.style.width = this.values.width + 'px';
                     }
                 },
             });
+            
+            //  Parse method
+            grab.parse = function (values) {
+                var v = {};
+                Object.keys(values).forEach(function (property) {
+                    var value = values[property];
+                    if (typeof value === 'string') {
+                        if (property.match(/^height|left|top|width$/)) {
+                            if (value.match(/^\d+.?\d*px$/)) {
+                                value = parseFloat(value, 10);
+                            } else if (value.match(/^\d+.?\d*vw$/)) {
+                                value = window.innerWidth * (parseFloat(value, 10) / 100);
+                            } else if (value.match(/^\d+.?\d*vh$/)) {
+                                value = window.innerHeight * (parseFloat(value, 10) / 100);
+                            } else if (property.match(/^height|top$/)) {
+                                if (value.match(/^\d+.?\d*%$/)) {
+                                    value = this.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
+                                } else if (property.match(/^height/)) {
+                                    if (value.match(/^auto|initial$/)) {
+                                        this.element.style.height = value;
+                                        value = this.element.offsetHeight;
+                                    }
+                                } else {
+                                    if (value.match(/^auto|initial$/)) {
+                                        this.element.style.top = value;
+                                        value = this.element.offsetTop;
+                                    }
+                                }
+                            } else if (property.match(/^left|width$/)) {
+                                if (value.match(/^\d+.?\d*%$/)) {
+                                    value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
+                                } else if (property.match(/^left/)) {
+                                    if (value.match(/^auto|initial$/)) {
+                                        this.element.style.left = value;
+                                        value = this.element.offsetLeft;
+                                    }
+                                } else {
+                                    if (value.match(/^auto|initial$/)) {
+                                        this.element.style.width = value;
+                                        value = this.element.offsetWidth;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (!Number.isNaN(parseFloat(value, 10))) {
+                        v[property] = value;
+                    }
+                }.bind(this));
+                return v;
+            }
+            
             //  Animate method
-            grab.animate = function(values, duration, easing, complete) {
-                animation.add(this, values, duration || 1000, easing || 'linear', complete);
+            grab.animate = function (values, duration, easing, complete) {
+                animation.add(this, this.parse(values), duration || 1000, easing || 'linear', complete);
             }
             
             //  Get default values of DOM object
             grab.height = _getStyle(grab.element, 'height');
             grab.left = _getStyle(grab.element, 'left');
+            grab.top = _getStyle(grab.element, 'top');
             grab.width = _getStyle(grab.element, 'width');
-            
+
             //  Return grab object
             return grab;
         }
