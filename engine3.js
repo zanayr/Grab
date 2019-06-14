@@ -186,7 +186,7 @@
         }
         function _index (r) {
             var index = -1;
-            if (typeof reference === 'string') {
+            if (typeof r === 'string') {
                 updates.forEach(function (update, i) {
                     if (update.object.id === r) {
                         index = i;
@@ -195,9 +195,9 @@
             }
             return index;
         }
-        function _remove (object) {
+        function _remove (u) {
             updates = updates.filter(function (update) {
-                return update.object.id !== object.id;
+                return update.id !== u.id;
             });
         }
         function _update () {
@@ -205,10 +205,15 @@
                 if (!update.finished) {
                     Object.keys(update.animations).forEach(function (animation) {
                         var d = 0,
-                            a = update.animations[animation];
+                            a = update.animations[animation],
+                            q = 0;
                         a.time = a.time + timestep;
                         a.last = a.current;
-                        d = update.easing(a.time / update.duration);
+                        q = a.time / update.duration;
+                        if (q > 1) {
+                            q = 1;
+                        }
+                        d = update.easing(q);
                         if (a.distance * d >= a.distance) {
                             a.current = a.target;
                             update.finished = true;
@@ -239,7 +244,7 @@
                 if (typeof update.complete === 'function') {
                     update.complete();
                 }
-                _remove(update.object);
+                _remove(update);
             });
             garbage.length = 0;
         }
@@ -265,18 +270,31 @@
         function _add (object, values, duration, easing, complete) {
             var animations = {};
             if (_index(object.id) > -1) {
-                _remove(object);
+                updates.forEach(function (update) {
+                    var a = update.animations;
+                    if (update.object.id === object.id) {
+                        Object.keys(update.animations).forEach(function (animation) {
+                            Object.keys(values).forEach(function (value) {
+                                if (animation === value) {
+                                    delete a[animation];
+                                }
+                            });
+                        });
+                        update.animations = a;
+                    }
+                });
             }
             Object.keys(values).forEach(function (property) {
                 animations[property] = _animation(object[property], values[property], property);
             });
             waiting.push({
-                object: object,
                 animations: animations,
+                complete: complete,
                 duration: duration,
                 easing: easings[easing],
-                complete: complete,
-                finished: false
+                finished: false,
+                id: _getID(0),
+                object: object
             });
             if (!state) {
                 _start();
