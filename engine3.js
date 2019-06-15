@@ -234,8 +234,27 @@
         //  Add should add a new animation to the updates array, via the waiting array;
         //  It will also check if there are any duplicate animations in the updates
         //  array, i.e. same object and same property being animated
-        function _add (object, values, duration, easing, complete) {
-            var animations = {};
+        function _add (object, values) {
+            var animations = {},
+                i,
+                duration,
+                easing,
+                complete;
+            for (i = 2; i < arguments.length; i = i + 1) {
+                if (typeof arguments[i] === 'number') {
+                duration = arguments[i];
+                } else if (typeof arguments[i] === 'string') {
+                    easing = arguments[i];
+                } else if (typeof arguments[i] === 'function') {
+                    complete = arguments[i];
+                }
+            }
+            if (typeof duration === 'undefined') {
+                duration = 1000;
+            }
+            if (typeof easing === 'undefined') {
+                easing = 'linear';
+            }
             //  Check if the update is alreay in the updates array
             if (_index(object.id) > -1) {
                 updates.forEach(function (update) {
@@ -477,7 +496,44 @@
                         v[property] = values[property];
                     }
                 });
-                animation.add(this, _parseValues(v), duration || 1000, easing || 'linear', complete);
+                animation.add(this, _parseValues(v), duration, easing, complete);
+            }
+            
+            //  Data
+            grab.data = function (data) {
+                var attributes = this.element.attributes,
+                    a = {};
+                if (data) {
+                    Object.keys(data).forEach(function (i) {
+                        this.element.setAttribute('data-' + i.replace('_', '-'), data[i]);
+                    }.bind(this));
+                } else {
+                    Object.keys(attributes).forEach(function (i) {
+                        var attribute = attributes[i].name;
+                        if (attribute.match(/^data-[a-z-]+$/)) {
+                            a[attribute.replace('data-', '').replace('-', '_')] = attributes[i].value;
+                        }
+                    });
+                    return a;
+                }
+            }
+            
+            //  Fade in and out
+            grab.fadeIn = function (duration, easing, complete) {
+                this.animate({opacity: 1.0}, duration, easing, function () {
+                    this.display = 'block';
+                    if (typeof complete === 'function') {
+                        complete();
+                    }
+                }.bind(this));
+            }
+            grab.fadeOut = function (duration, easing, complete) {
+                this.animate({opacity: 0.0}, duration, easing, function () {
+                    this.display = 'none';
+                    if (typeof complete === 'function') {
+                        complete();
+                    }
+                }.bind(this));
             }
             
             //  The Parse function should take a passed property and value, both
