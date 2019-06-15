@@ -160,9 +160,7 @@
                         q = a.time / update.duration;
                         //  Check if the update has spoiled (time is up, but not yet
                         //  reached its target value)
-                        if (q > 1) {
-                            q = 1;
-                        }
+                        q = q > 1 ? 1 : q;
                         d = update.easing(q);
                         //  Check if the update has reached or passed its target
                         if (a.distance * d >= a.distance) {
@@ -367,8 +365,10 @@
                     display: undefined,
                     height: undefined,
                     left: undefined,
+                    opacity: undefined,
                     top: undefined,
                     width: undefined,
+                    visibility: undefined,
                     zIndex: undefined
                 }
             }
@@ -414,6 +414,18 @@
                         this.element.style.left = this.values.left + 'px';
                     }
                 },
+                opacity: {
+                    get: function () {
+                        return this.values.opacity;
+                    },
+                    set: function (value) {
+                        var v = this.parse('opacity', value);
+                        v = v > 1 ? 1 : v;
+                        v = v < 0 ? 0 : v;
+                        this.values.opacity = v;
+                        this.element.style.opacity = this.values.opacity;
+                    }
+                },
                 top: {
                     get: function () {
                         return this.values.top;
@@ -430,6 +442,17 @@
                     set: function (value) {
                         this.values.width = this.parse('width', value);
                         this.element.style.width = this.values.width + 'px';
+                    }
+                },
+                visibility: {
+                    get: function () {
+                        return this.values.visibility;
+                    },
+                    set: function (value) {
+                        if (typeof value === 'string') {
+                            this.values.visibility = value;
+                            this.element.style.visibility = this.values.visibility;
+                        }
                     }
                 },
                 zIndex: {
@@ -455,14 +478,14 @@
             grab.parse = function (property, value) {
                 if (typeof value === 'string') {
                     if (property.match(/^height|left|top|width$/)) {
-                        if (value.match(/^\d+.?\d*px$/)) {
+                        if (value.match(/^\d*.?\d*px$/)) {
                             value = parseFloat(value, 10);
-                        } else if (value.match(/^\d+.?\d*vw$/)) {
+                        } else if (value.match(/^\d*.?\d*vw$/)) {
                             value = window.innerWidth * (parseFloat(value, 10) / 100);
-                        } else if (value.match(/^\d+.?\d*vh$/)) {
+                        } else if (value.match(/^\d*.?\d*vh$/)) {
                             value = window.innerHeight * (parseFloat(value, 10) / 100);
                         } else if (property.match(/^height|top$/)) {
-                            if (value.match(/^\d+.?\d*%$/)) {
+                            if (value.match(/^\d*.?\d*%$/)) {
                                 value = this.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
                             } else if (property.match(/^height/)) {
                                 if (value.match(/^auto|initial$/)) {
@@ -476,7 +499,7 @@
                                 }
                             }
                         } else if (property.match(/^left|width$/)) {
-                            if (value.match(/^\d+.?\d*%$/)) {
+                            if (value.match(/^\d*.?\d*%$/)) {
                                 value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
                             } else if (property.match(/^left/)) {
                                 if (value.match(/^auto|initial$/)) {
@@ -490,6 +513,16 @@
                                 }
                             }
                         }
+                    } else if (property.match(/^opacity$/)) {
+                        if (value.match(/^auto|full|initial/)) {
+                            value = 1.0;
+                        } else if (value.match(/^none|transparent/)) {
+                            value = 0.0;
+                        } else if (value.match(/^\d*.?\d*%$/)) {
+                            value = (parseFloat(value, 10) / 100);
+                        } else if (value.match(/^\d*.?\d*$/)) {
+                            value = parseFloat(value, 10);
+                        }
                     }
                 }
                 if (!Number.isNaN(parseFloat(value, 10))) {
@@ -498,9 +531,9 @@
             }
             
             //  Get default values of DOM object
-            grab.display = _getStyle(grab.element, 'display');
             grab.height = _getStyle(grab.element, 'height');
             grab.left = _getStyle(grab.element, 'left');
+            grab.opacity = _getStyle(grab.element, 'opacity');
             grab.top = _getStyle(grab.element, 'top');
             grab.width = _getStyle(grab.element, 'width');
 
