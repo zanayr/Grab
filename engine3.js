@@ -470,7 +470,14 @@
             
             //  Animate method
             grab.animate = function (values, duration, easing, complete) {
-                animation.add(this, _parseValues(values), duration || 1000, easing || 'linear', complete);
+                var v = {};
+                Object.keys(values).forEach(function (property) {
+                    if (property.match(/^height|left|opacity|top|width$/)) {
+                        grab[property] = _getStyle(grab.element, property);
+                        v[property] = values[property];
+                    }
+                });
+                animation.add(this, _parseValues(v), duration || 1000, easing || 'linear', complete);
             }
             
             //  The Parse function should take a passed property and value, both
@@ -529,13 +536,6 @@
                     return value;
                 }
             }
-            
-            //  Get default values of DOM object
-            grab.height = _getStyle(grab.element, 'height');
-            grab.left = _getStyle(grab.element, 'left');
-            grab.opacity = _getStyle(grab.element, 'opacity');
-            grab.top = _getStyle(grab.element, 'top');
-            grab.width = _getStyle(grab.element, 'width');
 
             //  Return grab object
             return grab;
