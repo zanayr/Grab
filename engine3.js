@@ -59,16 +59,15 @@
                     return 1 - Math.pow(1 - d, 5);
                 }
             };
-            
         function _animation(a, b) {
             var c = {
                 values: {
-                    current: a,
-                    last: undefined,
-                    origin: a,
-                    target: b,
-                    time: 0,
-                    vector: b - a
+                    current: a, // The current value of the animation
+                    last: undefined, // The last value of the animation
+                    origin: a, // The origin value of the animation
+                    target: b, // The target value of the animation
+                    time: 0, // The total time passed animating
+                    vector: b - a // The distance of the animation, plus direction
                 }
             };
             Object.defineProperties(c, {
@@ -125,6 +124,9 @@
             });
             return c;
         }
+        
+        //  Index should return the index of a passed update, and -1 if the update does
+        //  not exist in the updates array
         function _index (r) {
             var index = -1;
             if (typeof r === 'string') {
@@ -136,11 +138,16 @@
             }
             return index;
         }
+        
+        //  Remove should remove a passed update from the updates array
         function _remove (u) {
             updates = updates.filter(function (update) {
                 return update.id !== u.id;
             });
         }
+        
+        //  Update should be called every frame and update the animation values
+        //  incrementally; and check if the values have reached their targets
         function _update () {
             updates.forEach(function (update) {
                 if (!update.finished) {
@@ -151,10 +158,13 @@
                         a.time = a.time + timestep;
                         a.last = a.current;
                         q = a.time / update.duration;
+                        //  Check if the update has spoiled (time is up, but not yet
+                        //  reached its target value)
                         if (q > 1) {
                             q = 1;
                         }
                         d = update.easing(q);
+                        //  Check if the update has reached or passed its target
                         if (a.distance * d >= a.distance) {
                             a.current = a.target;
                             update.finished = true;
@@ -162,16 +172,22 @@
                             a.current = a.vector * d + a.origin;
                         }
                     });
+                    //  Trash all finished updates
                     if (update.finished) {
                         garbage.push(update);
                     }
                 }
             });
         }
+        
+        //  Render should be called every frame and update the DOM for the new updated
+        //  values of the updates
         function _render (interpolation) {
             updates.forEach(function (update) {
                 Object.keys(update.animations).forEach(function (animation) {
                     var a = update.animations[animation];
+                    //  If the update is finished, it should be rendered at the target
+                    //  value
                     if (update.finished) {
                         update.object[animation] = a.target;
                     } else {
@@ -180,8 +196,11 @@
                 });
             });
         }
+        
+        //  Dispose should remove updates that have been pushed into the garbage array
         function _dispose () {
             garbage.forEach(function (update) {
+                //  If the update has a complete function, fire it now
                 if (typeof update.complete === 'function') {
                     update.complete();
                 }
@@ -192,6 +211,9 @@
         function _panic () {
             delta = 0;
         }
+        
+        //  Start should start the animation loop with an initial interpolatiion value
+        //  of one
         function _start () {
             if (!state) {
                 frame = window.requestAnimationFrame(function (timestamp) {
@@ -204,31 +226,52 @@
                 });
             }
         }
+        
+        //  Stop should stop the animation loop and cancel the current animation frame
         function _stop () {
             state = false;
             window.cancelAnimationFrame(frame);
         }
+        
+        //  Add should add a new animation to the updates array, via the waiting array;
+        //  It will also check if there are any duplicate animations in the updates
+        //  array, i.e. same object and same property being animated
         function _add (object, values, duration, easing, complete) {
             var animations = {};
+            //  Check if the update is alreay in the updates array
             if (_index(object.id) > -1) {
                 updates.forEach(function (update) {
                     var a = update.animations;
+                    //  Check if the update is animating the same object
                     if (update.object.id === object.id) {
                         Object.keys(update.animations).forEach(function (animation) {
                             Object.keys(values).forEach(function (value) {
+                                //  Check if the animation is animating the same
+                                //  property
                                 if (animation === value) {
+                                    //  Delete the property animation if it is true
                                     delete a[animation];
                                 }
                             });
                         });
                         update.animations = a;
                     }
+                    //  Remove the old complete function from the older update
+                    update.complete =  null;
+                    //  If there are no more animations in the update, push it to the
+                    //  garbage for collection
+                    if (!Object.keys(update.animations).length) {
+                        garbage.push(update);
+                    }
                 });
             }
+            //  Set the animation properties for the new animation
             Object.keys(values).forEach(function (property) {
                 animations[property] = _animation(object[property], values[property]);
 
             });
+            //  Push a new update object to the waiting array for insertion into the
+            //  updates array at a convenient time
             waiting.push({
                 animations: animations,
                 complete: complete,
@@ -238,55 +281,82 @@
                 id: _getID(0),
                 object: object
             });
+            //  If the loop is not yet looping, start the loop
             if (!state) {
                 _start();
             }
         }
+        
+        //  Loop should loop through all updates, updating values, rendering each
+        //  change in values and finally collection garbage; it will check if any
+        //  updates exist, if not it will stop itself
         function _loop (ts) {
             var count = 0;
             if (state) {
+                //  If the frame timestamp is less than the last FPS plus the step,
+                //  break early and request a new animation frame
                 if (ts < lastFPS + timestep) {
                     frame = window.requestAnimationFrame(_loop);
                     return;
                 }
-            }
-            delta = delta + (ts - lastFT);
-            lastFT = ts;
-            if (ts > lastFPS + 1000) {
-                FPS = 0.25 * FTS + 0.75 * FPS;
-                lastFPS = ts;
-                FTS = 0;
-            }
-            FTS = FTS + 1;
-            while (delta >= timestep) {
-                if (waiting.length) {
-                    updates = updates.concat(waiting);
-                    waiting.length = 0;
+                //  Delta is the delta plus the difference between the frame timestamp
+                //  and the last frame timestamp
+                delta = delta + (ts - lastFT);
+                lastFT = ts;
+                //  Check if the frame timestamp is greater than the last FPS plus one
+                //  second, if it is, lower the frame rate
+                if (ts > lastFPS + 1000) {
+                    FPS = 0.25 * FTS + 0.75 * FPS;
+                    lastFPS = ts;
+                    FTS = 0;
                 }
-                _update();
-                delta = delta - timestep;
-                count = count + 1;
-                if (count >= 240) {
-                    _panic();
-                    break;
+                //  Count the frame this second
+                FTS = FTS + 1;
+                //  Loop though all updates while the delta value is greater than the
+                //  timestep value.
+                while (delta >= timestep) {
+                    //  Insert any waiting updates now!
+                    if (waiting.length) {
+                        updates = updates.concat(waiting);
+                        waiting.length = 0;
+                    }
+                    //  Update values
+                    _update();
+                    //  Update delta
+                    delta = delta - timestep;
+                    //  Count ticks
+                    count = count + 1;
+                    //  If ticks is more than 240, panic and break out of loop
+                    if (count >= 240) {
+                        _panic();
+                        break;
+                    }
                 }
-            }
-            _render(delta / timestep);
-            _dispose();
-            if (updates.length || waiting.length) {
-                frame = window.requestAnimationFrame(_loop);
-            } else {
-                _stop();
+                //  Render values with the interpolation
+                _render(delta / timestep);
+                //  Dispose of the garbage array
+                _dispose();
+                //  Check if there are any updates or if there are any updates waiting
+                //  to be inserted into the engine
+                if (updates.length || waiting.length) {
+                    frame = window.requestAnimationFrame(_loop);
+                } else {
+                    //  If there are none, stop the engine
+                    _stop();
+                }
             }
         }
+        
         return {
             add: _add
         }
     }()); 
     
     //  ===========================================================================  //
-    //  GRAB
-    window.grab2 = function (selector) {
+    
+    
+    //  GRAB    ===================================================================  //
+    window.grab = function (selector) {
         //  _create should create and return a grab object
         function _create(dom) {
             //  Define grab object
@@ -301,6 +371,16 @@
                 }
             }
             
+            //  Parse values function should take an object or properties and string
+            //  values, returning an object of properties and numberic values.
+            function _parseValues (values) {
+                var v = {};
+                Object.keys(values).forEach(function (property) {
+                    v[property] = grab.parse(property, values[property]);
+                });
+                return v;
+            }
+            
             //  Define grab property getters and setters
             Object.defineProperties(grab, {
                 height: {
@@ -308,7 +388,7 @@
                         return this.values.height;
                     },
                     set: function (value) {
-                        this.values.height = this.parse({height: value}).height;
+                        this.values.height = this.parse('height', value);
                         this.element.style.height = this.values.height + 'px';
                     }
                 },
@@ -317,7 +397,7 @@
                         return this.values.left;
                     },
                     set: function (value) {
-                        this.values.left = this.parse({left: value}).left;
+                        this.values.left = this.parse('left', value);
                         this.element.style.left = this.values.left + 'px';
                     }
                 },
@@ -326,7 +406,7 @@
                         return this.values.top;
                     },
                     set: function (value) {
-                        this.values.top = this.parse({top: value}).top;
+                        this.values.top = this.parse('top', value);
                         this.element.style.top = this.values.top + 'px';
                     }
                 },
@@ -335,66 +415,62 @@
                         return this.values.width;
                     },
                     set: function (value) {
-                        this.values.width = this.parse({width: value}).width;
+                        this.values.width = this.parse('width', value);
                         this.element.style.width = this.values.width + 'px';
                     }
                 },
             });
             
-            //  Parse method
-            grab.parse = function (values) {
-                var v = {};
-                Object.keys(values).forEach(function (property) {
-                    var value = values[property];
-                    if (typeof value === 'string') {
-                        if (property.match(/^height|left|top|width$/)) {
-                            if (value.match(/^\d+.?\d*px$/)) {
-                                value = parseFloat(value, 10);
-                            } else if (value.match(/^\d+.?\d*vw$/)) {
-                                value = window.innerWidth * (parseFloat(value, 10) / 100);
-                            } else if (value.match(/^\d+.?\d*vh$/)) {
-                                value = window.innerHeight * (parseFloat(value, 10) / 100);
-                            } else if (property.match(/^height|top$/)) {
-                                if (value.match(/^\d+.?\d*%$/)) {
-                                    value = this.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
-                                } else if (property.match(/^height/)) {
-                                    if (value.match(/^auto|initial$/)) {
-                                        this.element.style.height = value;
-                                        value = this.element.offsetHeight;
-                                    }
-                                } else {
-                                    if (value.match(/^auto|initial$/)) {
-                                        this.element.style.top = value;
-                                        value = this.element.offsetTop;
-                                    }
+            //  Animate method
+            grab.animate = function (values, duration, easing, complete) {
+                animation.add(this, _parseValues(values), duration || 1000, easing || 'linear', complete);
+            }
+            
+            //  The Parse function should take a passed property and value, both
+            //  strings, and return a number value.
+            grab.parse = function (property, value) {
+                if (typeof value === 'string') {
+                    if (property.match(/^height|left|top|width$/)) {
+                        if (value.match(/^\d+.?\d*px$/)) {
+                            value = parseFloat(value, 10);
+                        } else if (value.match(/^\d+.?\d*vw$/)) {
+                            value = window.innerWidth * (parseFloat(value, 10) / 100);
+                        } else if (value.match(/^\d+.?\d*vh$/)) {
+                            value = window.innerHeight * (parseFloat(value, 10) / 100);
+                        } else if (property.match(/^height|top$/)) {
+                            if (value.match(/^\d+.?\d*%$/)) {
+                                value = this.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
+                            } else if (property.match(/^height/)) {
+                                if (value.match(/^auto|initial$/)) {
+                                    this.element.style.height = value;
+                                    value = this.element.offsetHeight;
                                 }
-                            } else if (property.match(/^left|width$/)) {
-                                if (value.match(/^\d+.?\d*%$/)) {
-                                    value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
-                                } else if (property.match(/^left/)) {
-                                    if (value.match(/^auto|initial$/)) {
-                                        this.element.style.left = value;
-                                        value = this.element.offsetLeft;
-                                    }
-                                } else {
-                                    if (value.match(/^auto|initial$/)) {
-                                        this.element.style.width = value;
-                                        value = this.element.offsetWidth;
-                                    }
+                            } else {
+                                if (value.match(/^auto|initial$/)) {
+                                    this.element.style.top = value;
+                                    value = this.element.offsetTop;
+                                }
+                            }
+                        } else if (property.match(/^left|width$/)) {
+                            if (value.match(/^\d+.?\d*%$/)) {
+                                value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
+                            } else if (property.match(/^left/)) {
+                                if (value.match(/^auto|initial$/)) {
+                                    this.element.style.left = value;
+                                    value = this.element.offsetLeft;
+                                }
+                            } else {
+                                if (value.match(/^auto|initial$/)) {
+                                    this.element.style.width = value;
+                                    value = this.element.offsetWidth;
                                 }
                             }
                         }
                     }
-                    if (!Number.isNaN(parseFloat(value, 10))) {
-                        v[property] = value;
-                    }
-                }.bind(this));
-                return v;
-            }
-            
-            //  Animate method
-            grab.animate = function (values, duration, easing, complete) {
-                animation.add(this, this.parse(values), duration || 1000, easing || 'linear', complete);
+                }
+                if (!Number.isNaN(parseFloat(value, 10))) {
+                    return value;
+                }
             }
             
             //  Get default values of DOM object
