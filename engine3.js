@@ -364,10 +364,12 @@
                 element: dom,
                 id: _getID(0),
                 values: {
+                    display: undefined,
                     height: undefined,
                     left: undefined,
                     top: undefined,
-                    width: undefined
+                    width: undefined,
+                    zIndex: undefined
                 }
             }
             
@@ -383,6 +385,17 @@
             
             //  Define grab property getters and setters
             Object.defineProperties(grab, {
+                display: {
+                    get: function () {
+                        return this.values.display;
+                    },
+                    set: function (value) {
+                        if (typeof value === 'string') {
+                            this.values.display = value;
+                            this.element.style.display = this.values.display;
+                        }
+                    }
+                },
                 height: {
                     get: function () {
                         return this.values.height;
@@ -417,6 +430,17 @@
                     set: function (value) {
                         this.values.width = this.parse('width', value);
                         this.element.style.width = this.values.width + 'px';
+                    }
+                },
+                zIndex: {
+                    get: function () {
+                        return this.values.zIndex;
+                    },
+                    set: function (value) {
+                        if (!Number.isNaN(parseInt(value, 10))) {
+                            this.values.zIndex = value;
+                            this.element.style.zIndex = this.values.zIndex;
+                        }
                     }
                 },
             });
@@ -474,6 +498,7 @@
             }
             
             //  Get default values of DOM object
+            grab.display = _getStyle(grab.element, 'display');
             grab.height = _getStyle(grab.element, 'height');
             grab.left = _getStyle(grab.element, 'left');
             grab.top = _getStyle(grab.element, 'top');
