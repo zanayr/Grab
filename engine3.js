@@ -1,4 +1,5 @@
 /*eslint-env browser*/
+/*eslint no-console: ["error", { allow: ["log", "warn", "error"] }] */
 
 (function () {
     "use-strict";
@@ -38,6 +39,27 @@
                 }
                 return Object.getPrototypeOf(o) === test;
             }());
+        }
+    }
+    
+    function _handleError (error, uid, origin) {
+        try {
+            switch (error) {
+                case 99:
+                    throw {
+                        code: error,
+                        message:     'Error in uid: ' + uid + ' origin: ' + origin,
+                        name:        'Invalid Node'
+                    };
+                default:
+                    throw {
+                        code: 0,
+                        message:     'error.',
+                        name:        'There was an'
+                    };
+            }
+        } catch (e) {
+            console.error(e.name, e.message);
         }
     }
     
@@ -404,6 +426,7 @@
             //  Define grab object
             var grab = {
                 element: dom,
+                selector: selector,
                 uid: _getID(0),
                 values: {
                     display: undefined,
@@ -512,6 +535,14 @@
                 },
             });
             
+            //  Misc.  //
+            grab.clone = function () {
+                var clone = {};
+                Object.assign(clone, this);
+                clone.uid = _getID(0);
+                return clone;
+            }
+            
             //  Animation Methods  //
             grab.animate = function (values, duration, easing, complete) {
                 var v = {};
@@ -542,10 +573,13 @@
             
             //  DOM Methods  //
             grab.after = function (sibling) {
+                var s;
                 if (this.element.parentNode) {
                     if (typeof sibling === 'string') {
-                        sibling = document.createElement(sibling.match(/([a-z]+)(?=>)/g)[0]).innerHTML = sibling.match(/(>)(.+)(?=<)/g)[0].substring(1);
-                    } else if (sibling.hasOwnProperty('innerHTML')) {
+                        s = document.createElement(sibling.match(/([a-z]+)(?=>)/g)[0]);
+                        s.innerHTML = sibling.match(/(>)(.+)(?=<)/g)[0].substring(1);
+                        sibling = _grab(s);
+                    } else if (sibling.nodeType > 0) {
                         sibling = _grab(sibling);
                     }
                     if (sibling.hasOwnProperty('uid')) {
@@ -555,13 +589,17 @@
                 }
             }
             grab.append = function (child) {
+                var c;
                 if (typeof child === 'string') {
-                    child = document.createElement(child.match(/([a-z]+)(?=>)/g)[0]).innerHTML = child.match(/(>)(.+)(?=<)/g)[0].substring(1);
-                } else if (child.hasOwnProperty('innerHTML')) {
+                    c = document.createElement(child.match(/([a-z]+)(?=>)/g)[0]);
+                    c.innerHTML = child.match(/(>)(.+)(?=<)/g)[0].substring(1);
+                    child = _grab(c);
+                } else if (child.nodeType > 0) {
                     child = _grab(child);
                 }
                 if (child.hasOwnProperty('uid')) {
-                    this.element.insertBefore(child.element, this.element.children[this.element.children.length - 1].nextSibling);
+                    this.element.appendChild(child.element);
+                    console.log(this.element.children);
                     return child;
                 }
             }
@@ -576,13 +614,27 @@
                 }
             }
             grab.before = function (sibling) {
+                var s;
                 if (this.element.parentNode) {
                     if (typeof sibling === 'string') {
-                        sibling = document.createElement(sibling.match(/([a-z]+)(?=>)/g)[0]).innerHTML = sibling.match(/(>)(.+)(?=<)/g)[0].substring(1);
-                    } else if (sibling.hasOwnProperty('innerHTML')) {
+                        try {
+                            s = document.createElement(sibling.match(/([a-z]+)(?=>)/g)[0]);
+                            if (sibling.match(/(>)(.+)(?=<)/g)) {
+                                s.innerHTML = sibling.match(/(>)(.+)(?=<)/g)[0].substring(1);
+                            }
+                            sibling = _grab(s);
+                        } catch (e) {
+                            if (e instanceof TypeError) {
+                                _handleError(99, this.uid, 'before');
+                            } else {
+                                _handleError();
+                            }
+                        }
+                    } else if (sibling.nodeType > 0) {
                         sibling = _grab(sibling);
                     }
                     if (sibling.hasOwnProperty('uid')) {
+                        console.log(sibling.uid);
                         this.element.parentNode.insertBefore(sibling.element, this.element);
                         return sibling;
                     }
@@ -617,21 +669,25 @@
                 }
             }
             grab.prepend = function (child) {
+                var c;
                 if (typeof child === 'string') {
-                    child = document.createElement(child.match(/([a-z]+)(?=>)/g)[0]).innerHTML = child.match(/(>)(.+)(?=<)/g)[0].substring(1);
-                } else if (child.hasOwnProperty('innerHTML')) {
+                    c = document.createElement(child.match(/([a-z]+)(?=>)/g)[0]);
+                    c.innerHTML = child.match(/(>)(.+)(?=<)/g)[0].substring(1);
+                    child = _grab(c);
+                } else if (child.nodeType > 0) {
                     child = _grab(child);
                 }
                 if (child.hasOwnProperty('uid')) {
-                    this.element.insertBefore(child.element, this.element.children[0]);
+                    this.element.insertBefore(child.element, this.element.firstElementChild);
                     return child;
                 }
             }
             grab.remove = function (child) {
-                if (child.hasOwnProperty('innerHTML')) {
+                if (child.noteType > 0) {
                     child = _grab(child);
                 }
                 if (child.hasOwnProperty('uid')) {
+                    console.log(this.element);
                     this.element.removeChild(child.element);
                     return child;
                 }
@@ -644,9 +700,9 @@
 //            grab.css = function (property, value) {
 //                
 //            }
-//            grab.id = function (id) {
-//                
-//            } 
+            grab.id = function (id) {
+                this.element.id = id;
+            } 
 //            grab.removeClass = function (className) {
 //                
 //            }
@@ -729,12 +785,75 @@
             return grab;
         }
         
+        function _createCollection () {
+            //  Define collection object
+            var collection = {
+                length: 0
+            }
+            
+            function _args(args) {
+                var i,
+                    a = [];
+                for (i = 0; i < args.length; i = i + 1) {
+                    a.push(args[i]);
+                }
+                return a;
+            }
+            function _exec(action, args) {
+                var i;
+                for (i = 0; i < collection.length; i = i + 1) {
+                    collection[i][action].apply(collection[i], args);
+                }
+            }
+            
+            collection.add = function (item) {
+                this[this.length] = item;
+                this.length = this.length + 1;
+            }
+            
+            //  Insert before and after
+            collection.after = function () {
+                _exec('after', _args(arguments));
+            }
+            collection.before = function (sibling) {
+                var i;
+                for (i = 0; i < this.length; i = i + 1) {
+                    if (sibling.hasOwnProperty('uid')) {
+                        collection[i].before(sibling.element.cloneNode(true));
+                    } else {
+                        collection[i].before(sibling);
+                    }
+                }
+            }
+            
+            //  Append and prepend
+            collection.append = function () {
+                 _exec('append', _args(arguments));
+            }
+            collection.prepend = function () {
+                 _exec('prepend', _args(arguments));
+            }
+            
+            //  Fade in and out
+            collection.fadeIn = function () {
+                 _exec('fadeIn', _args(arguments));
+            }
+            collection.fadeOut = function () {
+                 _exec('fadeOut', _args(arguments));
+            }
+            
+            return collection;
+        }
+        
         //  _grabMany should cycle through an array of DOM objects and call _grab for
         //  each one
         function _grabMany (them) {
-            return them.map(function (o) {
-                return _create(o);
-            });
+            var i,
+                collection = _createCollection();
+            for (i = 0; i < them.length; i = i + 1) {
+                collection.add(_create(them[i]));
+            }
+            return collection;
         }
         
         //  _grab should parse a DOM object and return a grab object
@@ -750,9 +869,11 @@
                     return it.split(',').map(function (o) {
                         return _grab(o);
                     });
-                } else {
+                }else {
                     return _create(document.querySelector(it));
                 }
+            }  else if (it.nodeType > 0) {
+                return _create(it);
             } else if (Array.isArray(it)) {
                 return it.map(function (o) {
                     return _grab(o);
