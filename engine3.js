@@ -16,6 +16,31 @@
         return window.getComputedStyle(element, '')[property];
     }
     
+    //  _isObject should check whether a passed parameter is an object literal or not
+    //  Thanks to Rick[1]
+    function _isObject(o) {
+        var test  = o,
+            checking = true;
+        //  First check if the parameter is not a type of object or null, return false
+        //  if true; else loop through the objects proptotypes recursively; checking
+        //  each if they are the base prototype, when that is found break out of the
+        //  loop and check if the prototype of the passed object is indeed this basal
+        //  object type, return the result
+        if (typeof o !== 'object' || o === null) {
+            return false;
+        } else {
+            (function () {
+                while (checking) {
+                    if (Object.getPrototypeOf(test = Object.getPrototypeOf(test)) === null) {
+                        checking = false; // This is for jslint only, there wont be a need to toggle the condition if we break out adventually on every case...
+                        break;
+                    }
+                }
+                return Object.getPrototypeOf(o) === test;
+            }());
+        }
+    }
+    
     //  ANIMATION ENGINE  =========================================================  //
     animation = (function () {
         var state = false,
@@ -131,7 +156,7 @@
             var index = -1;
             if (typeof r === 'string') {
                 updates.forEach(function (update, i) {
-                    if (update.object.id === r) {
+                    if (update.object.uid === r) {
                         index = i;
                     }
                 });
@@ -256,11 +281,11 @@
                 easing = 'linear';
             }
             //  Check if the update is alreay in the updates array
-            if (_index(object.id) > -1) {
+            if (_index(object.uid) > -1) {
                 updates.forEach(function (update) {
                     var a = update.animations;
                     //  Check if the update is animating the same object
-                    if (update.object.id === object.id) {
+                    if (update.object.uid === object.uid) {
                         Object.keys(update.animations).forEach(function (animation) {
                             Object.keys(values).forEach(function (value) {
                                 //  Check if the animation is animating the same
@@ -379,7 +404,7 @@
             //  Define grab object
             var grab = {
                 element: dom,
-                id: _getID(0),
+                uid: _getID(0),
                 values: {
                     display: undefined,
                     height: undefined,
@@ -487,7 +512,7 @@
                 },
             });
             
-            //  Animate method
+            //  Animation Methods  //
             grab.animate = function (values, duration, easing, complete) {
                 var v = {};
                 Object.keys(values).forEach(function (property) {
@@ -498,8 +523,71 @@
                 });
                 animation.add(this, _parseValues(v), duration, easing, complete);
             }
+            grab.fadeIn = function (duration, easing, complete) {
+                this.animate({opacity: 1.0}, duration, easing, function () {
+                    this.display = 'block';
+                    if (typeof complete === 'function') {
+                        complete();
+                    }
+                }.bind(this));
+            }
+            grab.fadeOut = function (duration, easing, complete) {
+                this.animate({opacity: 0.0}, duration, easing, function () {
+                    this.display = 'none';
+                    if (typeof complete === 'function') {
+                        complete();
+                    }
+                }.bind(this));
+            }
             
-            //  Data
+            //  DOM Methods  //
+            grab.after = function (sibling) {
+                if (this.element.parentNode) {
+                    if (typeof sibling === 'string') {
+                        sibling = document.createElement(sibling.match(/([a-z]+)(?=>)/g)[0]).innerHTML = sibling.match(/(>)(.+)(?=<)/g)[0].substring(1);
+                    } else if (sibling.hasOwnProperty('innerHTML')) {
+                        sibling = _grab(sibling);
+                    }
+                    if (sibling.hasOwnProperty('uid')) {
+                        this.element.parentNode.insertBefore(sibling.element, this.element.nextSibling);
+                        return sibling;
+                    }
+                }
+            }
+            grab.append = function (child) {
+                if (typeof child === 'string') {
+                    child = document.createElement(child.match(/([a-z]+)(?=>)/g)[0]).innerHTML = child.match(/(>)(.+)(?=<)/g)[0].substring(1);
+                } else if (child.hasOwnProperty('innerHTML')) {
+                    child = _grab(child);
+                }
+                if (child.hasOwnProperty('uid')) {
+                    this.element.insertBefore(child.element, this.element.children[this.element.children.length - 1].nextSibling);
+                    return child;
+                }
+            }
+            grab.attr = function (attr, value) {
+                if (typeof attr === 'string') {
+                    this.element.setAttribute(attr, value);
+                } else if (_isObject(attr)) {
+                    Object.keys(attr).forEach(function (attribute) {
+                        attribute = attribute.replace(/([A-Z])/g, '-$1').trim().toLowerCase();
+                        this.element.setAttribute(attribute, attr[attribute]);
+                    }.bind(this));
+                }
+            }
+            grab.before = function (sibling) {
+                if (this.element.parentNode) {
+                    if (typeof sibling === 'string') {
+                        sibling = document.createElement(sibling.match(/([a-z]+)(?=>)/g)[0]).innerHTML = sibling.match(/(>)(.+)(?=<)/g)[0].substring(1);
+                    } else if (sibling.hasOwnProperty('innerHTML')) {
+                        sibling = _grab(sibling);
+                    }
+                    if (sibling.hasOwnProperty('uid')) {
+                        this.element.parentNode.insertBefore(sibling.element, this.element);
+                        return sibling;
+                    }
+                }
+            }
             grab.data = function (data) {
                 var attributes = this.element.attributes,
                     a = {};
@@ -517,24 +605,68 @@
                     return a;
                 }
             }
+            grab.exit = function () {
+                this.element.parentNode.removeChild(this.element);
+                return this;
+            }
+            grab.html = function (html) {
+                if (html) {
+                    this.element.innerHTML = html;
+                } else {
+                    return this.element.innerHTML;
+                }
+            }
+            grab.prepend = function (child) {
+                if (typeof child === 'string') {
+                    child = document.createElement(child.match(/([a-z]+)(?=>)/g)[0]).innerHTML = child.match(/(>)(.+)(?=<)/g)[0].substring(1);
+                } else if (child.hasOwnProperty('innerHTML')) {
+                    child = _grab(child);
+                }
+                if (child.hasOwnProperty('uid')) {
+                    this.element.insertBefore(child.element, this.element.children[0]);
+                    return child;
+                }
+            }
+            grab.remove = function (child) {
+                if (child.hasOwnProperty('innerHTML')) {
+                    child = _grab(child);
+                }
+                if (child.hasOwnProperty('uid')) {
+                    this.element.removeChild(child.element);
+                    return child;
+                }
+            }
             
-            //  Fade in and out
-            grab.fadeIn = function (duration, easing, complete) {
-                this.animate({opacity: 1.0}, duration, easing, function () {
-                    this.display = 'block';
-                    if (typeof complete === 'function') {
-                        complete();
-                    }
-                }.bind(this));
-            }
-            grab.fadeOut = function (duration, easing, complete) {
-                this.animate({opacity: 0.0}, duration, easing, function () {
-                    this.display = 'none';
-                    if (typeof complete === 'function') {
-                        complete();
-                    }
-                }.bind(this));
-            }
+            //  CSS Methods  //
+//            grab.addClass = function (className) {
+//                
+//            }
+//            grab.css = function (property, value) {
+//                
+//            }
+//            grab.id = function (id) {
+//                
+//            } 
+//            grab.removeClass = function (className) {
+//                
+//            }
+//            grab.toggleClass = function (className) {
+//                
+//            }
+            
+            //  Event Handlers  //
+//            grab.off = function (event) {
+//                
+//            }
+//            grab.on = function (event, action) {
+//                
+//            }
+            
+            //  Search Methods  //
+//            grab.find = function (child) {
+//                
+//            }
+            
             
             //  The Parse function should take a passed property and value, both
             //  strings, and return a number value.
@@ -634,3 +766,8 @@
         return _grab(selector);
     };
 }());
+
+/*
+ *  SOURCES  ----------------------------------------------------------------------  //
+ *  [1]     https://stackoverflow.com/questions/1173549/how-to-determine-if-an-object-is-an-object-literal-in-javascript
+ */
