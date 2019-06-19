@@ -573,34 +573,31 @@
             
             //  DOM Methods  //
             grab.after = function (sibling) {
-                var s;
+                var fragment;
                 if (this.element.parentNode) {
-                    if (typeof sibling === 'string') {
-                        s = document.createElement(sibling.match(/([a-z]+)(?=>)/g)[0]);
-                        s.innerHTML = sibling.match(/(>)(.+)(?=<)/g)[0].substring(1);
-                        sibling = _grab(s);
-                    } else if (sibling.nodeType > 0) {
-                        sibling = _grab(sibling);
-                    }
-                    if (sibling.hasOwnProperty('uid')) {
+                    if (sibling && typeof sibling === 'string') {
+                        fragment = document.createRange().createContextualFragment(sibling).firstChild;
+                        this.element.parentNode.insertBefore(fragment, this.element.nextSibling);
+                        return _grab(fragment.tagName);
+                    } else if (sibling && sibling.uid) {
                         this.element.parentNode.insertBefore(sibling.element, this.element.nextSibling);
                         return sibling;
+                    } else {
+                        return null;
                     }
                 }
             }
             grab.append = function (child) {
-                var c;
-                if (typeof child === 'string') {
-                    c = document.createElement(child.match(/([a-z]+)(?=>)/g)[0]);
-                    c.innerHTML = child.match(/(>)(.+)(?=<)/g)[0].substring(1);
-                    child = _grab(c);
-                } else if (child.nodeType > 0) {
-                    child = _grab(child);
-                }
-                if (child.hasOwnProperty('uid')) {
+                var fragment;
+                if (child && typeof child === 'string') {
+                    fragment = document.createRange().createContextualFragment(child).firstChild;
+                    this.element.appendChild(fragment);
+                    return _grab(fragment.tagName)
+                } else if (child && child.uid) {
                     this.element.appendChild(child.element);
-                    console.log(this.element.children);
                     return child;
+                } else {
+                    return null;
                 }
             }
             grab.attr = function (attr, value) {
@@ -614,29 +611,16 @@
                 }
             }
             grab.before = function (sibling) {
-                var s;
+                var fragment = document.createRange().createContextualFragment(sibling).firstChild;
                 if (this.element.parentNode) {
-                    if (typeof sibling === 'string') {
-                        try {
-                            s = document.createElement(sibling.match(/([a-z]+)(?=>)/g)[0]);
-                            if (sibling.match(/(>)(.+)(?=<)/g)) {
-                                s.innerHTML = sibling.match(/(>)(.+)(?=<)/g)[0].substring(1);
-                            }
-                            sibling = _grab(s);
-                        } catch (e) {
-                            if (e instanceof TypeError) {
-                                _handleError(99, this.uid, 'before');
-                            } else {
-                                _handleError();
-                            }
-                        }
-                    } else if (sibling.nodeType > 0) {
-                        sibling = _grab(sibling);
-                    }
-                    if (sibling.hasOwnProperty('uid')) {
-                        console.log(sibling.uid);
+                    if (sibling && typeof sibling === 'string') {
+                        this.element.parentNode.insertBefore(fragment, this.element);
+                        return _grab(fragment.tagName);
+                    } else if (sibling && sibling.uid) {
                         this.element.parentNode.insertBefore(sibling.element, this.element);
                         return sibling;
+                    } else {
+                        return null;
                     }
                 }
             }
@@ -658,28 +642,29 @@
                 }
             }
             grab.exit = function () {
-                this.element.parentNode.removeChild(this.element);
-                return this;
+                if (this.element.parentNode) {
+                    this.element.parentNode.removeChild(this.element);
+                    return this;
+                }
             }
             grab.html = function (html) {
-                if (html) {
+                if (html && typeof html === 'string') {
                     this.element.innerHTML = html;
                 } else {
                     return this.element.innerHTML;
                 }
             }
             grab.prepend = function (child) {
-                var c;
-                if (typeof child === 'string') {
-                    c = document.createElement(child.match(/([a-z]+)(?=>)/g)[0]);
-                    c.innerHTML = child.match(/(>)(.+)(?=<)/g)[0].substring(1);
-                    child = _grab(c);
-                } else if (child.nodeType > 0) {
-                    child = _grab(child);
-                }
-                if (child.hasOwnProperty('uid')) {
-                    this.element.insertBefore(child.element, this.element.firstElementChild);
+                var fragment;
+                if (child && typeof child === 'string') {
+                    fragment = document.createRange().createContextualFragment(child).firstChild;
+                    this.element.prepend(fragment);
+                    return _grab(fragment.tagName);
+                } else if (child && child.uid) {
+                    this.element.prepend(child.element);
                     return child;
+                } else {
+                    return null;
                 }
             }
             grab.remove = function (child) {
@@ -859,9 +844,11 @@
         //  _grab should parse a DOM object and return a grab object
         function _grab (it) {
             if (typeof it === 'string') {
-                if (it.match(/^<[a-zA-Z]+>$/)) {
+                if (it.match(/^[a-zA-Z]+$/)) {
+                    return _create(document.createElement(it));
+                } else if (it.match(/^<[a-zA-Z]+>$/)) {
                     return _create(document.createElement(it.slice(1, -1).replace(/\s/g, '')));
-                } else if (it.match(/^#[a-zA-Z]/)) {
+                } else if (it.match(/^#[a-zA-Z0-9-]/)) {
                     return _create(document.getElementById(it.slice(1).replace(/\s/g, '')));
                 } else if (it.match(/^\.[a-zA-Z]/)) {
                     return _grabMany(document.getElementsByClassName(it.slice(1).replace(/\s/g, '')));
@@ -891,4 +878,5 @@
 /*
  *  SOURCES  ----------------------------------------------------------------------  //
  *  [1]     https://stackoverflow.com/questions/1173549/how-to-determine-if-an-object-is-an-object-literal-in-javascript
+ *  [2]     https://davidwalsh.name/convert-html-stings-dom-nodes // David Walsh
  */
