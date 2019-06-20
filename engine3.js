@@ -21,7 +21,8 @@
     //  Thanks to Rick[1]
     function _isObject(o) {
         var test  = o,
-            checking = true;
+            checking = true,
+            response;
         //  First check if the parameter is not a type of object or null, return false
         //  if true; else loop through the objects proptotypes recursively; checking
         //  each if they are the base prototype, when that is found break out of the
@@ -30,7 +31,7 @@
         if (typeof o !== 'object' || o === null) {
             return false;
         } else {
-            (function () {
+            return (function () {
                 while (checking) {
                     if (Object.getPrototypeOf(test = Object.getPrototypeOf(test)) === null) {
                         checking = false; // This is for jslint only, there wont be a need to toggle the condition if we break out adventually on every case...
@@ -428,16 +429,7 @@
                 element: dom,
                 selector: selector,
                 uid: _getID(0),
-                values: {
-                    display: undefined,
-                    height: undefined,
-                    left: undefined,
-                    opacity: undefined,
-                    top: undefined,
-                    width: undefined,
-                    visibility: undefined,
-                    zIndex: undefined
-                }
+                values: {}
             }
             
             //  Parse values function should take an object or properties and string
@@ -470,6 +462,16 @@
                     set: function (value) {
                         this.values.height = this.parse('height', value);
                         this.element.style.height = this.values.height + 'px';
+                    }
+                },
+                html: {
+                    get: function () {
+                        return this.element.innerHTML;
+                    },
+                    set: function (value) {
+                        if (typeof value === 'string') {
+                            this.element.innerHTML = value;
+                        }
                     }
                 },
                 left: {
@@ -647,13 +649,6 @@
                     return this;
                 }
             }
-            grab.html = function (html) {
-                if (html && typeof html === 'string') {
-                    this.element.innerHTML = html;
-                } else {
-                    return this.element.innerHTML;
-                }
-            }
             grab.prepend = function (child) {
                 var fragment;
                 if (child && typeof child === 'string') {
@@ -668,40 +663,54 @@
                 }
             }
             grab.remove = function (child) {
-                if (child.noteType > 0) {
+                if (child.nodeType > 0) {
                     child = _grab(child);
                 }
                 if (child.hasOwnProperty('uid')) {
-                    console.log(this.element);
                     this.element.removeChild(child.element);
                     return child;
                 }
             }
             
             //  CSS Methods  //
-//            grab.addClass = function (className) {
-//                
-//            }
-//            grab.css = function (property, value) {
-//                
-//            }
+            grab.addClass = function (className) {
+                this.element.classList.add(className);
+            }
+            grab.css = function (property, value) {
+                if (property && typeof property === 'string') {
+                    this.element.style[property] = value;
+                } else if (property && _isObject(property)) {
+                    Object.keys(property).forEach(function (prop) {
+                        this.element.style[prop] = property[prop];
+                    }.bind(this));
+                }
+            }
             grab.id = function (id) {
                 this.element.id = id;
             } 
-//            grab.removeClass = function (className) {
-//                
-//            }
-//            grab.toggleClass = function (className) {
-//                
-//            }
+            grab.removeClass = function (className) {
+                this.element.classList.remove(className);
+            }
+            grab.toggleClass = function (className) {
+                this.element.classList.toggle(className);
+            }
             
             //  Event Handlers  //
-//            grab.off = function (event) {
-//                
-//            }
-//            grab.on = function (event, action) {
-//                
-//            }
+            grab.hover = function (enter, leave) {
+                if (enter && typeof enter === 'function') {
+                    this.element.addEventListener('mouseenter', enter);
+                }
+                if (leave && typeof leave === 'function') {
+                    this.element.addEventListener('mouseleave', leave)
+                }
+                return this;
+            }
+            grab.off = function (event, action) {
+                this.element.removeEventListener(event, action);
+            }
+            grab.on = function (event, action) {
+                this.element.addEventListener(event, action);
+            }
             
             //  Search Methods  //
 //            grab.find = function (child) {
