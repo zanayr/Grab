@@ -427,7 +427,6 @@
             //  Define grab object
             var grab = {
                 element: dom,
-                selector: selector,
                 uid: _getID(0),
                 values: {}
             }
@@ -444,6 +443,16 @@
             
             //  Define grab property getters and setters
             Object.defineProperties(grab, {
+                children: {
+                    get: function () {
+                        var children = _createCollection(),
+                            i;
+                        for (i = 0; i < this.element.children.length; i = i + 1) {
+                            children.add(this.element.children[i])
+                        }
+                        return children;
+                    }
+                },
                 display: {
                     get: function () {
                         return this.values.display;
@@ -721,9 +730,31 @@
             }
             
             //  Search Methods  //
-//            grab.find = function (child) {
-//                
-//            }
+            grab.find = function (child) {
+                if (typeof child === 'string') {
+                    child = child.trim().replace(/\s/g, '').toLowerCase();
+                    if (child.match(/^[a-z]+$/)) {
+                        return _grabMany(document.getElementsByTagName(child));
+                    } else if (child.match(/^#[a-z0-9-]/)) {
+                        console.log(child);
+                        return _create(document.getElementById(child.slice(1)));
+                    } else if (child.match(/^\.[a-z0-9-]/)) {
+                        return _grabMany(document.getElementsByClassName(child.slice(1)));
+                    } else if (child.search(',' > -1)) {
+                        return child.split(',').map(function (o) {
+                            return _grab(o);
+                        });
+                    } else {
+                        return null;
+                    }
+                } else if (Array.isArray(child)) {
+                    return child.map(function (o) {
+                        return _grab(o);
+                    });
+                } else {
+                    return null;
+                }
+            }
             
             
             //  The Parse function should take a passed property and value, both
@@ -860,21 +891,22 @@
         
         //  _grab should parse a DOM object and return a grab object
         function _grab (it) {
+            it = it.trim().replace(/\s/g, '').toLowerCase();
             if (typeof it === 'string') {
-                if (it.match(/^[a-zA-Z]+$/)) {
+                if (it.match(/^[a-z]+$/)) {
                     return _create(document.createElement(it));
-                } else if (it.match(/^<[a-zA-Z]+>$/)) {
-                    return _create(document.createElement(it.slice(1, -1).replace(/\s/g, '')));
-                } else if (it.match(/^#[a-zA-Z0-9-]/)) {
-                    return _create(document.getElementById(it.slice(1).replace(/\s/g, '')));
-                } else if (it.match(/^\.[a-zA-Z]/)) {
-                    return _grabMany(document.getElementsByClassName(it.slice(1).replace(/\s/g, '')));
+                } else if (it.match(/^<[a-z]+>$/)) {
+                    return _create(document.createElement(it.slice(1, -1)));
+                } else if (it.match(/^#[a-z0-9-]/)) {
+                    return _create(document.getElementById(it.slice(1)));
+                } else if (it.match(/^\.[a-z0-9-]/)) {
+                    return _grabMany(document.getElementsByClassName(it.slice(1)));
                 } else if (it.search(',' > -1)) {
                     return it.split(',').map(function (o) {
                         return _grab(o);
                     });
-                }else {
-                    return _create(document.querySelector(it));
+                } else {
+                    return _grabMany(document.getElementsByTagName(it));
                 }
             }  else if (it.nodeType > 0) {
                 return _create(it);
