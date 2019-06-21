@@ -635,9 +635,17 @@
                     }.bind(this));
                 } else {
                     Object.keys(attributes).forEach(function (i) {
-                        var attribute = attributes[i].name;
+                        var attribute = attributes[i].name,
+                            arr,
+                            j;
                         if (attribute.match(/^data-[a-z-]+$/)) {
-                            a[attribute.replace('data-', '').replace('-', '_')] = attributes[i].value;
+                            arr = attribute.replace('data-', '').split('-');
+                            for (j = 0; j < arr.length; j = j + 1) {
+                                if (j) {
+                                    arr[j] = arr[j][0].toUpperCase() + arr[j].slice(1).toLowerCase();
+                                }
+                            }
+                            a[arr.join('')] = attributes[i].value;
                         }
                     });
                     return a;
