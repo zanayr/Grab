@@ -581,6 +581,14 @@
                     }
                 }.bind(this));
             }
+            grab.hide = function () {
+                this.visibility = 'hidden';
+                return this;
+            }
+            grab.show = function () {
+                this.visibility = 'visible';
+                return this;
+            }
             
             //  DOM Methods  //
             grab.after = function (sibling) {
