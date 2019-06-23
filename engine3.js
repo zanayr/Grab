@@ -21,8 +21,7 @@
     //  Thanks to Rick[1]
     function _isObject(o) {
         var test  = o,
-            checking = true,
-            response;
+            checking = true;
         //  First check if the parameter is not a type of object or null, return false
         //  if true; else loop through the objects proptotypes recursively; checking
         //  each if they are the base prototype, when that is found break out of the
@@ -43,26 +42,26 @@
         }
     }
     
-    function _handleError (error, uid, origin) {
-        try {
-            switch (error) {
-                case 99:
-                    throw {
-                        code: error,
-                        message:     'Error in uid: ' + uid + ' origin: ' + origin,
-                        name:        'Invalid Node'
-                    };
-                default:
-                    throw {
-                        code: 0,
-                        message:     'error.',
-                        name:        'There was an'
-                    };
-            }
-        } catch (e) {
-            console.error(e.name, e.message);
-        }
-    }
+//    function _handleError (error, uid, origin) {
+//        try {
+//            switch (error) {
+//                case 99:
+//                    throw {
+//                        code: error,
+//                        message:     'Error in uid: ' + uid + ' origin: ' + origin,
+//                        name:        'Invalid Node'
+//                    };
+//                default:
+//                    throw {
+//                        code: 0,
+//                        message:     'error.',
+//                        name:        'There was an'
+//                    };
+//            }
+//        } catch (e) {
+//            console.error(e.name, e.message);
+//        }
+//    }
     
     //  COLOR FUNCTIONS  //
     function _rgbToRgba (rgb) {
