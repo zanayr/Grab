@@ -64,6 +64,223 @@
         }
     }
     
+    //  COLOR FUNCTIONS  //
+    function _rgbToRgba (rgb) {
+        //  The _rgb function should parse an rgb or rgba value, both strings, and
+        //  return an array of numberic values;
+        var values;
+        //  Parse the value string for rgb(a) values
+        if (rgb.match(/-+/g)) {
+            values = null;
+        } else if (rgb.match(/^rgba\(/)) {
+            values = rgb.match(/^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d*\.?\d*)\s*\)$/);
+        } else if (rgb.match(/^rgb\(/)) {
+            values = rgb.match(/^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/);
+        } else {
+            values = ['to match the pattern below'].concat(rgb.match(/(\d{1,3}\.?\d?)/g));
+            //  Check if an invalid string is passed
+            if (values.length < 4 || values.length > 5) {
+                values = null;
+            }
+        }
+        //  Parse the values array for numeric rgb values
+        if (!values) {
+            return null; // Invalid passed values return null
+        } else {
+            return values.slice(1).map(function (c, i) {
+                if (i < 3) {
+                    //  A channel must be at most 255, the regex will not return a
+                    //  negative channel value
+                    return parseInt(c > 255 ? 255 : c, 10);
+                } else if (i === 3) {
+                    //  Alpha must be at most 1, the regex will not return a
+                    //  negative alpha value
+                    c = parseFloat(c > 1 ? 1 : c, 10);
+                    return c;
+                }
+            });
+        }
+    }
+    
+    function _hex (str) {
+        var values,
+            i;
+        
+        for (i = 0; i < str.replace(/^#|0x|0X/, '').length; i = i + 1) {
+            if (!str[i].match(/[0-9A-Z]/gi)) {
+                values = null;
+                break;
+            }
+        }
+        
+        if (!values) {
+            return null;
+        } else {
+            return str.replace(/^#|0x|0X/, '');
+        }
+    }
+    function _hexToRgba (hex) {
+        //  The _hex function should parse a hex or hexa value, both strings, and
+        //  return an array of numeric values
+        switch (hex.length) {
+            case 1: // Hex shorthand a, returns aaaaaa
+                hex = hex + hex;
+                return [parseInt(hex, 16), parseInt(hex, 16), parseInt(hex, 16), 1];
+            case 2: // Hex shorthand ab, returns ababab
+                return [parseInt(hex, 16), parseInt(hex, 16), parseInt(hex, 16), 1];
+            case 3: // Hex shorthand abc, returns aabbcc
+                return [parseInt(hex[0] + hex[0], 16), parseInt(hex[1] + hex[1], 16), parseInt(hex[2] + hex[2], 16), 1];
+            case 4: // Hexa shorthand abcd, returns aabbccdd
+                return [parseInt(hex[0] + hex[0], 16), parseInt(hex[1] + hex[1], 16), parseInt(hex[2] + hex[2], 16), parseInt(hex[3] + hex[3], 16) / 255];
+            case 6: // Hex abcdef
+                return hex.match(/([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})/i).slice(1).map(function (c) {
+                    return parseInt(c, 16);
+                }).concat(1); // Set alpha
+            case 8: // Hexa abcdef01
+                return hex.match(/([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})/i).slice(1).map(function (c, i) {
+                    return i < 3 ? parseInt(c, 16) : parseInt(c, 16) / 255;
+                });
+            default:
+                return null;
+        }
+    }
+    
+    
+    //  [3]
+    function _hsl (str) {
+        var values;
+        if (str.match(/a\(/)) { // str is an hsla string
+            values = str.match(/^hsla\((-?\d+),\s*([\d.]+)%,\s*([\d.]+)%,\s*(\d*\.?\d*)\)$/);
+        } else {
+            values = str.match(/^hsl\((-?\d+),\s*([\d.]+)%,\s*([\d.]+)%\)$/);
+        }
+        
+        if (!values) {
+            return null;
+        } else {
+            return values.slice(1).map(function (v, i) {
+                if (i === 0) {
+                    if (parseFloat(v, 10) < 0) { // h can be any angle, positive and negative
+                        return parseFloat(360 + (v % 360), 10) / 360;
+                    } else {
+                        return parseFloat(v % 360, 10) / 360;
+                    }
+                } else if (i === 3) {
+                    return parseFloat(v > 1 ? 1 : v); // alpha must be between 0 and 1
+                } else {
+                    return parseFloat(v > 100 ? 100 : v) / 100; // s or v must be between 0 and 100
+                }
+            });
+        }
+    }
+    function _hslToRgba (h, s, l, a) {
+        var r, // Red
+            g, // Green
+            b; // Blue
+
+        //  The _hue2rgb should return a converted hue value to the appropriate
+        //  channel value
+        function _hue (t) {
+            var q = l < 0.5 ? l * (1 + s) : l + s - l * s,
+                p = 2 * l - q;
+            //  Check if t is at least 0, and at most 1
+            t = t < 0 ? t + 1 : t;
+            t = t > 1 ? t - 1 : t;
+            //  Depending on the value of t, return the appropriate value;
+            if (t < 1 / 6) {
+                return p + (q - p) * 6 * t;
+            } else if (t < 1 / 2) {
+                return q;
+            } else if (t < 2 / 3) {
+                return p + (q - p) * (2 / 3 - t) * 6;
+            } else {
+                return p;
+            }
+        }
+        
+        if (s === 0) {
+            r = g = b = l; // achromatic
+        } else {
+            //  Convert hue to RGB
+            r = _hue(h + 1 / 3);
+            g = _hue(h);
+            b = _hue(h - 1 / 3);
+        }
+        
+        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), typeof a === 'undefined' ? 1 : a];
+        
+    }
+    function _hsv (str) {
+        var values;
+        if (str.match(/a\(/)) { // If there is an 'a(' in the string color, then it is likely an hsva string
+            values = str.match(/^hsva\((-?\d+),\s*([\d.]+)%,\s*([\d.]+)%,\s*(\d*\.?\d*)\)$/);
+        } else {
+            values = str.match(/^hsv\((-?\d+),\s*([\d.]+)%,\s*([\d.]+)%\)$/);
+        }
+        
+        if (!values) {
+            return null;
+        } else {
+            return values.slice(1).map(function (v, i) {
+                if (i === 0) {
+                    if (parseFloat(v, 10) < 0) { // h can be any angle, positive and negative
+                        return parseFloat(360 + (v % 360), 10) / 360;
+                    } else {
+                        return parseFloat(v % 360, 10) / 360;
+                    }
+                } else if (i === 3) {
+                        return parseFloat(v > 1 ? 1 : v); // alpha must be between 0 and 1
+                } else {
+                    return parseFloat(v > 100 ? 100 : v) / 100; // s or v must be between 0 and 100
+                }
+            });
+        }
+    }
+    function _hsvToRgba (h, s, v, a) {
+        var r,
+            g,
+            b,
+            i = Math.floor(h * 6),
+            f = h * 6 - i,
+            p = v * (1 - s),
+            q = v * (1 - f * s),
+            t = v * (1 - (1 -f) * s);
+        
+        switch (i % 6) {
+            case 0:
+                r = v;
+                g = t;
+                b = p;
+                break;
+            case 1:
+                r = q;
+                g = v;
+                b = p;
+                break;
+            case 2:
+                r = p;
+                g = v;
+                b = t;
+                break;
+            case 3:
+                r = p;
+                g = q;
+                b = v;
+                break;
+            case 4:
+                r = t;
+                g = p;
+                b = v;
+                break;
+            case 5:
+                r = v;
+                g = p;
+                b = q;
+        }
+        
+        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), typeof a === 'undefined' ? 1 : a];
+    }
+    
     //  ANIMATION ENGINE  =========================================================  //
     animation = (function () {
         var state = false,
@@ -431,6 +648,7 @@
                 values: {}
             }
             
+            
             //  Parse values function should take an object or properties and string
             //  values, returning an object of properties and numberic values.
             function _parseValues (values) {
@@ -440,6 +658,7 @@
                 });
                 return v;
             }
+            
             
             //  Define grab property getters and setters
             Object.defineProperties(grab, {
@@ -469,7 +688,7 @@
                         return this.values.height;
                     },
                     set: function (value) {
-                        this.values.height = this.parse('height', value);
+                        this.values.height = window.grab.parse('height', value);
                         this.element.style.height = this.values.height + 'px';
                     }
                 },
@@ -488,7 +707,7 @@
                         return this.values.left;
                     },
                     set: function (value) {
-                        this.values.left = this.parse('left', value);
+                        this.values.left = window.grab.parse('left', value);
                         this.element.style.left = this.values.left + 'px';
                     }
                 },
@@ -497,7 +716,7 @@
                         return this.values.opacity;
                     },
                     set: function (value) {
-                        var v = this.parse('opacity', value);
+                        var v = window.grab.parse('opacity', value);
                         v = v > 1 ? 1 : v;
                         v = v < 0 ? 0 : v;
                         this.values.opacity = v;
@@ -509,7 +728,7 @@
                         return this.values.top;
                     },
                     set: function (value) {
-                        this.values.top = this.parse('top', value);
+                        this.values.top = window.grab.parse('top', value);
                         this.element.style.top = this.values.top + 'px';
                     }
                 },
@@ -518,7 +737,7 @@
                         return this.values.width;
                     },
                     set: function (value) {
-                        this.values.width = this.parse('width', value);
+                        this.values.width = window.grab.parse('width', value);
                         this.element.style.width = this.values.width + 'px';
                     }
                 },
@@ -546,6 +765,7 @@
                 },
             });
             
+            
             //  Misc.  //
             grab.clone = function () {
                 var clone = {};
@@ -553,6 +773,7 @@
                 clone.uid = _getID(0);
                 return clone;
             }
+            
             
             //  Animation Methods  //
             grab.animate = function (values, duration, easing, complete) {
@@ -589,6 +810,7 @@
                 this.visibility = 'visible';
                 return this;
             }
+            
             
             //  DOM Methods  //
             grab.after = function (sibling) {
@@ -697,6 +919,7 @@
                 }
             }
             
+            
             //  CSS Methods  //
             grab.addClass = function (className) {
                 this.element.classList.add(className);
@@ -720,6 +943,7 @@
                 this.element.classList.toggle(className);
             }
             
+            
             //  Event Handlers  //
             grab.hover = function (enter, leave) {
                 if (enter && typeof enter === 'function') {
@@ -736,6 +960,7 @@
             grab.on = function (event, action) {
                 this.element.addEventListener(event, action);
             }
+            
             
             //  Search Methods  //
             grab.find = function (child) {
@@ -764,63 +989,6 @@
                 }
             }
             
-            
-            //  The Parse function should take a passed property and value, both
-            //  strings, and return a number value.
-            grab.parse = function (property, value) {
-                if (typeof value === 'string') {
-                    if (property.match(/^height|left|top|width$/)) {
-                        if (value.match(/^\d*.?\d*px$/)) {
-                            value = parseFloat(value, 10);
-                        } else if (value.match(/^\d*.?\d*vw$/)) {
-                            value = window.innerWidth * (parseFloat(value, 10) / 100);
-                        } else if (value.match(/^\d*.?\d*vh$/)) {
-                            value = window.innerHeight * (parseFloat(value, 10) / 100);
-                        } else if (property.match(/^height|top$/)) {
-                            if (value.match(/^\d*.?\d*%$/)) {
-                                value = this.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
-                            } else if (property.match(/^height/)) {
-                                if (value.match(/^auto|initial$/)) {
-                                    this.element.style.height = value;
-                                    value = this.element.offsetHeight;
-                                }
-                            } else {
-                                if (value.match(/^auto|initial$/)) {
-                                    this.element.style.top = value;
-                                    value = this.element.offsetTop;
-                                }
-                            }
-                        } else if (property.match(/^left|width$/)) {
-                            if (value.match(/^\d*.?\d*%$/)) {
-                                value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
-                            } else if (property.match(/^left/)) {
-                                if (value.match(/^auto|initial$/)) {
-                                    this.element.style.left = value;
-                                    value = this.element.offsetLeft;
-                                }
-                            } else {
-                                if (value.match(/^auto|initial$/)) {
-                                    this.element.style.width = value;
-                                    value = this.element.offsetWidth;
-                                }
-                            }
-                        }
-                    } else if (property.match(/^opacity$/)) {
-                        if (value.match(/^auto|full|initial/)) {
-                            value = 1.0;
-                        } else if (value.match(/^none|transparent/)) {
-                            value = 0.0;
-                        } else if (value.match(/^\d*.?\d*%$/)) {
-                            value = (parseFloat(value, 10) / 100);
-                        } else if (value.match(/^\d*.?\d*$/)) {
-                            value = parseFloat(value, 10);
-                        }
-                    }
-                }
-                if (!Number.isNaN(parseFloat(value, 10))) {
-                    return value;
-                }
-            }
 
             //  Return grab object
             return grab;
@@ -930,10 +1098,129 @@
         // return a grab object
         return _grab(selector);
     };
+    
+    
+    //  Parse Method  //
+    //  The Parse method should take a passed property and value, both
+    //  strings, and return a number value.
+    window.grab.parse = function (property, value) {
+        if (typeof value === 'string') {
+            if (property.match(/^height|left|top|width$/)) {
+                if (value.match(/^\d*\.?\d*px$/)) {
+                    value = parseFloat(value, 10);
+                } else if (value.match(/^\d*\.?\d*vw$/)) {
+                    value = window.innerWidth * (parseFloat(value, 10) / 100);
+                } else if (value.match(/^\d*\.?\d*vh$/)) {
+                    value = window.innerHeight * (parseFloat(value, 10) / 100);
+                } else if (property.match(/^height|top$/)) {
+                    if (value.match(/^\d*\.?\d*%$/)) {
+                        value = this.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
+                    } else if (property.match(/^height/)) {
+                        if (value.match(/^auto|initial$/)) {
+                            this.element.style.height = value;
+                            value = this.element.offsetHeight;
+                        }
+                    } else {
+                        if (value.match(/^auto|initial$/)) {
+                            this.element.style.top = value;
+                            value = this.element.offsetTop;
+                        }
+                    }
+                } else if (property.match(/^left|width$/)) {
+                    if (value.match(/^\d*\.?\d*%$/)) {
+                        value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
+                    } else if (property.match(/^left/)) {
+                        if (value.match(/^auto|initial$/)) {
+                            this.element.style.left = value;
+                            value = this.element.offsetLeft;
+                        }
+                    } else {
+                        if (value.match(/^auto|initial$/)) {
+                            this.element.style.width = value;
+                            value = this.element.offsetWidth;
+                        }
+                    }
+                }
+            } else if (property.match(/^opacity$/)) {
+                if (value.match(/^auto|full|initial/)) {
+                    value = 1.0;
+                } else if (value.match(/^none|transparent/)) {
+                    value = 0.0;
+                } else if (value.match(/^\d*\.?\d*%$/)) {
+                    value = (parseFloat(value, 10) / 100);
+                } else if (value.match(/^\d*\.?\d*$/)) {
+                    value = parseFloat(value, 10);
+                }
+            }
+        }
+        if (!Number.isNaN(parseFloat(value, 10))) {
+            return value;
+        }
+    }
+    
+    
+    //  Color Method  //
+    //  The Color method should take a passed color value, a string of any valid color
+    //  iso and return an object containing the numeric RGB values.
+    window.grab.color = function (value) {
+        var i,
+            colors = [];
+        if (value && typeof value === 'string') {
+            if (!value.match(/^rgba|rgb|#|0x|0X|hsla|hsl|hsv/)) {
+                if (value.match(/(\d{1,3}\.?\d?)/).length) {
+                    return _rgbToRgba(value);
+                } else {
+                    //  Browser standard color passed (i.g. "pink")
+                    (function () {
+                        var temp = document.createElement('div');
+                        temp.style.color = value;
+                        document.body.appendChild(temp);
+                        value = _getStyle(temp, 'color');
+                        document.body.removeChild(temp);
+                    }());
+                    return _rgbToRgba(value);
+                }
+            } else if (value.match(/^rgb/)) {
+                return _rgbToRgba(value);
+            } else if (value.match(/^#|0x|0X/)) {
+                return _hexToRgba.apply(null, _hex(value));
+            } else if (value.match(/^hsl/)) {
+                return _hslToRgba.apply(null, _hsl(value));
+            } else if (value.match(/^hsv/)) {
+                return _hsvToRgba.apply(null, _hsv(value));
+            } else {
+                return null;
+            }
+        } else if (Array.isArray(value)) {
+            return value.map(function (v, i) {
+                if (!Number.isNaN(parseFloat(v, 10))) {
+                    if (i < 3) {
+                        return parseInt(Math.abs(v) > 255 ? 255 : Math.abs(v), 10);
+                    } else if (i === 3) {
+                        return parseFloat(Math.abs(v) > 1 ? 1 : Math.abs(v), 10);
+                    }
+                }
+            });
+        } else if (arguments.length > 2 && arguments.length < 4) {
+            for (i = 0; i < arguments.length; i = i + 1) {
+                if (!Number.isNaN(parseFloat(arguments[i], 10))) {
+                    if (i < 3) {
+                        colors.push(parseInt(Math.abs(arguments[i]) > 255 ? 255 : Math.abs(arguments[i]), 10));
+                    } else if (i === 3) {
+                        colors.push(parseFloat(Math.abs(arguments[i]) > 1 ? 1 : Math.abs(arguments[i]), 10));
+                    }
+                }
+            }
+            return colors;
+        } else {
+            return null;
+        }
+    }
 }());
 
 /*
  *  SOURCES  ----------------------------------------------------------------------  //
  *  [1]     https://stackoverflow.com/questions/1173549/how-to-determine-if-an-object-is-an-object-literal-in-javascript
  *  [2]     https://davidwalsh.name/convert-html-stings-dom-nodes // David Walsh
+ *  [3]     http://axonflux.com/handy-rgb-to-hsl-and-rgb-to-hsv-color-model-c
  */
