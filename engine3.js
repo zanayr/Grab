@@ -102,11 +102,11 @@
     }
     
     function _hex (str) {
-        var values,
+        var values = str.replace(/^#|0x|0X/, ''),
             i;
         
-        for (i = 0; i < str.replace(/^#|0x|0X/, '').length; i = i + 1) {
-            if (!str[i].match(/[0-9A-Z]/gi)) {
+        for (i = 0; i < values.length; i = i + 1) {
+            if (!values[i].match(/[0-9A-Z]/gi)) {
                 values = null;
                 break;
             }
@@ -115,7 +115,7 @@
         if (!values) {
             return null;
         } else {
-            return str.replace(/^#|0x|0X/, '');
+            return values;
         }
     }
     function _hexToRgba (hex) {
@@ -1182,7 +1182,7 @@
             } else if (value.match(/^rgb/)) {
                 return _rgbToRgba(value);
             } else if (value.match(/^#|0x|0X/)) {
-                return _hexToRgba.apply(null, _hex(value));
+                return _hexToRgba(_hex(value));
             } else if (value.match(/^hsl/)) {
                 return _hslToRgba.apply(null, _hsl(value));
             } else if (value.match(/^hsv/)) {
@@ -1200,14 +1200,23 @@
                     }
                 }
             });
-        } else if (arguments.length > 2 && arguments.length < 4) {
+        } else if (arguments.length > 2 && arguments.length < 5) {
             for (i = 0; i < arguments.length; i = i + 1) {
+                var color;
                 if (!Number.isNaN(parseFloat(arguments[i], 10))) {
                     if (i < 3) {
-                        colors.push(parseInt(Math.abs(arguments[i]) > 255 ? 255 : Math.abs(arguments[i]), 10));
+                        color = parseInt(arguments[i] > 255 ? 255 : arguments[i], 10);
                     } else if (i === 3) {
-                        colors.push(parseFloat(Math.abs(arguments[i]) > 1 ? 1 : Math.abs(arguments[i]), 10));
+                        color = parseFloat(arguments[i] > 1 ? 1 : arguments[i], 10);
                     }
+                    if (color < 0) {
+                        colors = null;
+                        break;
+                    }
+                    colors.push(color);
+                } else {
+                    colors = null;
+                    break;
                 }
             }
             return colors;
