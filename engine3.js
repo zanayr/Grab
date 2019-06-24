@@ -693,14 +693,225 @@
             }
             
             
+            
+            
+            function _checkOpacity (value) {
+                return value <= 1 && value >= 0 ? value : null;
+            }
+            
+            //  Color Method  //
+            //  The Color method should convert most color models into an array of the rgba
+            //  color model; valid models are the rgb/a, hex/a, hsl/a and hsv/a models; as
+            //  well as some overloads to pass rgb/a models including strings of rgb/a values
+            //  delimited by commas, an array of numbers or as seperate parameters
+            function _color (value) {
+                var arr = [],
+                    i;
+                if (value && typeof value === 'string') {
+                    if (value.match(/^rgb|rgba/)) {
+                        return _rgba(value);
+                    } else if (value.match(/^#|0x|0X/)) {
+                        return _hexa(value);
+                    } else if (value.match(/^hsl|hsla/)) {
+                        return _hsla.apply(null, _hsx(value));
+                    } else if (value.match(/^hsv|hsva/)) {
+                        return _hsva.apply(null, _hsx(value));
+                    } else if (value.split(',').length >= 3) {
+                        return _rgba(value);
+                    } else {
+                        return _standard(value);
+                    }
+                } else if (Array.isArray(value)) {
+                    for (i = 0; i < value.length; i = i + 1) {
+                        arr.push(parseFloat(value[i], 10));
+                    }
+                    if (!arr[3]) {
+                        arr[3] = 1;
+                    }
+                    return _checkRGBA(arr);
+                } else if (arguments.length > 1) {
+                    for (i = 0; i < arguments.length; i = i + 1) {
+                        arr.push(parseFloat(arguments[i], 10));
+                    }
+                    if (!arr[3]) {
+                        arr[3] = 1;
+                    }
+                    return _checkRGBA(arr);
+                }
+                return null;
+            }
+
+            //  Parse Method  //
+            //  The Parse method should take a passed property and value, both strings, and
+            //  return a numeric value that is parsed depending on the property and the unit of
+            //  the value, if it has one or is required
+            function _parse (property, value) {
+                if (typeof value === 'string') {
+                    if (property.match(/^height|left|top|width$/)) {
+                        if (value.match(/^-?\d*\.?\d*px$/)) {
+                            return parseFloat(value, 10);
+                        } else if (value.match(/^-?\d*\.?\d*vw$/)) {
+                            return window.innerWidth * (parseFloat(value, 10) / 100);
+                        } else if (value.match(/^-?\d*\.?\d*vh$/)) {
+                            return window.innerHeight * (parseFloat(value, 10) / 100);
+                        } else if (property.match(/^height|top$/)) {
+                            if (value.match(/^\d*\.?\d*%$/)) {
+                                return grab.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
+                            } else if (property.match(/^height/)) {
+                                if (value.match(/^auto|initial$/)) {
+                                    grab.element.style.height = value;
+                                    return grab.element.offsetHeight;
+                                }
+                            } else {
+                                if (value.match(/^auto|initial$/)) {
+                                    grab.element.style.top = value;
+                                    return grab.element.offsetTop;
+                                }
+                            }
+                        } else if (property.match(/^left|width$/)) {
+                            if (value.match(/^-?\d*\.?\d*%$/)) {
+                                return grab.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
+                            } else if (property.match(/^left/)) {
+                                if (value.match(/^auto|initial$/)) {
+                                    grab.element.style.left = value;
+                                    return grab.element.offsetLeft;
+                                }
+                            } else {
+                                if (value.match(/^auto|initial$/)) {
+                                    grab.element.style.width = value;
+                                    return grab.element.offsetWidth;
+                                }
+                            }
+                        }
+                    } else if (property === 'opacity') {
+                        if (value.match(/^auto|initial|none$/)) {
+                            return _checkOpacity(1.0);
+                        } else if (value.match(/^transparent$/)) {
+                            return _checkOpacity(0.0);
+                        } else if (value.match(/^\d{1,3}\.?\d*%$/)) {
+                            return _checkOpacity(parseFloat(value, 10) / 100);
+                        } else if (value.match(/^\d*\.?\d*$/)) {
+                            return _checkOpacity(parseFloat(value, 10));
+                        }
+                    }
+                } else if (_isNumber(value)) {
+                    if (property === 'opacity') {
+                        return _checkOpacity(value);
+                    } else {
+                        return value;
+                    }
+                }
+                return null;
+            }
+            
             //  Parse values function should take an object or properties and string
             //  values, returning an object of properties and numberic values.
             function _parseValues (values) {
                 var v = {};
                 Object.keys(values).forEach(function (property) {
-                    v[property] = grab.parse(property, values[property]);
+                    v[property] = _parse(property, values[property]);
                 });
                 return v;
+            }
+            
+            //  _grabMany should cycle through an array of DOM objects and call _grab for
+            //  each one
+            function _createCollection () {
+                //  Define collection object
+                var collection = {
+                    length: 0
+                }
+
+                function _args(args) {
+                    var i,
+                        a = [];
+                    for (i = 0; i < args.length; i = i + 1) {
+                        a.push(args[i]);
+                    }
+                    return a;
+                }
+                function _exec(action, args) {
+                    var i;
+                    for (i = 0; i < collection.length; i = i + 1) {
+                        collection[i][action].apply(collection[i], args);
+                    }
+                }
+
+                collection.add = function (item) {
+                    this[this.length] = item;
+                    this.length = this.length + 1;
+                }
+
+                //  Insert before and after
+                collection.after = function () {
+                    _exec('after', _args(arguments));
+                }
+                collection.before = function (sibling) {
+                    var i;
+                    for (i = 0; i < this.length; i = i + 1) {
+                        if (sibling.hasOwnProperty('uid')) {
+                            collection[i].before(sibling.element.cloneNode(true));
+                        } else {
+                            collection[i].before(sibling);
+                        }
+                    }
+                }
+
+                //  Append and prepend
+                collection.append = function () {
+                     _exec('append', _args(arguments));
+                }
+                collection.prepend = function () {
+                     _exec('prepend', _args(arguments));
+                }
+
+                //  Fade in and out
+                collection.fadeIn = function () {
+                     _exec('fadeIn', _args(arguments));
+                }
+                collection.fadeOut = function () {
+                     _exec('fadeOut', _args(arguments));
+                }
+
+                return collection;
+            }
+            function _collect (items) {
+                var i,
+                    collection = _createCollection();
+                for (i = 0; i < items.length; i = i + 1) {
+                    collection.add(_create(items[i]));
+                }
+                return collection;
+            }
+
+            //  _grab should parse a DOM object and return a grab object
+            function _grab (item) {
+                item = item.trim().replace(/\s/g, '').toLowerCase();
+                if (typeof item === 'string') {
+                    if (item.match(/^[a-z]+$/)) {
+                        return _create(document.createElement(item));
+                    } else if (item.match(/^<[a-z]+>$/)) {
+                        return _create(document.createElement(item.slice(1, -1)));
+                    } else if (item.match(/^#[a-z0-9-]/)) {
+                        return _create(document.getElementById(item.slice(1)));
+                    } else if (item.match(/^\.[a-z0-9-]/)) {
+                        return _collect(document.getElementsByClassName(item.slice(1)));
+                    } else if (item.search(',' > -1)) {
+                        return item.split(',').map(function (o) {
+                            return _grab(o);
+                        });
+                    } else {
+                        return _collect(document.getElementsByTagName(item));
+                    }
+                }  else if (item.nodeType > 0) {
+                    return _create(item);
+                } else if (Array.isArray(item)) {
+                    return item.map(function (o) {
+                        return _grab(o);
+                    });
+                } else {
+                    return null;
+                }
             }
             
             
@@ -1011,12 +1222,12 @@
                 if (typeof child === 'string') {
                     child = child.trim().replace(/\s/g, '').toLowerCase();
                     if (child.match(/^[a-z]+$/)) {
-                        return _grabMany(document.getElementsByTagName(child));
+                        return _collect(document.getElementsByTagName(child));
                     } else if (child.match(/^#[a-z0-9-]/)) {
                         console.log(child);
                         return _create(document.getElementById(child.slice(1)));
                     } else if (child.match(/^\.[a-z0-9-]/)) {
-                        return _grabMany(document.getElementsByClassName(child.slice(1)));
+                        return _collect(document.getElementsByClassName(child.slice(1)));
                     } else if (child.search(',' > -1)) {
                         return child.split(',').map(function (o) {
                             return _grab(o);
@@ -1038,219 +1249,14 @@
             return grab;
         }
         
-        function _createCollection () {
-            //  Define collection object
-            var collection = {
-                length: 0
-            }
-            
-            function _args(args) {
-                var i,
-                    a = [];
-                for (i = 0; i < args.length; i = i + 1) {
-                    a.push(args[i]);
-                }
-                return a;
-            }
-            function _exec(action, args) {
-                var i;
-                for (i = 0; i < collection.length; i = i + 1) {
-                    collection[i][action].apply(collection[i], args);
-                }
-            }
-            
-            collection.add = function (item) {
-                this[this.length] = item;
-                this.length = this.length + 1;
-            }
-            
-            //  Insert before and after
-            collection.after = function () {
-                _exec('after', _args(arguments));
-            }
-            collection.before = function (sibling) {
-                var i;
-                for (i = 0; i < this.length; i = i + 1) {
-                    if (sibling.hasOwnProperty('uid')) {
-                        collection[i].before(sibling.element.cloneNode(true));
-                    } else {
-                        collection[i].before(sibling);
-                    }
-                }
-            }
-            
-            //  Append and prepend
-            collection.append = function () {
-                 _exec('append', _args(arguments));
-            }
-            collection.prepend = function () {
-                 _exec('prepend', _args(arguments));
-            }
-            
-            //  Fade in and out
-            collection.fadeIn = function () {
-                 _exec('fadeIn', _args(arguments));
-            }
-            collection.fadeOut = function () {
-                 _exec('fadeOut', _args(arguments));
-            }
-            
-            return collection;
-        }
-        
-        //  _grabMany should cycle through an array of DOM objects and call _grab for
-        //  each one
-        function _grabMany (them) {
-            var i,
-                collection = _createCollection();
-            for (i = 0; i < them.length; i = i + 1) {
-                collection.add(_create(them[i]));
-            }
-            return collection;
-        }
-        
-        //  _grab should parse a DOM object and return a grab object
-        function _grab (it) {
-            it = it.trim().replace(/\s/g, '').toLowerCase();
-            if (typeof it === 'string') {
-                if (it.match(/^[a-z]+$/)) {
-                    return _create(document.createElement(it));
-                } else if (it.match(/^<[a-z]+>$/)) {
-                    return _create(document.createElement(it.slice(1, -1)));
-                } else if (it.match(/^#[a-z0-9-]/)) {
-                    return _create(document.getElementById(it.slice(1)));
-                } else if (it.match(/^\.[a-z0-9-]/)) {
-                    return _grabMany(document.getElementsByClassName(it.slice(1)));
-                } else if (it.search(',' > -1)) {
-                    return it.split(',').map(function (o) {
-                        return _grab(o);
-                    });
-                } else {
-                    return _grabMany(document.getElementsByTagName(it));
-                }
-            }  else if (it.nodeType > 0) {
-                return _create(it);
-            } else if (Array.isArray(it)) {
-                return it.map(function (o) {
-                    return _grab(o);
-                });
-            } else {
-                return null;
-            }
-        }
-        
         // return a grab object
         return _grab(selector);
     };
     
-    function _checkOpacity (value) {
-        return value <= 1 && value >= 0 ? value : null;
-    }
-    //  Parse Method  //
-    //  The Parse method should take a passed property and value, both strings, and
-    //  return a numeric value that is parsed depending on the property and the unit of
-    //  the value, if it has one or is required
-    window.parse = function (property, value) {
-        if (typeof value === 'string') {
-            if (property.match(/^height|left|top|width$/)) {
-                if (value.match(/^-?\d*\.?\d*px$/)) {
-                    return parseFloat(value, 10);
-                } else if (value.match(/^-?\d*\.?\d*vw$/)) {
-                    return window.innerWidth * (parseFloat(value, 10) / 100);
-                } else if (value.match(/^-?\d*\.?\d*vh$/)) {
-                    return window.innerHeight * (parseFloat(value, 10) / 100);
-                } else if (property.match(/^height|top$/)) {
-                    if (value.match(/^\d*\.?\d*%$/)) {
-                        return div.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
-                    } else if (property.match(/^height/)) {
-                        if (value.match(/^auto|initial$/)) {
-                            div.style.height = value;
-                            return div.offsetHeight;
-                        }
-                    } else {
-                        if (value.match(/^auto|initial$/)) {
-                            div.style.top = value;
-                            return div.offsetTop;
-                        }
-                    }
-                } else if (property.match(/^left|width$/)) {
-                    if (value.match(/^-?\d*\.?\d*%$/)) {
-                        return div.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
-                    } else if (property.match(/^left/)) {
-                        if (value.match(/^auto|initial$/)) {
-                            div.style.left = value;
-                            return div.offsetLeft;
-                        }
-                    } else {
-                        if (value.match(/^auto|initial$/)) {
-                            div.style.width = value;
-                            return div.offsetWidth;
-                        }
-                    }
-                }
-            } else if (property === 'opacity') {
-                if (value.match(/^auto|initial|none$/)) {
-                    return _checkOpacity(1.0);
-                } else if (value.match(/^transparent$/)) {
-                    return _checkOpacity(0.0);
-                } else if (value.match(/^\d{1,3}\.?\d*%$/)) {
-                    return _checkOpacity(parseFloat(value, 10) / 100);
-                } else if (value.match(/^\d*\.?\d*$/)) {
-                    return _checkOpacity(parseFloat(value, 10));
-                }
-            }
-        } else if (_isNumber(value)) {
-            if (property === 'opacity') {
-                return _checkOpacity(value);
-            } else {
-                return value;
-            }
-        }
-        return null;
-    }
     
     
-    //  Color Method  //
-    //  The Color method should convert most color models into an array of the rgba
-    //  color model; valid models are the rgb/a, hex/a, hsl/a and hsv/a models; as
-    //  well as some overloads to pass rgb/a models including strings of rgb/a values
-    //  delimited by commas, an array of numbers or as seperate parameters
-    window.grab.color = function (value) {
-        var arr = [],
-            i;
-        if (value && typeof value === 'string') {
-            if (value.match(/^rgb|rgba/)) {
-                return _rgba(value);
-            } else if (value.match(/^#|0x|0X/)) {
-                return _hexa(value);
-            } else if (value.match(/^hsl|hsla/)) {
-                return _hsla.apply(null, _hsx(value));
-            } else if (value.match(/^hsv|hsva/)) {
-                return _hsva.apply(null, _hsx(value));
-            } else if (value.split(',').length >= 3) {
-                return _rgba(value);
-            } else {
-                return _standard(value);
-            }
-        } else if (Array.isArray(value)) {
-            for (i = 0; i < value.length; i = i + 1) {
-                arr.push(parseFloat(value[i], 10));
-            }
-            if (!arr[3]) {
-                arr[3] = 1;
-            }
-            return _checkRGBA(arr);
-        } else if (arguments.length > 1) {
-            for (i = 0; i < arguments.length; i = i + 1) {
-                arr.push(parseFloat(arguments[i], 10));
-            }
-            if (!arr[3]) {
-                arr[3] = 1;
-            }
-            return _checkRGBA(arr);
-        }
-        return null;
-    }
+    
+    
 }());
 
 /*
