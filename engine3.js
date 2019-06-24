@@ -63,224 +63,261 @@
 //        }
 //    }
     
-    //  COLOR FUNCTIONS  //
-    function _rgbToRgba (rgb) {
-        //  The _rgb function should parse an rgb or rgba value, both strings, and
-        //  return an array of numberic values;
-        var values;
-        //  Parse the value string for rgb(a) values
-        if (rgb.match(/-+/g)) {
-            values = null;
-        } else if (rgb.match(/^rgba\(/)) {
-            values = rgb.match(/^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d*\.?\d*)\s*\)$/);
-        } else if (rgb.match(/^rgb\(/)) {
-            values = rgb.match(/^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/);
-        } else {
-            values = ['to match the pattern below'].concat(rgb.match(/(\d{1,3}\.?\d?)/g));
-            //  Check if an invalid string is passed
-            if (values.length < 4 || values.length > 5) {
-                values = null;
-            }
-        }
-        //  Parse the values array for numeric rgb values
-        if (!values) {
-            return null; // Invalid passed values return null
-        } else {
-            return values.slice(1).map(function (c, i) {
-                if (i < 3) {
-                    //  A channel must be at most 255, the regex will not return a
-                    //  negative channel value
-                    return parseInt(c > 255 ? 255 : c, 10);
-                } else if (i === 3) {
-                    //  Alpha must be at most 1, the regex will not return a
-                    //  negative alpha value
-                    c = parseFloat(c > 1 ? 1 : c, 10);
-                    return c;
-                }
-            });
-        }
-    }
     
-    function _hex (str) {
-        var values = str.replace(/^#|0x|0X/, ''),
+    
+    //  COLORS  -----------------------------------------------------------  COLORS  //
+    //  The following section deals with the parsing, checking and converting of most
+    //  standard color models in the DOM to the rgba color model that grab uses
+    
+    //  The _checkRGBA function should take an array of RGBA values and determine if
+    //  they are valid or not
+    function _checkRGBA (arr) {
+        var valid = true,
             i;
-        
-        for (i = 0; i < values.length; i = i + 1) {
-            if (!values[i].match(/[0-9A-Z]/gi)) {
-                values = null;
+        //  1.  All channel values should be positive, integer,
+        //  2.  Channel valiues (elements 0, 1 and 2) should be at most 255
+        //  3.  Alpha channel (element 3) should be at most 1
+        //  4.  there should only be 4 channels
+        for (i = 0; i < arr.length; i = i + 1) {
+            if (arr[i] < 0 || Number.isNaN(arr[i])) {
+                valid = false;
+                break;
+            }
+            if (i < 3 && arr[i] > 255 && valid) {
+                valid = false;
+                break;
+            } else if (i === 3 && arr[3] > 1 && valid) {
+                valid = false;
+                break;
+            } else if (i > 3) {
+                valid = false;
                 break;
             }
         }
-        
-        if (!values) {
-            return null;
-        } else {
-            return values;
-        }
+        return valid ? arr : null;
     }
-    function _hexToRgba (hex) {
-        //  The _hex function should parse a hex or hexa value, both strings, and
-        //  return an array of numeric values
-        switch (hex.length) {
-            case 1: // Hex shorthand a, returns aaaaaa
-                hex = hex + hex;
-                return [parseInt(hex, 16), parseInt(hex, 16), parseInt(hex, 16), 1];
-            case 2: // Hex shorthand ab, returns ababab
-                return [parseInt(hex, 16), parseInt(hex, 16), parseInt(hex, 16), 1];
-            case 3: // Hex shorthand abc, returns aabbcc
-                return [parseInt(hex[0] + hex[0], 16), parseInt(hex[1] + hex[1], 16), parseInt(hex[2] + hex[2], 16), 1];
-            case 4: // Hexa shorthand abcd, returns aabbccdd
-                return [parseInt(hex[0] + hex[0], 16), parseInt(hex[1] + hex[1], 16), parseInt(hex[2] + hex[2], 16), parseInt(hex[3] + hex[3], 16) / 255];
-            case 6: // Hex abcdef
-                return hex.match(/([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})/i).slice(1).map(function (c) {
-                    return parseInt(c, 16);
-                }).concat(1); // Set alpha
-            case 8: // Hexa abcdef01
-                return hex.match(/([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})/i).slice(1).map(function (c, i) {
-                    return i < 3 ? parseInt(c, 16) : parseInt(c, 16) / 255;
-                });
-            default:
-                return null;
-        }
-    }
-    
-    
-    //  [3]
-    function _hsl (str) {
-        var values;
-        if (str.match(/a\(/)) { // str is an hsla string
-            values = str.match(/^hsla\((-?\d+),\s*([\d.]+)%,\s*([\d.]+)%,\s*(\d*\.?\d*)\)$/);
-        } else {
-            values = str.match(/^hsl\((-?\d+),\s*([\d.]+)%,\s*([\d.]+)%\)$/);
-        }
-        
-        if (!values) {
-            return null;
-        } else {
-            return values.slice(1).map(function (v, i) {
-                if (i === 0) {
-                    if (parseFloat(v, 10) < 0) { // h can be any angle, positive and negative
-                        return parseFloat(360 + (v % 360), 10) / 360;
-                    } else {
-                        return parseFloat(v % 360, 10) / 360;
-                    }
-                } else if (i === 3) {
-                    return parseFloat(v > 1 ? 1 : v); // alpha must be between 0 and 1
-                } else {
-                    return parseFloat(v > 100 ? 100 : v) / 100; // s or v must be between 0 and 100
-                }
-            });
-        }
-    }
-    function _hslToRgba (h, s, l, a) {
-        var r, // Red
-            g, // Green
-            b; // Blue
-
-        //  The _hue2rgb should return a converted hue value to the appropriate
-        //  channel value
-        function _hue (t) {
-            var q = l < 0.5 ? l * (1 + s) : l + s - l * s,
-                p = 2 * l - q;
-            //  Check if t is at least 0, and at most 1
-            t = t < 0 ? t + 1 : t;
-            t = t > 1 ? t - 1 : t;
-            //  Depending on the value of t, return the appropriate value;
-            if (t < 1 / 6) {
-                return p + (q - p) * 6 * t;
-            } else if (t < 1 / 2) {
-                return q;
-            } else if (t < 2 / 3) {
-                return p + (q - p) * (2 / 3 - t) * 6;
-            } else {
-                return p;
+   
+    //  The _checkHex function should take a string of a hexidecimal value and
+    //  determine if it is a valid hexidecimal value
+    function _checkHex (str) {
+        var value = str.replace(/^#|0x|0X/, ''),
+            i;
+        //  1.  All hexidecimal values should be a number 0 to 9, a to f; where a to f
+        //      represent the values 10 to 15
+        for (i = 0; i < value.length; i = i + 1) {
+            if (!value[i].match(/[0-9A-F]/gi)) {
+                value = null;
+                break;
             }
         }
-        
-        if (s === 0) {
-            r = g = b = l; // achromatic
+        return value;
+    }
+    
+    //  The _checkHSXA function should take an array of HSXA values and determine if
+    //  they are valid or not
+    function _checkHSXA (arr) {
+        var i,
+            valid = true;
+        //  1.  Hues (element 0) must be contained in the set [-360, 360]
+        //  2.  Saturation, Lightness and Alpha (elements 1, 2 and 3) must be contained
+        //  3.  HSL arrays can only have 4 values
+        for (i = 0; i < arr.length; i = i + 1) {
+            if (Number.isNaN(arr[i])) {
+                valid = false;
+                break;
+            }
+            if (i === 0 && (arr[i] < -360 || arr[i] > 360)) {
+                valid = false;
+                break;
+            } else if (i < 4 && (arr[i] < 0 || arr[i] > 1)) {
+                valid = false;
+                break;
+            } else if (i > 4) {
+                valid = false;
+                break;
+            }
+        }
+        if (!arr[3]) {
+            arr[3] = 1;
+        }
+        return valid ? arr : null;
+    }
+    
+    //  The _rgba function should take a string of and parse it for valid rgba values
+    //  Valid formats are 'rgb(0, 0, 0)', 'rgba(0, 0, 0, 0.0)' or even a string of
+    //  values delimited by commas, e.g. '0, 0, 0' and '0, 0, 0, 0.0'
+    function _rgba (str) {
+        var values = str.match(/(-?\d{1,3}\.?\d*)/g);
+        if (!values) {
+            return null;
         } else {
-            //  Convert hue to RGB
+            values = values.map(function (value) {
+                return parseFloat(value, 10);
+            });
+            if (!values[3]) {
+                values[3] = 1;
+            }
+        }
+        return _checkRGBA(values);
+    }
+    
+    //  The _standard function should take a string and apply it to a temporary div in
+    //  the DOM; returning its color styling as a parsed rgba array
+    //  Valid formats are any color names, e.g. 'blue' or 'lightcoral'
+    function _standard (str) {
+        var div = document.createElement('div'),
+            color;
+        div.style.color = str;
+        document.body.appendChild(div);
+        color = _getStyle(div, 'color');
+        document.body.removeChild(div);
+        color = _rgba(color);
+        if ((str !== 'black' && str !== 'transparent') && !color[0] && !color[1] && !color[2]) {
+            return null;
+        } else {
+            return _checkRGBA(color);
+        }
+    }
+    
+    //  The _hexa should take a hexidecimal string and parse it for an array of valid
+    //  RGBA values; the function takes many shorthand formats and even the new hexa
+    //  standard
+    //  Valid formats begin with '#', '0x' or '0X' and a string of length 1 to 8,
+    //  except 5 and 7, of hexidecimal values '0' to 'f'
+    function _hexa (str) {
+        var value = _checkHex(str),
+            values;
+        if (value) {
+            switch (value.length) {
+                case 1: // Hexidecimal shorthand a, returns aaaaaa
+                    value = value + value;
+                    values = [parseInt(value, 16), parseInt(value, 16), parseInt(value, 16), 1];
+                    break;
+                case 2: // Hexidecima shorthand ab, returns ababab
+                    values = [parseInt(value, 16), parseInt(value, 16), parseInt(value, 16), 1];
+                    break;
+                case 3: // Hexidecimal shorthand abc, returns aabbcc
+                    values = [parseInt(value[0] + value[0], 16), parseInt(value[1] + value[1], 16), parseInt(value[2] + value[2], 16), 1];
+                    break;
+                case 4: // Hexidecimal/alpha shorthand abcd, returns aabbccdd
+                    values = [parseInt(value[0] + value[0], 16), parseInt(value[1] + value[1], 16), parseInt(value[2] + value[2], 16), parseInt(value[3] + value[3], 16) / 255];
+                    break;
+                case 6: // Hexidecimal abcdef
+                    values = value.match(/([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})/i).slice(1).map(function (v) {
+                        return parseInt(v, 16);
+                    }).concat(1); // Set alpha
+                    break;
+                case 8: // Hexidecimal/alpha abcdef01
+                    values = value.match(/([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})/i).slice(1).map(function (v, i) {
+                        return i < 3 ? parseInt(v, 16) : parseInt(v, 16) / 255;
+                    });
+                    break;
+                default:
+                    break;
+            }
+        }
+        return value ? _checkRGBA(values) : null;
+    }
+    
+    //  The _hsx function should take a string and return an array of hsx/a values to
+    //  be checked later
+    //  Valid string formats are both hsl/a and hsv/a models, e.g. 'hsl/v(0, 0, 0)' and
+    //  'hsl/va(0, 0, 0, 0.0)'
+    function _hsx (str) {
+        var values = str.match(/(-?\d{1,3}\.?\d*)/g);
+        if (values) {
+            return _checkHSXA(values.map(function (value, z) {
+                if (z === 0) {
+                    return value.includes('-') ? (360 + (parseFloat(value, 10) % 360)) / 360 : (parseFloat(value, 10) % 360) / 360;
+                } else if (z < 3) {
+                    return parseFloat(value, 10) / 100;
+                } else {
+                    return parseFloat(value, 10);
+                }
+            }));
+        }
+        return null;
+    }
+    
+    //  Convert hsla values into an array of rgba values; I wish I could tell you how
+    //  this works, but this code comes from Garry Tan[3]
+    function _hsla (h, s, l, a) {
+        var r,
+            g,
+            b;
+        function _hue (T) {
+            var Q = l < 0.5 ? l * (1 + s) : l + s - l * s,
+                P = 2 * l - Q;
+            T = T < 0 ? T + 1 : T;
+            T = T > 1 ? T - 1 : T;
+            if (T < 1 / 6) {
+                return P + (Q - P) * 6 * T;
+            } else if (T < 1 / 2) {
+                return Q;
+            } else if (T < 2 / 3) {
+                return P + (Q - P) * (2 / 3 - T) * 6;
+            } else {
+                return P;
+            }
+        }
+        if (s === 0) {
+            r = g = b = l;
+        } else {
             r = _hue(h + 1 / 3);
             g = _hue(h);
             b = _hue(h - 1 / 3);
         }
-        
-        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), typeof a === 'undefined' ? 1 : a];
-        
+        return _checkRGBA([Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), a]);
     }
-    function _hsv (str) {
-        var values;
-        if (str.match(/a\(/)) { // If there is an 'a(' in the string color, then it is likely an hsva string
-            values = str.match(/^hsva\((-?\d+),\s*([\d.]+)%,\s*([\d.]+)%,\s*(\d*\.?\d*)\)$/);
-        } else {
-            values = str.match(/^hsv\((-?\d+),\s*([\d.]+)%,\s*([\d.]+)%\)$/);
-        }
-        
-        if (!values) {
-            return null;
-        } else {
-            return values.slice(1).map(function (v, i) {
-                if (i === 0) {
-                    if (parseFloat(v, 10) < 0) { // h can be any angle, positive and negative
-                        return parseFloat(360 + (v % 360), 10) / 360;
-                    } else {
-                        return parseFloat(v % 360, 10) / 360;
-                    }
-                } else if (i === 3) {
-                        return parseFloat(v > 1 ? 1 : v); // alpha must be between 0 and 1
-                } else {
-                    return parseFloat(v > 100 ? 100 : v) / 100; // s or v must be between 0 and 100
-                }
-            });
-        }
-    }
-    function _hsvToRgba (h, s, v, a) {
+    
+    //  Convert hsva values into an array of rgba values; I wish I could tell you how
+    //  this works, but this code comes from Garry Tan[3]
+    function _hsva (h, s, v, a) {
         var r,
             g,
             b,
-            i = Math.floor(h * 6),
-            f = h * 6 - i,
-            p = v * (1 - s),
-            q = v * (1 - f * s),
-            t = v * (1 - (1 -f) * s);
-        
-        switch (i % 6) {
+            I = Math.floor(h * 6),
+            F = h * 6 - I,
+            P = v * (1 - s),
+            Q = v * (1 - F * s),
+            T = v * (1 - (1 - F) * s);
+        switch (I % 6) {
             case 0:
                 r = v;
-                g = t;
-                b = p;
+                g = T;
+                b = P;
                 break;
             case 1:
-                r = q;
+                r = Q;
                 g = v;
-                b = p;
+                b = P;
                 break;
             case 2:
-                r = p;
+                r = P;
                 g = v;
-                b = t;
+                b = T;
                 break;
             case 3:
-                r = p;
-                g = q;
+                r = P;
+                g = Q;
                 b = v;
                 break;
             case 4:
-                r = t;
-                g = p;
+                r = T;
+                g = P;
                 b = v;
                 break;
             case 5:
                 r = v;
-                g = p;
-                b = q;
+                g = P;
+                b = Q;
         }
-        
-        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), typeof a === 'undefined' ? 1 : a];
+        return _checkRGBA([Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), a]);
     }
     
-    //  ANIMATION ENGINE  =========================================================  //
+    
+    
+    //  ANIMATION  -----------------------------------------------------  ANIMATION  //
     animation = (function () {
         var state = false,
             lastFT = 0, // Last frame time in ms
@@ -631,12 +668,10 @@
         return {
             add: _add
         }
-    }()); 
-    
-    //  ===========================================================================  //
+    }());
     
     
-    //  GRAB    ===================================================================  //
+    //  GRAB  ---------------------------------------------------------------  GRAB  //
     window.grab = function (selector) {
         //  _create should create and return a grab object
         function _create(dom) {
@@ -1159,76 +1194,51 @@
     
     
     //  Color Method  //
-    //  The Color method should take a passed color value, a string of any valid color
-    //  iso and return an object containing the numeric RGB values.
+    //  The Color method should convert most color models into an array of the rgba
+    //  color model; valid models are the rgb/a, hex/a, hsl/a and hsv/a models; as
+    //  well as some overloads to pass rgb/a models including strings of rgb/a values
+    //  delimited by commas, an array of numbers or as seperate parameters
     window.grab.color = function (value) {
-        var i,
-            colors = [];
+        var arr = [],
+            i;
         if (value && typeof value === 'string') {
-            if (!value.match(/^rgba|rgb|#|0x|0X|hsla|hsl|hsv/)) {
-                if (value.match(/(\d{1,3}\.?\d?)/).length) {
-                    return _rgbToRgba(value);
-                } else {
-                    //  Browser standard color passed (i.g. "pink")
-                    (function () {
-                        var temp = document.createElement('div');
-                        temp.style.color = value;
-                        document.body.appendChild(temp);
-                        value = _getStyle(temp, 'color');
-                        document.body.removeChild(temp);
-                    }());
-                    return _rgbToRgba(value);
-                }
-            } else if (value.match(/^rgb/)) {
-                return _rgbToRgba(value);
+            if (value.match(/^rgb|rgba/)) {
+                return _rgba(value);
             } else if (value.match(/^#|0x|0X/)) {
-                return _hexToRgba(_hex(value));
-            } else if (value.match(/^hsl/)) {
-                return _hslToRgba.apply(null, _hsl(value));
-            } else if (value.match(/^hsv/)) {
-                return _hsvToRgba.apply(null, _hsv(value));
+                return _hexa(value);
+            } else if (value.match(/^hsl|hsla/)) {
+                return _hsla.apply(null, _hsx(value));
+            } else if (value.match(/^hsv|hsva/)) {
+                return _hsva.apply(null, _hsx(value));
+            } else if (value.split(',').length >= 3) {
+                return _rgba(value);
             } else {
-                return null;
+                return _standard(value);
             }
         } else if (Array.isArray(value)) {
-            return value.map(function (v, i) {
-                if (!Number.isNaN(parseFloat(v, 10))) {
-                    if (i < 3) {
-                        return parseInt(Math.abs(v) > 255 ? 255 : Math.abs(v), 10);
-                    } else if (i === 3) {
-                        return parseFloat(Math.abs(v) > 1 ? 1 : Math.abs(v), 10);
-                    }
-                }
-            });
-        } else if (arguments.length > 2 && arguments.length < 5) {
-            for (i = 0; i < arguments.length; i = i + 1) {
-                var color;
-                if (!Number.isNaN(parseFloat(arguments[i], 10))) {
-                    if (i < 3) {
-                        color = parseInt(arguments[i] > 255 ? 255 : arguments[i], 10);
-                    } else if (i === 3) {
-                        color = parseFloat(arguments[i] > 1 ? 1 : arguments[i], 10);
-                    }
-                    if (color < 0) {
-                        colors = null;
-                        break;
-                    }
-                    colors.push(color);
-                } else {
-                    colors = null;
-                    break;
-                }
+            for (i = 0; i < value.length; i = i + 1) {
+                arr.push(parseFloat(value[i], 10));
             }
-            return colors;
-        } else {
-            return null;
+            if (!arr[3]) {
+                arr[3] = 1;
+            }
+            return _checkRGBA(arr);
+        } else if (arguments.length > 1) {
+            for (i = 0; i < arguments.length; i = i + 1) {
+                arr.push(parseFloat(arguments[i], 10));
+            }
+            if (!arr[3]) {
+                arr[3] = 1;
+            }
+            return _checkRGBA(arr);
         }
+        return null;
     }
 }());
 
 /*
  *  SOURCES  ----------------------------------------------------------------------  //
  *  [1]     https://stackoverflow.com/questions/1173549/how-to-determine-if-an-object-is-an-object-literal-in-javascript
- *  [2]     https://davidwalsh.name/convert-html-stings-dom-nodes // David Walsh
+ *  [2]     https://davidwalsh.name/convert-html-stings-dom-nodes -- David Walsh
  *  [3]     http://axonflux.com/handy-rgb-to-hsl-and-rgb-to-hsv-color-model-c
  */

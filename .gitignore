@@ -4,3 +4,5 @@ sandbox.js
 *.html
 *.css
 *.txt
+/lib/*
+.DS_Store
