@@ -41,6 +41,16 @@
             }());
         }
     }
+    function _isNumber (number) {
+        var valid = true;
+        if (typeof number !== 'number') {
+            valid = false;
+        }
+        if (!Number.isFinite(number) && valid) {
+            valid = false;    
+        }
+        return valid;
+    }
     
 //    function _handleError (error, uid, origin) {
 //        try {
@@ -1133,63 +1143,70 @@
         return _grab(selector);
     };
     
-    
+    function _checkOpacity (value) {
+        return value <= 1 && value >= 0 ? value : null;
+    }
     //  Parse Method  //
-    //  The Parse method should take a passed property and value, both
-    //  strings, and return a number value.
-    window.grab.parse = function (property, value) {
+    //  The Parse method should take a passed property and value, both strings, and
+    //  return a numeric value that is parsed depending on the property and the unit of
+    //  the value, if it has one or is required
+    window.parse = function (property, value) {
         if (typeof value === 'string') {
             if (property.match(/^height|left|top|width$/)) {
-                if (value.match(/^\d*\.?\d*px$/)) {
-                    value = parseFloat(value, 10);
-                } else if (value.match(/^\d*\.?\d*vw$/)) {
-                    value = window.innerWidth * (parseFloat(value, 10) / 100);
-                } else if (value.match(/^\d*\.?\d*vh$/)) {
-                    value = window.innerHeight * (parseFloat(value, 10) / 100);
+                if (value.match(/^-?\d*\.?\d*px$/)) {
+                    return parseFloat(value, 10);
+                } else if (value.match(/^-?\d*\.?\d*vw$/)) {
+                    return window.innerWidth * (parseFloat(value, 10) / 100);
+                } else if (value.match(/^-?\d*\.?\d*vh$/)) {
+                    return window.innerHeight * (parseFloat(value, 10) / 100);
                 } else if (property.match(/^height|top$/)) {
                     if (value.match(/^\d*\.?\d*%$/)) {
-                        value = this.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
+                        return div.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
                     } else if (property.match(/^height/)) {
                         if (value.match(/^auto|initial$/)) {
-                            this.element.style.height = value;
-                            value = this.element.offsetHeight;
+                            div.style.height = value;
+                            return div.offsetHeight;
                         }
                     } else {
                         if (value.match(/^auto|initial$/)) {
-                            this.element.style.top = value;
-                            value = this.element.offsetTop;
+                            div.style.top = value;
+                            return div.offsetTop;
                         }
                     }
                 } else if (property.match(/^left|width$/)) {
-                    if (value.match(/^\d*\.?\d*%$/)) {
-                        value = this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
+                    if (value.match(/^-?\d*\.?\d*%$/)) {
+                        return div.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
                     } else if (property.match(/^left/)) {
                         if (value.match(/^auto|initial$/)) {
-                            this.element.style.left = value;
-                            value = this.element.offsetLeft;
+                            div.style.left = value;
+                            return div.offsetLeft;
                         }
                     } else {
                         if (value.match(/^auto|initial$/)) {
-                            this.element.style.width = value;
-                            value = this.element.offsetWidth;
+                            div.style.width = value;
+                            return div.offsetWidth;
                         }
                     }
                 }
-            } else if (property.match(/^opacity$/)) {
-                if (value.match(/^auto|full|initial/)) {
-                    value = 1.0;
-                } else if (value.match(/^none|transparent/)) {
-                    value = 0.0;
-                } else if (value.match(/^\d*\.?\d*%$/)) {
-                    value = (parseFloat(value, 10) / 100);
+            } else if (property === 'opacity') {
+                if (value.match(/^auto|initial|none$/)) {
+                    return _checkOpacity(1.0);
+                } else if (value.match(/^transparent$/)) {
+                    return _checkOpacity(0.0);
+                } else if (value.match(/^\d{1,3}\.?\d*%$/)) {
+                    return _checkOpacity(parseFloat(value, 10) / 100);
                 } else if (value.match(/^\d*\.?\d*$/)) {
-                    value = parseFloat(value, 10);
+                    return _checkOpacity(parseFloat(value, 10));
                 }
             }
+        } else if (_isNumber(value)) {
+            if (property === 'opacity') {
+                return _checkOpacity(value);
+            } else {
+                return value;
+            }
         }
-        if (!Number.isNaN(parseFloat(value, 10))) {
-            return value;
-        }
+        return null;
     }
     
     
