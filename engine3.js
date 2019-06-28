@@ -672,6 +672,7 @@
                 duration,
                 easing,
                 complete;
+            //  Organize supplemental arguments
             for (i = 2; i < arguments.length; i = i + 1) {
                 if (typeof arguments[i] === 'number') {
                 duration = arguments[i];
@@ -716,6 +717,7 @@
             }
             //  Set the animation properties for the new animation
             Object.keys(values).forEach(function (property) {
+                console.log(object[property], values[property]);
                 animations[property] = _animation(object[property], values[property]);
 
             });
@@ -823,11 +825,7 @@
                     set: function (value) {
                         var color = _color(value);
                         if (color) {
-                            this.values.backgroundColor = {
-                                blue: color.blue,
-                                green: color.green,
-                                red: color.red
-                            };
+                            this.values.backgroundColor = color;
                             this.element.style.backgroundColor = 'rgb(' + this.values.backgroundColor.red + ', ' + this.values.backgroundColor.green + ', ' + this.values.backgroundColor.blue + ')';
                             this.opacity = color.alpha;
                         }
@@ -955,7 +953,6 @@
                         v[property] = _parse(grab.element, property, values[property]);
                     }
                 });
-                console.log(v);
                 animation.add(this, v, duration, easing, complete);
             }
             grab.fadeIn = function (duration, easing, complete) {
