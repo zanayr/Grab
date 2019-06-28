@@ -452,7 +452,7 @@
     animation = (function () {
         var state = false,
             lastFT = 0, // Last frame time in ms
-            maxFPS = 60, // Maximum frames per second
+            maxFPS = 10, // Maximum frames per second
             delta = 0,
             timestep = 1000 / maxFPS,
             frame = 0, // Frame id from request animation frame,
@@ -581,6 +581,7 @@
         //  Update should be called every frame and update the animation values
         //  incrementally; and check if the values have reached their targets
         function _update () {
+            console.log('here');
             updates.forEach(function (update) {
                 if (!update.finished) {
                     Object.keys(update.animations).forEach(function (animation) {
@@ -717,9 +718,14 @@
             }
             //  Set the animation properties for the new animation
             Object.keys(values).forEach(function (property) {
-                console.log(object[property], values[property]);
-                animations[property] = _animation(object[property], values[property]);
-
+                if (property === 'backgroundColor') {
+                    Object.keys(values[property]).forEach(function (channel) {
+//                        console.log(object[property][channel], values[property][channel]);
+                        animations[values] = _animation(object[property][channel], values[property][channel])
+                    });
+                } else {
+                    animations[property] = _animation(object[property], values[property]);
+                }
             });
             //  Push a new update object to the waiting array for insertion into the
             //  updates array at a convenient time
