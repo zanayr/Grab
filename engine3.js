@@ -158,7 +158,6 @@
     //  values delimited by commas, e.g. '0, 0, 0' and '0, 0, 0, 0.0'
     function _rgba (str) {
         var values = str.match(/(-?\d{1,3}\.?\d*)/g);
-        console.log(values);
         if (!values) {
             return null;
         } else {
@@ -337,20 +336,21 @@
     //  delimited by commas, an array of numbers or as seperate parameters
     function _color (value) {
         var arr = [],
+            color,
             i;
         if (value && typeof value === 'string') {
             if (value.match(/^rgb|rgba/)) {
-                return _rgba(value);
+                color = _rgba(value);
             } else if (value.match(/^#|0x|0X/)) {
-                return _hexa(value);
+                color = _hexa(value);
             } else if (value.match(/^hsl|hsla/)) {
-                return _hsla.apply(null, _hsx(value));
+                color = _hsla.apply(null, _hsx(value));
             } else if (value.match(/^hsv|hsva/)) {
-                return _hsva.apply(null, _hsx(value));
+                color = _hsva.apply(null, _hsx(value));
             } else if (value.split(',').length >= 3) {
-                return _rgba(value);
+                color = _rgba(value);
             } else {
-                return _standard(value);
+                color = _standard(value);
             }
         } else if (Array.isArray(value)) {
             for (i = 0; i < value.length; i = i + 1) {
@@ -359,7 +359,7 @@
             if (!arr[3]) {
                 arr[3] = 1;
             }
-            return _checkRGBA(arr);
+            color = _checkRGBA(arr);
         } else if (arguments.length > 1) {
             for (i = 0; i < arguments.length; i = i + 1) {
                 arr.push(parseFloat(arguments[i], 10));
@@ -367,9 +367,18 @@
             if (!arr[3]) {
                 arr[3] = 1;
             }
-            return _checkRGBA(arr);
+            color = _checkRGBA(arr);
         }
-        return null;
+        if (color) {
+            return {
+                alpha: color[3],
+                blue: color[2],
+                green: color[1],
+                red: color[0]
+            }
+        } else {
+            return null;
+        }
     }
 
     //  Parse Method  //
@@ -424,6 +433,8 @@
                 } else if (value.match(/^\d*\.?\d*$/)) {
                     return _checkOpacity(parseFloat(value, 10));
                 }
+            } else if (property === 'backgroundColor') {
+                return _color(value);
             }
         } else if (_isNumber(value)) {
             if (property === 'opacity') {
@@ -810,16 +821,15 @@
                         return this.values.backgroundColor;
                     },
                     set: function (value) {
-                        var v = _color(value);
-                        console.log(v);
-                        if (v) {
+                        var color = _color(value);
+                        if (color) {
                             this.values.backgroundColor = {
-                                blue: v[2],
-                                green: v[1],
-                                red: v[0]
+                                blue: color.blue,
+                                green: color.green,
+                                red: color.red
                             };
                             this.element.style.backgroundColor = 'rgb(' + this.values.backgroundColor.red + ', ' + this.values.backgroundColor.green + ', ' + this.values.backgroundColor.blue + ')';
-                            this.opacity = v[3];
+                            this.opacity = color.alpha;
                         }
                     }
                 },
@@ -940,11 +950,12 @@
             grab.animate = function (values, duration, easing, complete) {
                 var v = {};
                 Object.keys(values).forEach(function (property) {
-                    if (property.match(/^height|left|opacity|top|width$/)) {
+                    if (property.match(/^backgroundColor|height|left|opacity|top|width$/)) {
                         grab[property] = _getStyle(grab.element, property);
                         v[property] = _parse(grab.element, property, values[property]);
                     }
                 });
+                console.log(v);
                 animation.add(this, v, duration, easing, complete);
             }
             grab.fadeIn = function (duration, easing, complete) {
@@ -1130,7 +1141,6 @@
                     if (child.match(/^[a-z]+$/)) {
                         return _collect(document.getElementsByTagName(child));
                     } else if (child.match(/^#[a-z0-9-]/)) {
-                        console.log(child);
                         return _create(document.getElementById(child.slice(1)));
                     } else if (child.match(/^\.[a-z0-9-]/)) {
                         return _collect(document.getElementsByClassName(child.slice(1)));
