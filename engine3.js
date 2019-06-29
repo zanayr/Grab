@@ -574,6 +574,7 @@
         
         //  Remove should remove a passed update from the updates array
         function _remove (u) {
+            console.log(u);
             if (completeFunctions[u.complete]) {
                 delete completeFunctions[u.complete];
             }
@@ -584,6 +585,7 @@
         //  Update should be called every frame and update the animation values
         //  incrementally; and check if the values have reached their targets
         function _update () {
+            console.log(updates.length);
             updates.forEach(function (update) {
                 if (!update.finished) {
                     var d = 0,
@@ -598,6 +600,7 @@
                     d = update.easing(q);
                     //  Check if the update has reached or passed its target
                     if (a.distance * d >= a.distance) {
+                        console.log(update.channel, a.target);
                         a.current = a.target;
                         update.finished = true;
                     } else {
@@ -709,14 +712,18 @@
             }
             
             Object.keys(values).forEach(function (property) {
-                var u;
+                var duplicates = [];
                 updates.forEach(function (update) {
                     if (update.object.uid === object.uid && update.property === property) {
-                      u = update;
+                        console.log(update.channel);
+                        duplicates.push(update);
                     }
                 });
-                if (u) {
-                    _remove(u);
+                if (duplicates.length) {
+                    duplicates.forEach(function (update) {
+                        _remove(update);
+                    })
+                    _remove(duplicates);
                 }
             });
             Object.keys(values).forEach(function (property, i) {
