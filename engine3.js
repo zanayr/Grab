@@ -1,5 +1,5 @@
 /*eslint-env browser*/
-/*eslint no-console: ["error", { allow: ["log", "warn", "error"] }] */
+/*eslint no-console: ["error", { allow: ["log", "warn", "error", "dir"] }] */
 
 (function () {
     "use-strict";
@@ -452,7 +452,7 @@
     animation = (function () {
         var state = false,
             lastFT = 0, // Last frame time in ms
-            maxFPS = 10, // Maximum frames per second
+            maxFPS = 60, // Maximum frames per second
             delta = 0,
             timestep = 1000 / maxFPS,
             frame = 0, // Frame id from request animation frame,
@@ -462,6 +462,7 @@
             waiting = [],
             updates = [],
             garbage = [],
+            completeFunctions = {},
             easings = {
                 linear: function (d) {
                     return d;
@@ -559,50 +560,49 @@
         
         //  Index should return the index of a passed update, and -1 if the update does
         //  not exist in the updates array
-        function _index (r) {
-            var index = -1;
-            if (typeof r === 'string') {
-                updates.forEach(function (update, i) {
-                    if (update.object.uid === r) {
-                        index = i;
-                    }
-                });
-            }
-            return index;
-        }
+//        function _index (r) {
+//            var index = -1;
+//            if (typeof r === 'string') {
+//                updates.forEach(function (update, i) {
+//                    if (update.object.uid === r) {
+//                        index = i;
+//                    }
+//                });
+//            }
+//            return index;
+//        }
         
         //  Remove should remove a passed update from the updates array
         function _remove (u) {
+            if (completeFunctions[u.complete]) {
+                delete completeFunctions[u.complete];
+            }
             updates = updates.filter(function (update) {
-                return update.id !== u.id;
+                return update.uid !== u.uid;
             });
         }
-        
         //  Update should be called every frame and update the animation values
         //  incrementally; and check if the values have reached their targets
         function _update () {
-            console.log('here');
             updates.forEach(function (update) {
                 if (!update.finished) {
-                    Object.keys(update.animations).forEach(function (animation) {
-                        var d = 0,
-                            a = update.animations[animation],
-                            q = 0;
-                        a.time = a.time + timestep;
-                        a.last = a.current;
-                        q = a.time / update.duration;
-                        //  Check if the update has spoiled (time is up, but not yet
-                        //  reached its target value)
-                        q = q > 1 ? 1 : q;
-                        d = update.easing(q);
-                        //  Check if the update has reached or passed its target
-                        if (a.distance * d >= a.distance) {
-                            a.current = a.target;
-                            update.finished = true;
-                        } else {
-                            a.current = a.vector * d + a.origin;
-                        }
-                    });
+                    var d = 0,
+                        a = update.animation,
+                        q = 0;
+                    a.time = a.time + timestep;
+                    a.last = a.current;
+                    q = a.time / update.duration;
+                    //  Check if the update has spoiled (time is up, but not yet
+                    //  reached its target value)
+                    q = q > 1 ? 1 : q;
+                    d = update.easing(q);
+                    //  Check if the update has reached or passed its target
+                    if (a.distance * d >= a.distance) {
+                        a.current = a.target;
+                        update.finished = true;
+                    } else {
+                        a.current = a.vector * d + a.origin;
+                    }
                     //  Trash all finished updates
                     if (update.finished) {
                         garbage.push(update);
@@ -615,16 +615,25 @@
         //  values of the updates
         function _render (interpolation) {
             updates.forEach(function (update) {
-                Object.keys(update.animations).forEach(function (animation) {
-                    var a = update.animations[animation];
-                    //  If the update is finished, it should be rendered at the target
-                    //  value
+                var a = update.animation,
+                    b = {};
+                //  If the update is finished, it should be rendered at the target
+                //  value
+                if (update.property === 'backgroundColor') {
                     if (update.finished) {
-                        update.object[animation] = a.target;
+                        b[update.channel] = a.target;
+                        update.object[update.property] = b;
                     } else {
-                        update.object[animation] = a.last + (a.current - a.last) * interpolation;
+                        b[update.channel] = a.last + (a.current - a.last) * interpolation;
+                        update.object[update.property] = b;
                     }
-                });
+                } else {
+                    if (update.finished) {
+                        update.object[update.property] = a.target;
+                    } else {
+                        update.object[update.property] = a.last + (a.current - a.last) * interpolation;
+                    }
+                }
             });
         }
         
@@ -632,8 +641,8 @@
         function _dispose () {
             garbage.forEach(function (update) {
                 //  If the update has a complete function, fire it now
-                if (typeof update.complete === 'function') {
-                    update.complete();
+                if (completeFunctions[update.complete]) {
+                    completeFunctions[update.complete].fn();
                 }
                 _remove(update);
             });
@@ -664,12 +673,21 @@
             window.cancelAnimationFrame(frame);
         }
         
+        
+        function _complete (fn) {
+            var uid = _getID(0);
+            completeFunctions[uid] = {
+                fn: fn
+            }
+            return uid;
+        }
+        
         //  Add should add a new animation to the updates array, via the waiting array;
         //  It will also check if there are any duplicate animations in the updates
         //  array, i.e. same object and same property being animated
         function _add (object, values) {
-            var animations = {},
-                i,
+//            var animations = {},
+            var i,
                 duration,
                 easing,
                 complete;
@@ -680,7 +698,7 @@
                 } else if (typeof arguments[i] === 'string') {
                     easing = arguments[i];
                 } else if (typeof arguments[i] === 'function') {
-                    complete = arguments[i];
+                    complete = _complete(arguments[i]);
                 }
             }
             if (typeof duration === 'undefined') {
@@ -689,54 +707,45 @@
             if (typeof easing === 'undefined') {
                 easing = 'linear';
             }
-            //  Check if the update is alreay in the updates array
-            if (_index(object.uid) > -1) {
+            
+            Object.keys(values).forEach(function (property) {
+                var u;
                 updates.forEach(function (update) {
-                    var a = update.animations;
-                    //  Check if the update is animating the same object
-                    if (update.object.uid === object.uid) {
-                        Object.keys(update.animations).forEach(function (animation) {
-                            Object.keys(values).forEach(function (value) {
-                                //  Check if the animation is animating the same
-                                //  property
-                                if (animation === value) {
-                                    //  Delete the property animation if it is true
-                                    delete a[animation];
-                                }
-                            });
-                        });
-                        update.animations = a;
-                    }
-                    //  Remove the old complete function from the older update
-                    update.complete =  null;
-                    //  If there are no more animations in the update, push it to the
-                    //  garbage for collection
-                    if (!Object.keys(update.animations).length) {
-                        garbage.push(update);
+                    if (update.object.uid === object.uid && update.property === property) {
+                      u = update;
                     }
                 });
-            }
-            //  Set the animation properties for the new animation
-            Object.keys(values).forEach(function (property) {
-                if (property === 'backgroundColor') {
-                    Object.keys(values[property]).forEach(function (channel) {
-//                        console.log(object[property][channel], values[property][channel]);
-                        animations[values] = _animation(object[property][channel], values[property][channel])
-                    });
-                } else {
-                    animations[property] = _animation(object[property], values[property]);
+                if (u) {
+                    _remove(u);
                 }
             });
-            //  Push a new update object to the waiting array for insertion into the
-            //  updates array at a convenient time
-            waiting.push({
-                animations: animations,
-                complete: complete,
-                duration: duration,
-                easing: easings[easing],
-                finished: false,
-                id: _getID(0),
-                object: object
+            Object.keys(values).forEach(function (property, i) {
+                if (property === 'backgroundColor') {
+                    Object.keys(object[property]).forEach(function (channel, j) {
+                        waiting.push({
+                            animation: _animation(object[property][channel], values[property][channel]),
+                            channel: channel,
+                            complete: complete ? complete : null,
+                            duration: duration,
+                            easing: easings[easing],
+                            finished: false,
+                            object: object,
+                            property: property,
+                            uid: _getID(j)
+                        });
+                    });
+                } else {
+                    waiting.push({
+                        animation: _animation(object[property], values[property]),
+                        complete: complete ? complete : null,
+                        duration: duration,
+                        easing: easings[easing],
+                        finished: false,
+                        object: object,
+                        property: property,
+                        uid: _getID(i)
+                    });
+                }
             });
             //  If the loop is not yet looping, start the loop
             if (!state) {
@@ -805,7 +814,8 @@
         }
         
         return {
-            add: _add
+            add: _add,
+            stop: _stop
         }
     }());
     
@@ -821,17 +831,29 @@
                 values: {}
             }
             
-            
             //  Define grab property getters and setters
             Object.defineProperties(grab, {
                 backgroundColor: {
                     get: function () {
-                        return this.values.backgroundColor;
+                        return this.values.backgroundColor ? this.values.backgroundColor : _color(_getStyle(this.element, 'backgroundColor'));
                     },
                     set: function (value) {
-                        var color = _color(value);
+                        var color;
+                        if (_isObject(value)) { // For animation purposes
+                            color = this.backgroundColor;
+                            Object.keys(value).forEach(function (channel) {
+                                color[channel] = value[channel];
+                            });
+                        } else {
+                            color = _color(value);
+                        }
                         if (color) {
-                            this.values.backgroundColor = color;
+                            this.values.backgroundColor = {
+                                alpha: color.alpha,
+                                blue: color.blue,
+                                green: color.green,
+                                red: color.red
+                            };
                             this.element.style.backgroundColor = 'rgb(' + this.values.backgroundColor.red + ', ' + this.values.backgroundColor.green + ', ' + this.values.backgroundColor.blue + ')';
                             this.opacity = color.alpha;
                         }
@@ -954,9 +976,10 @@
             grab.animate = function (values, duration, easing, complete) {
                 var v = {};
                 Object.keys(values).forEach(function (property) {
+                    //  Check if the property is animatable
                     if (property.match(/^backgroundColor|height|left|opacity|top|width$/)) {
-                        grab[property] = _getStyle(grab.element, property);
-                        v[property] = _parse(grab.element, property, values[property]);
+                        grab[property] = _getStyle(grab.element, property); // Get initial value
+                        v[property] = _parse(grab.element, property, values[property]); // Get parsed value
                     }
                 });
                 animation.add(this, v, duration, easing, complete);
@@ -1268,6 +1291,8 @@
         // return a grab object
         return _grab(selector);
     };
+    
+    window.grab.stop = animation.stop;
     
     
     
