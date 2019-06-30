@@ -6,3 +6,4 @@ sandbox.js
 *.txt
 /lib/*
 .DS_Store
+/void/
