@@ -387,7 +387,7 @@
     //  the value, if it has one or is required
     function _parse (element, property, value) {
         if (typeof value === 'string') {
-            if (property.match(/^height|left|top|width$/)) {
+            if (property.match(/^border[a-zA-Z]*|height|left|top|width$/g)) {
                 if (value.match(/^-?\d*\.?\d*px$/)) {
                     return parseFloat(value, 10);
                 } else if (value.match(/^-?\d*\.?\d*vw$/)) {
@@ -397,7 +397,7 @@
                 } else if (property.match(/^height|top$/)) {
                     if (value.match(/^\d*\.?\d*%$/)) {
                         return element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
-                    } else if (property.match(/^height/)) {
+                    } else if (property.match(/^height$/)) {
                         if (value.match(/^auto|initial$/)) {
                             element.style.height = value;
                             return element.offsetHeight;
@@ -408,16 +408,20 @@
                             return element.offsetTop;
                         }
                     }
-                } else if (property.match(/^left|width$/)) {
+                } else if (property.match(/^border[a-zA-Z]*|left|width$/)) {
                     if (value.match(/^-?\d*\.?\d*%$/)) {
                         return element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
-                    } else if (property.match(/^left/)) {
-                        if (value.match(/^auto|initial$/)) {
+                    } else if (value.match(/^auto|initial$/)) {
+                        if (property.match(/^borderLeftWidth$/)) {
+                            element.style.borderLeftWidth = value;
+                            return element.borderLeftWidth;
+                        } else if (property.match(/^borderWidth$/)) {
+                            element.style.borderWidth = value;
+                            return element.borderWidth;
+                        } else if (property.match(/^left$/)) {
                             element.style.left = value;
                             return element.offsetLeft;
-                        }
-                    } else {
-                        if (value.match(/^auto|initial$/)) {
+                        } else {
                             element.style.width = value;
                             return element.offsetWidth;
                         }
@@ -433,7 +437,7 @@
                 } else if (value.match(/^\d*\.?\d*$/)) {
                     return _checkOpacity(parseFloat(value, 10));
                 }
-            } else if (property === 'backgroundColor') {
+            } else if (property.match(/[a-zA-Z]*color$/ig)) {
                 return _color(value);
             }
         } else if (_isNumber(value)) {
@@ -445,6 +449,9 @@
         }
         return null;
     }
+    
+    
+    
     
     
     
@@ -574,10 +581,9 @@
         
         //  Remove should remove a passed update from the updates array
         function _remove (u) {
-            console.log(u);
-            if (completeFunctions[u.complete]) {
-                delete completeFunctions[u.complete];
-            }
+//            if (completeFunctions[u.complete]) {
+//                delete completeFunctions[u.complete];
+//            }
             updates = updates.filter(function (update) {
                 return update.uid !== u.uid;
             });
@@ -585,7 +591,6 @@
         //  Update should be called every frame and update the animation values
         //  incrementally; and check if the values have reached their targets
         function _update () {
-            console.log(updates.length);
             updates.forEach(function (update) {
                 if (!update.finished) {
                     var d = 0,
@@ -600,14 +605,20 @@
                     d = update.easing(q);
                     //  Check if the update has reached or passed its target
                     if (a.distance * d >= a.distance) {
-                        console.log(update.channel, a.target);
                         a.current = a.target;
-                        update.finished = true;
+                        update.isFinished = true;
+//                        update.finished = true;
+//                        if (update.complete) {
+//                            completeFunctions[update.complete].members[update.uid] = 1;
+//                        }
                     } else {
                         a.current = a.vector * d + a.origin;
                     }
                     //  Trash all finished updates
-                    if (update.finished) {
+//                    if (update.finished) {
+//                        garbage.push(update);
+//                    }
+                    if (update.isFinished) {
                         garbage.push(update);
                     }
                 }
@@ -622,7 +633,7 @@
                     b = {};
                 //  If the update is finished, it should be rendered at the target
                 //  value
-                if (update.property === 'backgroundColor') {
+                if (update.property.match(/[a-zA-Z]*color$/ig)) {
                     if (update.finished) {
                         b[update.channel] = a.target;
                         update.object[update.property] = b;
@@ -644,8 +655,10 @@
         function _dispose () {
             garbage.forEach(function (update) {
                 //  If the update has a complete function, fire it now
-                if (completeFunctions[update.complete]) {
-                    completeFunctions[update.complete].fn();
+                var complete = completeFunctions[update.complete];
+                if (complete && complete.isFinished()) {
+                    complete.fn();
+                    delete completeFunctions[update.complete];
                 }
                 _remove(update);
             });
@@ -680,9 +693,91 @@
         function _complete (fn) {
             var uid = _getID(0);
             completeFunctions[uid] = {
-                fn: fn
+                fn: fn,
+                members: {},
+                isFinished: function () {
+                    var members = Object.keys(this.members),
+                        m;
+                    for (m = 0; m < members.length; m = m + 1) {
+                        if (!this.members[members[m]]) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
             }
             return uid;
+        }
+        
+        function _createUpdate (ani, complete, duration, easing, object, property, id) {
+            var update = {
+                    animation: ani,
+                    easing: easing,
+                    object: object,
+                    values: {
+//                        animation: animation,
+                        complete: complete ? complete : null,
+                        duration: duration,
+//                        easing: easing,
+                        finished: false,
+//                        object: object,
+                        property: property,
+                        uid: id
+                    }
+                };
+
+                Object.defineProperties(update, {
+//                    animation: {
+//                        get: function () {
+//                            return this.values.animation;
+//                        }
+//                    },
+                    complete: {
+                        get: function () {
+                            return this.values.complete;
+                        }
+                    },
+                    duration: {
+                        get: function () {
+                            return this.values.duration;
+                        }
+                    },
+//                    easing: {
+//                        get: function () {
+//                            return this.values.easing;
+//                        }
+//                    },
+                    isFinished: {
+                        get: function () {
+                            return this.values.finished;
+                        },
+                        set: function (value) {
+                            if (value) {
+                                if (this.complete) {
+                                    completeFunctions[this.complete].members[this.uid] = 1;
+                                }
+                                this.values.finished = value;
+                            }
+                        }
+                    },
+//                    object: {
+//                        get: function () {
+//                            return this.values.object;
+//                        }
+//                    },
+                    property: {
+                        get: function () {
+                            return this.values.property;
+                        }
+                    },
+                    uid: {
+                        get: function () {
+                            return this.values.uid;
+                        }
+                    }
+                });
+
+                return update;
         }
         
         //  Add should add a new animation to the updates array, via the waiting array;
@@ -715,7 +810,6 @@
                 var duplicates = [];
                 updates.forEach(function (update) {
                     if (update.object.uid === object.uid && update.property === property) {
-                        console.log(update.channel);
                         duplicates.push(update);
                     }
                 });
@@ -726,34 +820,43 @@
                     _remove(duplicates);
                 }
             });
+            
             Object.keys(values).forEach(function (property, i) {
-                if (property === 'backgroundColor') {
+                var update;
+                if (property.match(/[a-zA-Z]*color$/ig)) {
                     Object.keys(object[property]).forEach(function (channel, j) {
-                        waiting.push({
-                            animation: _animation(object[property][channel], values[property][channel]),
-                            channel: channel,
-                            complete: complete ? complete : null,
-                            duration: duration,
-                            easing: easings[easing],
-                            finished: false,
-                            object: object,
-                            property: property,
-                            uid: _getID(j)
-                        });
+                        update = _createUpdate(
+                            _animation(object[property][channel], values[property][channel]),
+                            complete,
+                            duration,
+                            easings[easing],
+                            object,
+                            property,
+                            _getID(j)
+                        );
+                        update.channel = channel;
+                        if (complete) {
+                            completeFunctions[complete].members[update.uid] = 0;
+                        }
+                        waiting.push(update);
                     });
                 } else {
-                    waiting.push({
-                        animation: _animation(object[property], values[property]),
-                        complete: complete ? complete : null,
-                        duration: duration,
-                        easing: easings[easing],
-                        finished: false,
-                        object: object,
-                        property: property,
-                        uid: _getID(i)
-                    });
+                    update = _createUpdate(
+                        _animation(object[property], values[property]),
+                        complete,
+                        duration,
+                        easings[easing],
+                        object,
+                        property,
+                        _getID(i)
+                    );
+                    if (complete) {
+                        completeFunctions[complete].members[update.uid] = 0;
+                    }
+                    waiting.push(update);
                 }
             });
+            
             //  If the loop is not yet looping, start the loop
             if (!state) {
                 _start();
@@ -838,6 +941,29 @@
                 values: {}
             }
             
+//            function _colorToObject (value, property) {
+//                var c;
+//                if (_isObject(value)) { // For animation purposes
+//                    c = grab[property];
+//                    Object.keys(value).forEach(function (channel) {
+//                        if (channel.match(/$alpha|blue|green|red^/)) {
+//                            c[channel] = value[channel];
+//                        }
+//                    });
+//                } else {
+//                    c = _color(value);
+//                }
+//                if (c) {
+//                    return {
+//                        alpha: c.alpha,
+//                        blue: c.blue,
+//                        green: c.green,
+//                        red: c.red
+//                    };
+//                }
+//                return null;
+//            }
+            
             //  Define grab property getters and setters
             Object.defineProperties(grab, {
                 backgroundColor: {
@@ -849,7 +975,9 @@
                         if (_isObject(value)) { // For animation purposes
                             color = this.backgroundColor;
                             Object.keys(value).forEach(function (channel) {
-                                color[channel] = value[channel];
+                                if (channel.match(/^alpha|blue|green|red$/g)) {
+                                    color[channel] = value[channel];
+                                }
                             });
                         } else {
                             color = _color(value);
@@ -861,8 +989,106 @@
                                 green: color.green,
                                 red: color.red
                             };
-                            this.element.style.backgroundColor = 'rgb(' + this.values.backgroundColor.red + ', ' + this.values.backgroundColor.green + ', ' + this.values.backgroundColor.blue + ')';
-                            this.opacity = color.alpha;
+                            this.element.style.backgroundColor = 'rgba(' + color.red + ', ' + color.green + ', ' + color.blue + ', ' + color.alpha + ')';
+                        }
+                    }
+                },
+                borderColor: {
+                    get: function () {
+                        return this.values.borderColor ? this.values.borderColor : _color(_getStyle(this.element, 'borderColor'));
+                    },
+                    set: function (value) {
+                        var color;
+                        if (_isObject(value)) { // For animation purposes
+                            color = this.borderColor;
+                            Object.keys(value).forEach(function (channel) {
+                                if (channel.match(/^alpha|blue|green|red$/g)) {
+                                    color[channel] = value[channel];
+                                }
+                            });
+                        } else {
+                            color = _color(value);
+                        }
+                        if (color) {
+                            this.values.borderColor = {
+                                alpha: color.alpha,
+                                blue: color.blue,
+                                green: color.green,
+                                red: color.red
+                            };
+                            this.element.style.borderColor = 'rgba(' + color.red + ', ' + color.green + ', ' + color.blue + ', ' + color.alpha + ')';
+                        }
+                    }
+                },
+                borderBottomWidth: {
+                    get: function () {
+                        return this.values.borderBottomWidth;
+                    },
+                    set: function (value) {
+                        this.values.borderBottomWidth =_parse(this.element, 'borderBottomWidth', value);
+                        this.element.style.borderBottomWidth = this.values.borderBottomWidth + 'px';
+                    }
+                },
+                borderLeftWidth: {
+                    get: function () {
+                        return this.values.borderLeftWidth;
+                    },
+                    set: function (value) {
+                        this.values.borderLeftWidth =_parse(this.element, 'borderLeftWidth', value);
+                        this.element.style.borderLeftWidth = this.values.borderLeftWidth + 'px';
+                    }
+                },
+                borderRightWidth: {
+                    get: function () {
+                        return this.values.borderRightWidth;
+                    },
+                    set: function (value) {
+                        this.values.borderRightWidth =_parse(this.element, 'borderRightWidth', value);
+                        this.element.style.borderRightWidth = this.values.borderRightWidth + 'px';
+                    }
+                },
+                borderTopWidth: {
+                    get: function () {
+                        return this.values.borderTopWidth;
+                    },
+                    set: function (value) {
+                        this.values.borderTopWidth =_parse(this.element, 'borderTopWidth', value);
+                        this.element.style.borderTopWidth = this.values.borderTopWidth + 'px';
+                    }
+                },
+                borderWidth: {
+                    get: function () {
+                        return this.values.borderWidth;
+                    },
+                    set: function (value) {
+                        this.values.borderWidth =_parse(this.element, 'borderWidth', value);
+                        this.element.style.borderWidth = this.values.borderWidth + 'px';
+                    }
+                },
+                color: {
+                    get: function () {
+                        return this.values.color ? this.values.color : _color(_getStyle(this.element, 'color'));
+                    },
+                    set: function (value) {
+                        var color;
+                        if (_isObject(value)) { // For animation purposes
+                            color = this.color;
+                            Object.keys(value).forEach(function (channel) {
+                                if (channel.match(/^alpha|blue|green|red$/g)) {
+                                    color[channel] = value[channel];
+                                }
+                            });
+                        } else {
+                            color = _color(value);
+                        }
+                        if (color) {
+                            this.values.color = {
+                                alpha: color.alpha,
+                                blue: color.blue,
+                                green: color.green,
+                                red: color.red
+                            };
+                            this.element.style.color = 'rgba(' + color.red + ', ' + color.green + ', ' + color.blue + ', ' + color.alpha + ')';
                         }
                     }
                 },
@@ -984,9 +1210,10 @@
                 var v = {};
                 Object.keys(values).forEach(function (property) {
                     //  Check if the property is animatable
-                    if (property.match(/^backgroundColor|height|left|opacity|top|width$/)) {
+                    if (property.match(/^border[a-zA-Z]*|[a-zA-Z]*color|height|left|opacity|top|width$/ig)) {
                         grab[property] = _getStyle(grab.element, property); // Get initial value
                         v[property] = _parse(grab.element, property, values[property]); // Get parsed value
+                        
                     }
                 });
                 animation.add(this, v, duration, easing, complete);
