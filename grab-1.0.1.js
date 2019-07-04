@@ -583,36 +583,49 @@
                         return children;
                     }
                 },
-                backgroundColor: {
+                display: {
                     get: function () {
-                        return this.values
+                        return this.values.display;
                     },
                     set: function (value) {
-                        
+                        if (typeof value === 'string') { // Validation
+                            this.values.display = value;
+                            this.element.style.display = value;
+                        }
                     }
                 },
-                backgroundColor: {
+                height: {
                     get: function () {
-                        return this.values
+                        return this.values.height
                     },
                     set: function (value) {
-                        
+                        var height = _parseValue(value, 'height');
+                        if (height) { // Validation
+                            this.values.height = height;
+                            this.element.style.height = height + 'px';
+                        }
                     }
                 },
-                backgroundColor: {
+                html: {
                     get: function () {
-                        return this.values
+                        return this.element.innerHTML;
                     },
                     set: function (value) {
-                        
+                        if (typeof value === 'string') { // Validation
+                            this.element.innerHTML = value;
+                        }
                     }
                 },
-                backgroundColor: {
+                left: {
                     get: function () {
-                        return this.values
+                        return this.values.left;
                     },
                     set: function (value) {
-                        
+                        var left = _parseValues(value, 'left');
+                        if (left) { // Validation
+                            this.values.left = left;
+                            this.element.style.left = left + 'px';
+                        }
                     }
                 },
                 backgroundColor: {
