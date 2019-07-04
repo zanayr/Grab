@@ -556,20 +556,31 @@
                         }
                     }
                 },
-                backgroundColor: {
+                color: {
                     get: function () {
-                        return this.values
+                        return this.values.color ? this.values.color : chroma(_getStyle('color'));
                     },
                     set: function (value) {
-                        
+                        var color;
+                        if (aux.isObject(value)) {
+                            color = Object.assign(this.color, value);
+                        } else {
+                            color = chroma(value);
+                        }
+                        if (color) {
+                            Object.assign(this.color, color);
+                            this.values.color = _colorString(color);
+                        }
                     }
                 },
-                backgroundColor: {
+                children: {
                     get: function () {
-                        return this.values
-                    },
-                    set: function (value) {
-                        
+                        var children = _createCollection(),
+                            i;
+                        for (i = 0; i < this.element.children.length; i = i + 1) {
+                            children.add(this.element.children[i]);
+                        }
+                        return children;
                     }
                 },
                 backgroundColor: {
