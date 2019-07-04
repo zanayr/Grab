@@ -458,8 +458,71 @@
             }
             //  The internal colorString function returns a CSS rgba color string from
             //  a passed color object
-            function _colorString (c) {
-                return 'rgba(' + c.red + ',' + c.green + ',' + c.blue + ',' + c.alpha + ')';
+            function _colorString (color) {
+                return 'rgba(' + color.red + ',' + color.green + ',' + color.blue + ',' + color.alpha + ')';
+            }
+            
+            //  The internal parseValue function returns a valid parsed value depending
+            //  on the passed property
+            function _parseValue (value, property) {
+                if (typeof value === 'string') {
+                    if (property.match(/^border[A-Z]*|height|left|top|width$/ig).length) { // All border, height, left top and width properties
+                        if (value.match(/^-?\d*\.?\d*px$/g).length) {
+                            return parseFloat(value, 10);
+                        } else if (value.match(/^-?\d*\.?\d*vw$/g).length) {
+                            return window.innerWidth * (parseFloat(value, 10) / 100);
+                        } else if (value.match(/^-?\d*\.?\d*vh$/g).length) {
+                            return window.innerHeight * (parseFloat(value, 10) / 100);
+                        } else if (property.match(/^height|top$/g).length) {
+                            if (value.match(/^\d*\.?\d*%$/g)) {
+                                return grab.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
+                            } else if (property.match(/^height$/g).length) {
+                                if (value.match(/^auto|initial$/ig).length) {
+                                    grab.element.style.height = value;
+                                    return grab.element.offsetHeight;
+                                }
+                            } else { // Top property
+                                if (value.match(/^auto|initial$/ig).length) {
+                                    grab.element.style.top = value;
+                                    return grab.element.offsetTop;
+                                }
+                            }
+                        } else if (property.match(/^border[A-Z]*|left|width$/ig).length) {
+                            if (value.match(/^-?\d*\.?\d*%$/g).length) {
+                                return grab.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
+                            } else if (value.match(/^auto|initial$/ig).length) {
+                                if (property.match(/^border[A-Z]+$/ig).length) { // Notice the '+' in place of the '*'
+                                    grab.element.style.borderWidth = value;
+                                    return grab.element.borderWidth;
+                                } else if (property.match(/^border$/g).length) {
+                                    grab.element.style.border = value;
+                                    return {color: grab.element.borderColor, width: grab.element.borderWidth};
+                                } else if (property.match(/^left$/g).length) {
+                                    grab.element.style.left = value;
+                                    return grab.element.offsetLeft;
+                                } else { // Width property
+                                    grab.element.style.width = value;
+                                    return grab.element.offsetWidth;
+                                }
+                            }
+                        }
+                    } else if (property === 'opacity') { // Opacity property
+                        if (value.match(/^auto|initial|none$/g).length) {
+                            return 1;
+                        } else if (value.match(/^transparent$/g).length) {
+                            return 0;
+                        } else if (value.match(/^\d{1,3}\.?\d*%$/g).length) {
+                            return parseFloat(value, 10) / 100;
+                        } else if (value.match(/^\d*\.?\d*$/g).length) {
+                            return parseFloat(value, 10);
+                        }
+                    } else if (property.match(/[A-Z]*color$/ig).length) { // All color properties
+                        return chroma(value);
+                    } 
+                } else if (aux.isNumber(value)) {
+                    return value;
+                }
+                return null;
             }
             
             Object.defineProperties(grab, {
@@ -644,7 +707,7 @@
                         return this.values.left;
                     },
                     set: function (value) {
-                        var left = _parseValues(value, 'left');
+                        var left = _parseValue(value, 'left');
                         if (aux.isNumber(left)) {
                             this.values.left = left;
                             this.element.style.left = left + 'px';
@@ -712,6 +775,5 @@
                 }
             });
         }
-        
     }
 }());
