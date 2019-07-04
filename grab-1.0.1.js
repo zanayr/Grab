@@ -480,6 +480,14 @@
                         }
                     }
                 },
+                border: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
                 borderColor: {
                     get: function () {
                         return this.values.borderColor ? this.values.borderColor : chroma(_getStyle('borderColor'));
@@ -497,36 +505,55 @@
                         }
                     }
                 },
-                backgroundColor: {
+                borderBottomWidth: {
                     get: function () {
-                        return this.values
+                        return this.values.borderBottomWidth;
                     },
                     set: function (value) {
+                        var width = _parseValue(value, 'borderBottomWidth');
+                        if (width) {
+                            this.values.borderBottomWidth = width;
+                            this.element.style.borderBottomWidth = width + 'px';
+                        }
                         
                     }
                 },
-                backgroundColor: {
+                borderLeftWidth: {
                     get: function () {
-                        return this.values
+                        return this.values.borderLeftWidth;
                     },
                     set: function (value) {
+                        var width = _parseValue(value, 'borderLeftWidth');
+                        if (width) {
+                            this.values.borderLeftWidth = width;
+                            this.element.style.borderLeftWidth = width + 'px';
+                        }
                         
                     }
                 },
-                backgroundColor: {
+                borderRightWidth: {
                     get: function () {
-                        return this.values
+                        return this.values.borderRightWidth;
                     },
                     set: function (value) {
+                        var width = _parseValue(value, 'borderRightWidth');
+                        if (width) {
+                            this.values.borderRightWidth = width;
+                            this.element.style.borderRightWidth = width + 'px';
+                        }
                         
                     }
                 },
-                backgroundColor: {
+                borderTopWidth: {
                     get: function () {
-                        return this.values
+                        return this.values.borderTopWidth;
                     },
                     set: function (value) {
-                        
+                        var width = _parseValue(value, 'borderTopWidth');
+                        if (width) {
+                            this.values.borderTopWidth = width;
+                            this.element.style.borderTopWidth = width + 'px';
+                        }
                     }
                 },
                 backgroundColor: {
