@@ -1,6 +1,6 @@
 /*eslint-env browser*/
-/*global Aux: false*/
-/*global Color:false*/
+/*global aux: false*/
+/*global chroma:false*/
 (function () {
     'use strict';
     //  ANIMATION ENGINE  ----------------------------------------------  ANIMATION  //
@@ -468,13 +468,13 @@
                         return this.values.backgroundColor ? this.values.backgroundColor : chroma(_getStyle('backgroundColor'));
                     },
                     set: function (value) {
-                        var color; // color object
+                        var color;
                         if (aux.isObject(value)) { // For animation purposes
                             color = Object.assign(this.backgroundColor, value);
                         } else {
                             color = chroma(value);
                         }
-                        if (color) {
+                        if (aux.isObject(color)) {
                             Object.assign(this.backgroundColor, color);
                             this.element.style.backgroundColor = _colorString(color);
                         }
@@ -482,10 +482,22 @@
                 },
                 border: {
                     get: function () {
-                        return this.values
+                        return {
+                            color: this.borderColor,
+                            width: this.borderWidth
+                        }
                     },
                     set: function (value) {
-                        
+                        var border;
+                        if (aux.isObject(value)) { // For animation purposes
+                            border = Object.assign(this.border, value);
+                        } else {
+                            border = _parseValue(value, 'border');
+                        }
+                        if (aux.isObject(border)) {
+                            Object.assign(this.border, border);
+                            this.element.style.border = border.width + 'px ' + 'solid ' + border.color;
+                        }
                     }
                 },
                 borderColor: {
@@ -493,13 +505,13 @@
                         return this.values.borderColor ? this.values.borderColor : chroma(_getStyle('borderColor'));
                     },
                     set: function (value) {
-                        var color; // color object
+                        var color;
                         if (aux.isObject(value)) { // For animation purposes
                             color = Object.assign(this.borderColor, value);
                         } else {
                             color = chroma(value);
                         }
-                        if (color) {
+                        if (aux.isObject(color)) {
                             Object.assign(this.borderColor, color);
                             this.element.style.borderColor = _colorString(color);
                         }
@@ -511,7 +523,7 @@
                     },
                     set: function (value) {
                         var width = _parseValue(value, 'borderBottomWidth');
-                        if (width) {
+                        if (aux.isNumber(width)) {
                             this.values.borderBottomWidth = width;
                             this.element.style.borderBottomWidth = width + 'px';
                         }
@@ -524,7 +536,7 @@
                     },
                     set: function (value) {
                         var width = _parseValue(value, 'borderLeftWidth');
-                        if (width) {
+                        if (aux.isNumber(width)) {
                             this.values.borderLeftWidth = width;
                             this.element.style.borderLeftWidth = width + 'px';
                         }
@@ -537,7 +549,7 @@
                     },
                     set: function (value) {
                         var width = _parseValue(value, 'borderRightWidth');
-                        if (width) {
+                        if (aux.isNumber(width)) {
                             this.values.borderRightWidth = width;
                             this.element.style.borderRightWidth = width + 'px';
                         }
@@ -550,9 +562,21 @@
                     },
                     set: function (value) {
                         var width = _parseValue(value, 'borderTopWidth');
-                        if (width) {
+                        if (aux.isNumber(width)) {
                             this.values.borderTopWidth = width;
                             this.element.style.borderTopWidth = width + 'px';
+                        }
+                    }
+                },
+                borderWidth: {
+                    get: function () {
+                        return this.values.borderWidth;
+                    },
+                    set: function (value) {
+                        var width = _parseValue(value, 'borderWidth');
+                        if (aux.isNumber(width)) {
+                            this.values.borderWidth = width;
+                            this.element.style.borderWidth = width + 'px';
                         }
                     }
                 },
@@ -567,7 +591,7 @@
                         } else {
                             color = chroma(value);
                         }
-                        if (color) {
+                        if (aux.isObject(color)) {
                             Object.assign(this.color, color);
                             this.values.color = _colorString(color);
                         }
@@ -588,9 +612,8 @@
                         return this.values.display;
                     },
                     set: function (value) {
-                        if (typeof value === 'string') { // Validation
-                            this.values.display = value;
-                            this.element.style.display = value;
+                        if (typeof value === 'string') {
+                            this.element.style.display = this.values.display = value;
                         }
                     }
                 },
@@ -600,7 +623,7 @@
                     },
                     set: function (value) {
                         var height = _parseValue(value, 'height');
-                        if (height) { // Validation
+                        if (aux.isNumber(height)) {
                             this.values.height = height;
                             this.element.style.height = height + 'px';
                         }
@@ -611,7 +634,7 @@
                         return this.element.innerHTML;
                     },
                     set: function (value) {
-                        if (typeof value === 'string') { // Validation
+                        if (typeof value === 'string') {
                             this.element.innerHTML = value;
                         }
                     }
@@ -622,61 +645,72 @@
                     },
                     set: function (value) {
                         var left = _parseValues(value, 'left');
-                        if (left) { // Validation
+                        if (aux.isNumber(left)) {
                             this.values.left = left;
                             this.element.style.left = left + 'px';
                         }
                     }
                 },
-                backgroundColor: {
+                opacity: {
+                    get: function () {
+                        return this.values.opacity;
+                    },
+                    set: function (value) {
+                        var opacity = _parseValue(value, 'opacity');
+                        if (aux.isNumber(opacity)) {
+                            opacity = opacity > 1 ? 1 : opacity; // No values above 1
+                            opacity = opacity < 0 ? 0 : opacity; // No values below 0
+                            this.values.opacity = opacity;
+                            this.element.style.opacity = this.values.opacity;
+                        }
+                    }
+                },
+                top: {
                     get: function () {
                         return this.values
                     },
                     set: function (value) {
-                        
+                        var top = _parseValue(value, 'top');
+                        if (aux.isNumber(top)) {
+                            this.values.top = top;
+                            this.element.style.top = top + 'px';
+                        }
                     }
                 },
-                backgroundColor: {
+                width: {
                     get: function () {
-                        return this.values
+                        return this.values.width;
                     },
                     set: function (value) {
-                        
+                        var width = _parseValue(value, 'width');
+                        if (aux.isNumber(width)) {
+                            this.values.width = width;
+                            this.element.style.width = width + 'px';
+                        }
                     }
                 },
-                backgroundColor: {
+                visibility: {
                     get: function () {
-                        return this.values
+                        return this.values.visibility;
                     },
                     set: function (value) {
-                        
+                        if (typeof value === 'string') {
+                            this.element.style.visibility = this.values.visibility = value;
+                        }
                     }
                 },
-                backgroundColor: {
+                zIndex: {
                     get: function () {
-                        return this.values
+                        return this.values.zIndex;
                     },
                     set: function (value) {
-                        
+                        var z = parseInt(value, 10);
+                        if (aux.isNumber(z)) {
+                            this.element.style.zIndex = this.values.zIndex = z
+                        }
                     }
-                },
-                backgroundColor: {
-                    get: function () {
-                        return this.values
-                    },
-                    set: function (value) {
-                        
-                    }
-                },
-                backgroundColor: {
-                    get: function () {
-                        return this.values
-                    },
-                    set: function (value) {
-                        
-                    }
-                },
-            })
+                }
+            });
         }
         
     }
