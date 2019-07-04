@@ -3,7 +3,7 @@
 /*global Color:false*/
 (function () {
     'use strict';
-    //  The engine object contains the grab animation engine and its methods
+    //  ANIMATION ENGINE  ----------------------------------------------  ANIMATION  //
     var engine = (function () {
         var state = false,
             lastFT = 0, // Last frame time in ms
@@ -66,7 +66,7 @@
                         return this.values.current;
                     },
                     set: function (value) {
-                        if (Aux.isNumber(value)) {
+                        if (aux.isNumber(value)) {
                             this.values.current = value;
                         }
                     }
@@ -82,7 +82,7 @@
                         return this.values.last;
                     },
                     set: function (value) {
-                        if (Aux.isNumber(value)) {
+                        if (aux.isNumber(value)) {
                             this.values.last = value;
                         }
                     }
@@ -102,7 +102,7 @@
                         return this.values.time;
                     },
                     set: function (value) {
-                        if (Aux.isNumber(value)) {
+                        if (aux.isNumber(value)) {
                             this.values.time = value;
                         }
                     }
@@ -159,7 +159,7 @@
                     color = {}; // For color renders
                 //  Check if the udpate is a color animation
                 if (update.property.match(/[A-Z]*color$/ig)) {
-                    if (udpate.collect) {
+                    if (update.collect) {
                         color[update.channel] = animation.current; // All color updates have a channel property
                         update.object[update.property] = color;
                     } else {
@@ -292,7 +292,7 @@
         //  The internal complete function creates a complete object and addes it to the
         //  callbacks store, returning its associated uid
         function _complete (callback) {
-            var uid = Aux.getHashID(0),
+            var uid = aux.getHashID(0),
                 complete = {
                     callback: callback,
                     members: {
@@ -327,7 +327,7 @@
                 complete;
             //  Arguments can be in any order after the values object parameter
             for (i = 2; i < arguments.length; i = i + 1) {
-                if (typeof arguments[i] === 'number' && Aux.isNumber(arguments[i])) {
+                if (typeof arguments[i] === 'number' && aux.isNumber(arguments[i])) {
                     duration = arguments[i];
                 } else if (typeof arguments[i] === 'string') {
                     easing = arguments[i];
@@ -355,7 +355,7 @@
                             easings[easing],
                             object,
                             property,
-                            Aux.getHashID(l)
+                            aux.getHashID(l)
                         );
                         update.channel = channel;
                         if (complete) {
@@ -371,7 +371,7 @@
                         easings[easing],
                         object,
                         property,
-                        Aux.getHashID(j)
+                        aux.getHashID(j)
                     );
                     if (complete) {
                         callbacks[complete].members[update.uid] = 0; // Set initial complete member state
@@ -442,4 +442,191 @@
             add: add
         }
     }());
+    //  GRAB  ---------------------------------------------------------------  GRAB  //
+    window.grab = function (selector) {
+        // The internal create function returns an grab object with special properties,
+        //  getters and setters
+        function _create (dom) {
+            var grab = {
+                element: dom,
+                uid: aux.getHashID(0),
+                values: {}
+            }
+            //  The internal getStyle function returns a computed style from the dom
+            function _getStyle (property) {
+                return widnow.getComputedStyle(grab.element, '')[property];
+            }
+            //  The internal colorString function returns a CSS rgba color string from
+            //  a passed color object
+            function _colorString (c) {
+                return 'rgba(' + c.red + ',' + c.green + ',' + c.blue + ',' + c.alpha + ')';
+            }
+            
+            Object.defineProperties(grab, {
+                backgroundColor: {
+                    get: function () {
+                        return this.values.backgroundColor ? this.values.backgroundColor : chroma(_getStyle('backgroundColor'));
+                    },
+                    set: function (value) {
+                        var color; // color object
+                        if (aux.isObject(value)) { // For animation purposes
+                            color = Object.assign(this.backgroundColor, value);
+                        } else {
+                            color = chroma(value);
+                        }
+                        if (color) {
+                            Object.assign(this.backgroundColor, color);
+                            this.element.style.backgroundColor = _colorString(color);
+                        }
+                    }
+                },
+                borderColor: {
+                    get: function () {
+                        return this.values.borderColor ? this.values.borderColor : chroma(_getStyle('borderColor'));
+                    },
+                    set: function (value) {
+                        var color; // color object
+                        if (aux.isObject(value)) { // For animation purposes
+                            color = Object.assign(this.borderColor, value);
+                        } else {
+                            color = chroma(value);
+                        }
+                        if (color) {
+                            Object.assign(this.borderColor, color);
+                            this.element.style.borderColor = _colorString(color);
+                        }
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+                backgroundColor: {
+                    get: function () {
+                        return this.values
+                    },
+                    set: function (value) {
+                        
+                    }
+                },
+            })
+        }
+        
+    }
 }());

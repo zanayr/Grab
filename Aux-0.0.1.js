@@ -1,7 +1,7 @@
 /*eslint-env browser*/
 (function () {
     'use strict';
-    window.Aux = (function () {
+    window.aux = (function () {
         //  The public getHashID function returns a hash id made of a hexidecimal string
         function getHashID (z) {
             return ('xxxxxxxx-xxxx-' + z % 10 + 'xxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g, function(c) {
