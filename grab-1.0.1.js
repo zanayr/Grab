@@ -452,6 +452,7 @@
                 uid: aux.getHashID(0),
                 values: {}
             }
+            //  INTERNAL FUNCTIONS
             //  The internal getStyle function returns a computed style from the dom
             function _getStyle (property) {
                 return widnow.getComputedStyle(grab.element, '')[property];
@@ -524,7 +525,7 @@
                 }
                 return null;
             }
-            
+            //  GETTERS AND SETTERS
             Object.defineProperties(grab, {
                 backgroundColor: {
                     get: function () {
@@ -774,6 +775,19 @@
                     }
                 }
             });
+            //  METHODS
+            //  The animation method adds the object into the update array of the
+            //  animation engine
+            grab.animate = function (values, duration, easing, complete) {
+                var v = {};
+                Object.keys(values).forEach(function (property) {
+                    if (property.match(/^border[A-Z]*|[A-Z]*color|height|left|opacity|top|width$/ig).length) { // Check if the property can be animated
+                        grab[property] = _getStyle(property); // get origin value
+                        v[property] = _parseValue(values[property], property); // get target value
+                    }
+                    engine.add(this, v, duration, easing, complete); // Add animation to engine
+                });
+            }
         }
     }
 }());
