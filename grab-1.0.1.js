@@ -1037,38 +1037,65 @@
             //  The clear method removes all events of a particular type from an
             //  element, returning itself
             grab.clear = function (event) {
+                var matched = [],
+                    i;
                 if (aux.isValidString(event)) {
-                    this.events.removeByKeyValue('event', event);
+                    if (event === 'hover') {
+                        for (i = 0; i < this.events.length; i = i + 1) {
+                            if (this.events[i].event === 'mouseenter' || this.events[i].event === 'mouseleave') {
+                                matched.push(this.events[i]);
+                            }
+                        }
+                    } else {
+                        for (i = 0; i < this.events.length; i = i + 1) {
+                            if (this.events[i].event === event) {
+                                matched.push(this.events[i]);
+                            }
+                        }
+                    }
                 } else if (!event) {
-                    this.events.removeAll();
+                    for (i = 0; i < this.events.length; i = i + 1) {
+                        matched.push(this.events[i]);
+                    }
                 }
+                matched.forEach(function (match) {
+                    this.off(match.event, match);
+                }.bind(this));
                 return this;
             }
             //  The hover method sets a new hover event handler on the element,
             //  returning itself
             grab.hover = function (enter, leave) {
                 if (enter && typeof enter === 'function') {
-                    this.element.addEventListener('mouseenter', enter);
-                    this.events.add({event: 'hover', action: enter});
+                    this.on('mouseenter', enter);
                 }
                 if (leave && typeof leave === 'function') {
-                    this.element.addEventListener('mouseleave', leave)
-                    this.events.add({event: 'hover', action: leave});
+                    this.on('mouseleave', leave);
                 }
                 return this;
             }
             //  The off method removes a new event handler onto the element,
             //  returning itself
             grab.off = function (event, action) {
-                this.element.removeEventListener(event, action);
-                this.events.remove(this.events.findIndexByKeyValue('action', action));
+                var i;
+                if (action.action) {
+                    i = this.events.findIndexByKeyValue('action', action.action);
+                } else {
+                    i = this.events.findIndexByKeyValue('action', action);
+                }
+                this.element.removeEventListener(event, this.events[i].action);
+                this.events.remove(i);
                 return this;
             }
             //  The on method adds a new event handler onto the element,
             //  returning itself
-            grab.on = function (event, action) {
-                this.element.addEventListener(event, action);
-                this.events.add({event: event, action: action});
+            grab.on = function (event, action, bool) {
+                var i = this.events.add({event: event, action: action});
+                this.element.addEventListener(event, this.events[i].action);
+//                this.events.add({event: event, action: action});
+                if (bool) {
+                    return this.events[i]
+                }
                 return this;
             }
             //  The find method searches the elements children for a matching dom

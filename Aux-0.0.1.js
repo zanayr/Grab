@@ -131,7 +131,7 @@
             }
             //  Return the "index" of an "element" by searching a key/value pair
             object.findIndexByKeyValue = function (key, value) {
-                var index;
+                var index = -1;
                 Object.keys(object).forEach(function (element) {
                     Object.keys(object[element]).forEach(function (k) {
                         if (k === key && object[element][k] === value) {
