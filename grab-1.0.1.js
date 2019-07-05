@@ -915,19 +915,21 @@
                     Object.keys(data).forEach(function (d) {
                         this.element.setAttribute('data-' + d.replace('_', '-'), data[d]);
                     }.bind(this));
-                } else { // Get all 'data' attributes
+                } else if (!data) { // Get all 'data' attributes
                     Object.keys(attributes).forEach(function (d) {
                         var attribute = attributes[d].name;
-                        if (attribute.match(/^data-[A-Z]+$/ig)) {
+                        if (attribute.match(/^data-[A-Z-]+$/ig)) {
                             //  If the attribute matches 'data-*', remove the 'data-'
                             //  substring and split the string at the hyphens; iterate
                             //  through each substring, changing any substring after
                             //  the first to capital case; then join it without spaces
                             //  and make it the key for the equivalent a object value
                             //  from the attributes object
-                            a[attribute.replace('data-', '').split('-').forEach(function (str, i) {
+                            a[attribute.replace('data-', '').split('-').map(function (str, i) {
                                 if (i) {
-                                    str = str[0].toUpperCase() + str.slice(1).toLowerCase();
+                                    return str = str[0].toUpperCase() + str.slice(1).toLowerCase();
+                                } else {
+                                    return str;
                                 }
                             }).join('')] = attributes[d].value;
                         }
@@ -940,6 +942,8 @@
             //  attribute on the element, or it can take an object of key/value pairs
             //  and bulk set them as attributes on the element, returning itself
             grab.attr = function (attr, value) {
+                var attributes = this.element.attributes,
+                    a = {};
                 if (aux.isValidString(attr)) {
                     this.element.setAttribute(attr, value);
                 } else if (aux.isObject(attr)) {
@@ -947,8 +951,26 @@
                         attribute = attribute.replace(/([A-Z])/g, '-1$').trim().toLowerCase();
                         this.element.setAttribute (attribute, attr[attribute]);
                     }.bind(this));
+                } else if (!attr) {
+                    Object.keys(attributes).forEach(function (d) {
+                        var attribute = attributes[d].name;
+                        a[attribute.split('-').map(function (str, i) {
+                            if (i) {
+                                return str = str[0].toUpperCase() + str.slice(1).toLowerCase();
+                            } else {
+                                return str;
+                            }
+                        }).join('')] = attributes[d].value;
+                    });
+                    return a;
                 }
                 return this;
+            }
+            //  The classes method returns an array of element classes
+            grab.classes = function () {
+                return Object.keys(this.element.classList).map(function (i) {
+                    return this.element.classList[i];
+                }.bind(this));
             }
             //  The addClass method adds a passed string, or array of strings as css
             //  classes on the element, returning itself
