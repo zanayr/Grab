@@ -664,7 +664,7 @@
                 },
                 children: {
                     get: function () {
-                        var children = _createCollection(),
+                        var children = _collect([]),
                             i;
                         for (i = 0; i < this.element.children.length; i = i + 1) {
                             children.add(this.element.children[i]);
@@ -1100,7 +1100,8 @@
         //  A collection has all the same properties, getters and setters and methods
         //  as a grab object, where in these effect the collection as a whole
         function _collect (items) {
-            var collection = aux.arrayLikObject();
+            var collection = aux.arrayLikObject(),
+                i;
             //  The internal args function returns an array of passed arguments
             function _args (args) {
                 var i,
@@ -1132,49 +1133,49 @@
             //  Again, these methods cycle through the collection's "elements" to apply
             //  their action to all member grab elements; differences from the methods
             //  above will be noted
-            grab.animate = function () {
+            collection.animate = function () {
                 _exec('animate', _args(arguments));
                 return this;
             }
-            grab.fadeIn = function (duration, easing, complete) {
+            collection.fadeIn = function () {
                 _exec('fadeIn', _args(arguments));
                 return this;
             }
-            grab.fadeOut = function (duration, easing, complete) {
+            collection.fadeOut = function () {
                 _exec('fadeOut', _args(arguments));
                 return this;
             }
-            grab.hide = function () {
+            collection.hide = function () {
                 _exec('hide', _args(arguments));
                 return this;
             }
-            grab.show = function () {
+            collection.show = function () {
                 _exec('show', _args(arguments));
                 return this;
             }
-            grab.after = function (sibling) {
-                return sibling;
+            collection.after = function () {
+                return this;
             }
-            grab.before = function (sibling) {
-                return sibling;
+            collection.before = function () {
+                return this;
             }
-            grab.append = function (child) {
-                return child;
+            collection.append = function () {
+                return this;
             }
-            grab.prepend = function (child) {
-                return child;
+            collection.prepend = function () {
+                return this;
             }
-            grab.exit = function () {
+            collection.exit = function () {
                 _exec('exit', _args(arguments));
                 return this;
             }
-            grab.remove = function (child) {
+            collection.remove = function () {
                 _exec('remove', _args(arguments));
                 return this;
             }
             //  The data method on a collection will return an array of data attributes
             //  on each element, if not passed an object of data values
-            grab.data = function (data) {
+            collection.data = function (data) {
                 if (aux.isObject(data)) {
                     _exec('data', _args(arguments));
                 } else if (!data) {
@@ -1184,7 +1185,7 @@
             }
             //  The attr method on a collection will return an array of all attributes
             //  on each element, if not passed attr arguments
-            grab.attr = function (attr, value) {
+            collection.attr = function (attr) {
                 if (aux.isValidString(attr)) {
                     _exec('attr', _args(arguments));
                 } else if (aux.isObject(attr)) {
@@ -1194,45 +1195,45 @@
                 }
                 return this;
             }
-            grab.addClass = function (className) {
+            collection.addClass = function () {
                 _exec('addClass', _args(arguments));
                 return this;
             }
-            grab.removeClass = function (className) {
+            collection.removeClass = function () {
                 _exec('removeClass', _args(arguments));
                 return this;
             }
-            grab.toggleClass = function (className) {
+            collection.toggleClass = function () {
                 _exec('toggleClass', _args(arguments));
                 return this;
             }
-            grab.id = function (id) {
+            collection.id = function () {
                 _exec('id', _args(arguments));
                 return this;
             }
-            grab.css = function (property, value) {
+            collection.css = function () {
                 _exec('css', _args(arguments));
                 return this;
             }
-            grab.clear = function (event) {
+            collection.clear = function () {
                 _exec('clear', _args(arguments));
                 return this;
             }
-            grab.hover = function (enter, leave) {
+            collection.hover = function () {
                 _exec('hover', _args(arguments));
                 return this;
             }
-            grab.off = function (event, action) {
+            collection.off = function () {
                 _exec('off', _args(arguments));
                 return this;
             }
-            grab.on = function (event, action) {
+            collection.on = function () {
                 _exec('on', _args(arguments));
                 return this;
             }
             //  The find method searches the elements children for a matching dom
             //  element, returning a new grab object
-            grab.find = function (child) {
+            collection.find = function (child) {
                 if (typeof child === 'string') {
                     child = child.trim().replace(/\s/g, '').toLowerCase();
                     if (child.match(/^[a-z]+$/g).length) {
@@ -1256,6 +1257,11 @@
                     return null;
                 }
             }
+            //  Add passed items
+            for (i = 0; i < items.length; i = i + 1) {
+                collection.add(_create(items[i]));
+            }
+            //  Return final collection
             return collection;
         }
         //  The private grab function parses a passed parameter to create a new
