@@ -68,6 +68,10 @@
             }
             return true;
         }
+        //  The stripString function removes all extra white space from a string
+        function stripString (string) {
+            return string.trim().replace(/\s/g, '');
+        }
         //  The public arrayLikeObject function creates an array like object with
         //  some basic helper methods including, add, remove, removeAll and removeByKey
         //  If passed an object it can spread new methods or properties into it
@@ -155,7 +159,8 @@
             isNumber: isNumber,
             isObject: isObject,
             isString: isString,
-            isValidString: isValidString
+            isValidString: isValidString,
+            stripString: stripString
         }
     }());
 }());

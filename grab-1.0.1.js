@@ -444,6 +444,11 @@
     }());
     //  GRAB  ---------------------------------------------------------------  GRAB  //
     window.grab = function (selector) {
+        function _getName (element) {
+            var id = element.id ? '#' + element.id : '',
+                classes = element.className.length > 0 ? '.' + element.className.replace(' ', '.') : '';
+            return element.tagName.toLowerCase() + id + classes;
+        }
         // The internal create function returns an grab object with special properties,
         //  getters and setters
         function _create (dom) {
@@ -451,7 +456,9 @@
                 element: dom,
                 events: aux.arrayLikeObject(),
                 uid: aux.getHashID(0),
-                values: {}
+                values: {
+                    name: _getName(dom)
+                }
             }
             //  INTERNAL FUNCTIONS
             //  The internal getStyle function returns a computed style from the dom
@@ -696,6 +703,11 @@
                             this.values.left = left;
                             this.element.style.left = left + 'px';
                         }
+                    }
+                },
+                name: {
+                    get: function () {
+                        return this.values.name;
                     }
                 },
                 opacity: {
@@ -1092,37 +1104,67 @@
             grab.on = function (event, action, bool) {
                 var i = this.events.add({event: event, action: action});
                 this.element.addEventListener(event, this.events[i].action);
-//                this.events.add({event: event, action: action});
                 if (bool) {
                     return this.events[i]
                 }
                 return this;
             }
+            //  The child method parses a passed string and returns the direct children
+            //  of the grab element that match, returning null if there is no match
+            grab.child = function (child) {
+                var children = [],
+                    i;
+                if (aux.isValidString(child)) {
+                    if (child.search(',') > -1) {
+                        aux.stripString(child).split(',').forEach(function (c) {
+                            var nodes = this.element.children;
+                            for (i = 0; i < nodes.length; i = i + 1) {
+                                if (_getName(nodes[i]).search(c) > -1) {
+                                    children.push(nodes[i]);
+                                }
+                            }
+                        }.bind(this));
+                    } else {
+                        var nodes = this.element.children;
+                        for (i = 0; i < nodes.length; i = i + 1) {
+                            if (_getName(nodes[i]).search(child) > -1) {
+                                children.push(nodes[i]);
+                            }
+                        }
+                        if (children.length < 2) { // Return a single grab object
+                            return _grab(children[0]);
+                        }
+                    }
+                }
+                if (children.length) { // Return a collection of grab objects
+                    return _collect(children);
+                }
+                return null;
+            }
             //  The find method searches the elements children for a matching dom
             //  element, returning a new grab object
             grab.find = function (child) {
-                if (typeof child === 'string') {
-                    child = child.trim().replace(/\s/g, '').toLowerCase();
-                    if (child.match(/^[a-z]+$/g)) {
-                        return _collect(document.getElementsByTagName(child));
-                    } else if (child.match(/^#[a-z0-9-]/g)) {
-                        return _create(document.getElementById(child.slice(1)));
-                    } else if (child.match(/^\.[a-z0-9-]/g)) {
-                        return _collect(document.getElementsByClassName(child.slice(1)));
-                    } else if (child.search(',' > -1)) {
-                        return child.split(',').map(function (o) {
-                            return _grab(o);
-                        });
+                var children = [],
+                    i;
+                if (aux.isValidString(child)) {
+                    if (child.search(',') > -1) {
+                        aux.stripString(child).split(',').forEach(function (c) {
+                            var nodes = this.element.querySelectorAll(c);
+                            for (i = 0; i < nodes.length; i = i + 1) {
+                                children.push(nodes[i]);
+                            }
+                        }.bind(this));
                     } else {
-                        return null;
+                        children = this.element.querySelectorAll(aux.stripString(child));
+                        if (children.length < 2) { // Return a single grab object
+                            return _grab(children[0]);
+                        }
                     }
-                } else if (Array.isArray(child)) {
-                    return child.map(function (o) {
-                        return _grab(o);
-                    });
-                } else {
-                    return null;
                 }
+                if (children.length) { // Return a collection of grab objects
+                    return _collect(children);
+                }
+                return null;
             }
             return grab;
         }
@@ -1290,7 +1332,11 @@
             }
             //  Add passed items
             for (i = 0; i < items.length; i = i + 1) {
-                collection.add(_create(items[i]));
+                if (items[i].uid) {
+                    collection.add(items[i]);
+                } else {
+                    collection.add(_create(items[i]));
+                }
             }
             //  Return final collection
             return collection;
@@ -1299,8 +1345,11 @@
         //  grab object
         function _grab (item) {
             if (aux.isValidString(item)) {
-                item = item.trim().replace(/\s/g, '').toLowerCase(); // remove extra white space and make lowercase
-                if (item.match(/^[a-z]+$/g)) { // A string creates a new element
+                item = item.trim().replace(/\s/g, ''); // remove extra white space
+                if (item.search(',') > -1) {
+                    // split nd recurse
+                    return;
+                } else if (item.match(/^[a-z]+$/g)) { // A string creates a new element
                     return _create(document.createElement(item));
                 } else if (item.match(/^<[a-z]+>$/g)) { // A <tag> selector creates a new element
                     return _create(document.createElement(item.slice(1, -1)));
@@ -1308,8 +1357,6 @@
                     return _create(document.getElementById(item.slice(1)));
                 } else if (item.match(/^.[a-z0-9-]+/g)) { // A class selector
                     return _collect(document.getElementsByClassName(item.slcie(1)));
-                } else if (item.search(',' > -1)) {
-                    return _collect(item.split(',')); // a string of selectors, delimited by commas
                 }
             } else if (item.nodeType) { // Already a DOM object
                 return _create(item);
