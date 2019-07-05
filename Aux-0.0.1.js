@@ -63,7 +63,7 @@
             if (typeof string !== 'string') { // Invalid if no string is passed
                 return false;
             }
-            if (string) { // Invalid if an empty string is passed
+            if (!string) { // Invalid if an empty string is passed
                 return false;
             }
             return true;
@@ -150,7 +150,7 @@
         }
         //  Return object with public functions
         return {
-            arrayLikObject: arrayLikeObject,
+            arrayLikeObject: arrayLikeObject,
             getHashID: getHashID,
             isNumber: isNumber,
             isObject: isObject,

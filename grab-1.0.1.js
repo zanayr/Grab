@@ -468,38 +468,38 @@
             //  on the passed property
             function _parseValue (value, property) {
                 if (typeof value === 'string') {
-                    if (property.match(/^border[A-Z]*|height|left|top|width$/ig).length) { // All border, height, left top and width properties
-                        if (value.match(/^-?\d*\.?\d*px$/g).length) {
+                    if (property.match(/^border[A-Z]*|height|left|top|width$/ig)) { // All border, height, left top and width properties
+                        if (value.match(/^-?\d*\.?\d*px$/g)) {
                             return parseFloat(value, 10);
-                        } else if (value.match(/^-?\d*\.?\d*vw$/g).length) {
+                        } else if (value.match(/^-?\d*\.?\d*vw$/g)) {
                             return window.innerWidth * (parseFloat(value, 10) / 100);
-                        } else if (value.match(/^-?\d*\.?\d*vh$/g).length) {
+                        } else if (value.match(/^-?\d*\.?\d*vh$/g)) {
                             return window.innerHeight * (parseFloat(value, 10) / 100);
-                        } else if (property.match(/^height|top$/g).length) {
+                        } else if (property.match(/^height|top$/g)) {
                             if (value.match(/^\d*\.?\d*%$/g)) {
                                 return grab.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
-                            } else if (property.match(/^height$/g).length) {
-                                if (value.match(/^auto|initial$/ig).length) {
+                            } else if (property.match(/^height$/g)) {
+                                if (value.match(/^auto|initial$/ig)) {
                                     grab.element.style.height = value;
                                     return grab.element.offsetHeight;
                                 }
                             } else { // Top property
-                                if (value.match(/^auto|initial$/ig).length) {
+                                if (value.match(/^auto|initial$/ig)) {
                                     grab.element.style.top = value;
                                     return grab.element.offsetTop;
                                 }
                             }
-                        } else if (property.match(/^border[A-Z]*|left|width$/ig).length) {
-                            if (value.match(/^-?\d*\.?\d*%$/g).length) {
+                        } else if (property.match(/^border[A-Z]*|left|width$/ig)) {
+                            if (value.match(/^-?\d*\.?\d*%$/g)) {
                                 return grab.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
-                            } else if (value.match(/^auto|initial$/ig).length) {
-                                if (property.match(/^border[A-Z]+$/ig).length) { // Notice the '+' in place of the '*'
+                            } else if (value.match(/^auto|initial$/ig)) {
+                                if (property.match(/^border[A-Z]+$/ig)) { // Notice the '+' in place of the '*'
                                     grab.element.style.borderWidth = value;
                                     return grab.element.borderWidth;
-                                } else if (property.match(/^border$/g).length) {
+                                } else if (property.match(/^border$/g)) {
                                     grab.element.style.border = value;
                                     return {color: grab.element.borderColor, width: grab.element.borderWidth};
-                                } else if (property.match(/^left$/g).length) {
+                                } else if (property.match(/^left$/g)) {
                                     grab.element.style.left = value;
                                     return grab.element.offsetLeft;
                                 } else { // Width property
@@ -509,16 +509,16 @@
                             }
                         }
                     } else if (property === 'opacity') { // Opacity property
-                        if (value.match(/^auto|initial|none$/g).length) {
+                        if (value.match(/^auto|initial|none$/g)) {
                             return 1;
-                        } else if (value.match(/^transparent$/g).length) {
+                        } else if (value.match(/^transparent$/g)) {
                             return 0;
-                        } else if (value.match(/^\d{1,3}\.?\d*%$/g).length) {
+                        } else if (value.match(/^\d{1,3}\.?\d*%$/g)) {
                             return parseFloat(value, 10) / 100;
-                        } else if (value.match(/^\d*\.?\d*$/g).length) {
+                        } else if (value.match(/^\d*\.?\d*$/g)) {
                             return parseFloat(value, 10);
                         }
-                    } else if (property.match(/[A-Z]*color$/ig).length) { // All color properties
+                    } else if (property.match(/[A-Z]*color$/ig)) { // All color properties
                         return chroma(value);
                     } 
                 } else if (aux.isNumber(value)) {
@@ -782,7 +782,7 @@
             grab.animate = function (values, duration, easing, complete) {
                 var v = {};
                 Object.keys(values).forEach(function (property) {
-                    if (property.match(/^border[A-Z]*|[A-Z]*color|height|left|opacity|top|width$/ig).length) { // Check if the property can be animated
+                    if (property.match(/^border[A-Z]*|[A-Z]*color|height|left|opacity|top|width$/ig)) { // Check if the property can be animated
                         grab[property] = _getStyle(property); // get origin value
                         v[property] = _parseValue(values[property], property); // get target value
                     }
@@ -1072,11 +1072,11 @@
             grab.find = function (child) {
                 if (typeof child === 'string') {
                     child = child.trim().replace(/\s/g, '').toLowerCase();
-                    if (child.match(/^[a-z]+$/g).length) {
+                    if (child.match(/^[a-z]+$/g)) {
                         return _collect(document.getElementsByTagName(child));
-                    } else if (child.match(/^#[a-z0-9-]/g).length) {
+                    } else if (child.match(/^#[a-z0-9-]/g)) {
                         return _create(document.getElementById(child.slice(1)));
-                    } else if (child.match(/^\.[a-z0-9-]/g).length) {
+                    } else if (child.match(/^\.[a-z0-9-]/g)) {
                         return _collect(document.getElementsByClassName(child.slice(1)));
                     } else if (child.search(',' > -1)) {
                         return child.split(',').map(function (o) {
@@ -1236,11 +1236,11 @@
             collection.find = function (child) {
                 if (typeof child === 'string') {
                     child = child.trim().replace(/\s/g, '').toLowerCase();
-                    if (child.match(/^[a-z]+$/g).length) {
+                    if (child.match(/^[a-z]+$/g)) {
                         return _collect(document.getElementsByTagName(child));
-                    } else if (child.match(/^#[a-z0-9-]/g).length) {
+                    } else if (child.match(/^#[a-z0-9-]/g)) {
                         return _create(document.getElementById(child.slice(1)));
-                    } else if (child.match(/^\.[a-z0-9-]/g).length) {
+                    } else if (child.match(/^\.[a-z0-9-]/g)) {
                         return _collect(document.getElementsByClassName(child.slice(1)));
                     } else if (child.search(',' > -1)) {
                         return child.split(',').map(function (o) {
@@ -1269,13 +1269,13 @@
         function _grab (item) {
             if (aux.isValidString(item)) {
                 item = item.trim().replace(/\s/g, '').toLowerCase(); // remove extra white space and make lowercase
-                if (item.match(/^[a-z]+$/g).length) { // A string creates a new element
+                if (item.match(/^[a-z]+$/g)) { // A string creates a new element
                     return _create(document.createElement(item));
-                } else if (item.match(/^<[a-z]+>$/g).length) { // A <tag> selector creates a new element
+                } else if (item.match(/^<[a-z]+>$/g)) { // A <tag> selector creates a new element
                     return _create(document.createElement(item.slice(1, -1)));
-                } else if (item.match(/^#[a-z0-9-]+/g).length) { // An id selector
+                } else if (item.match(/^#[a-z0-9-]+/g)) { // An id selector
                     return _create(document.getElementById(item.slice(1)));
-                } else if (item.match(/^.[a-z0-9-]+/g).length) { // A class selector
+                } else if (item.match(/^.[a-z0-9-]+/g)) { // A class selector
                     return _collect(document.getElementsByClassName(item.slcie(1)));
                 } else if (item.search(',' > -1)) {
                     return _collect(item.split(',')); // a string of selectors, delimited by commas
