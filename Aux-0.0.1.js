@@ -49,11 +49,100 @@
                 }());
             }
         }
+        //  The public isString function checks if a passed parameter is a string,
+        //  returning the coffisponding boolean value
+        function isString (string) {
+            if (typeof string !== 'string') { // Invalid if no string is passed
+                return false;
+            }
+            return true;
+        }
+        //  The public isValidString function checks if a passed parameter is a string,
+        //  and if that string is not empty, returning the coffisponding boolean value
+        function isValidString (string) {
+            if (typeof string !== 'string') { // Invalid if no string is passed
+                return false;
+            }
+            if (string) { // Invalid if an empty string is passed
+                return false;
+            }
+            return true;
+        }
+        //  The public arrayLikeObject function creates an array like object with
+        //  some basic helper methods including, add, remove, removeAll and removeByKey
+        //  If passed an object it can spread new methods or properties into it
+        function arrayLikeObject (sup) {
+            var object = {
+                length: 0
+            }
+            //  The private reset function resets the "array" position values, removing
+            //  skipped "elements"
+            function _reset() {
+                var count = 0,
+                    temp = {}; // Temporary object
+                Object.keys(Object.assign({}, object)).forEach(function (key) {
+                    if (isNumber(parseInt(key, 10))) {
+                        temp[count] = object[key]; // Copy the element
+                        delete object[key]; // Delete the element from the previous object
+                        count = count + 1;
+                    }
+                });
+                object.length = count;
+                return Object.assign(object, temp); // Rejoin the temp into the object
+            }
+            //  Add an "element", return position
+            object.add = function (element) {
+                object[object.length] = element;
+                object.length = object.length + 1;
+                return object.length - 1;
+            }
+            //  Remove an "element" by passed position value and reset the "order",
+            //  returning the reset object
+            object.remove = function (element) {
+                if (isNumber(parseInt(element))) {
+                    delete object[element]; // Delete element by element
+                }
+                return _reset();
+            }
+            //  Remove all "elements" and reset the "order", returning the "empty"
+            //  object
+            object.removeAll = function () {
+                Object.keys(Object.assign({}, object)).forEach(function (key) {
+                    if (isNumber(parseInt(key, 10))) {
+                        delete object[key]; // Delete the element from the object
+                    }
+                });
+                object.length = 0;
+                return object;
+            }
+            //  Remove all "elements" that match a give key and value pair, returning
+            //  the reset object
+            object.removeByKeyValue = function (key, value) {
+                Object.keys(Object.assign({}, object)).forEach(function (k) {
+                    if (isNumber(parseInt(k, 10))) {
+                        Object.keys(Object.assign({}, object[k])).forEach(function (l) {
+                            if (l === key && object[k][l] === value) {
+                                delete object[k]; // delete matched "element"
+                            }
+                        });
+                    }
+                });
+                return _reset();
+            }
+            if (isObject(sup)) {
+                return Object.assign(object, sup);
+            } else {
+                return object;
+            }
+        }
         //  Return object with public functions
         return {
+            arrayLikObject: arrayLikeObject,
             getHashID: getHashID,
             isNumber: isNumber,
-            isObject: isObject
+            isObject: isObject,
+            isString: isString,
+            isValidString: isValidString
         }
     }());
 }());

@@ -449,6 +449,7 @@
         function _create (dom) {
             var grab = {
                 element: dom,
+                events: aux.arrayLikeObject(),
                 uid: aux.getHashID(0),
                 values: {}
             }
@@ -787,6 +788,281 @@
                     }
                     engine.add(this, v, duration, easing, complete); // Add animation to engine
                 });
+                return this;
+            }
+            //  The fadeIn method animates the element's opacity, before setting its
+            //  display property to block
+            grab.fadeIn = function (duration, easing, complete) {
+                this.animate({opacity: 1.0}, duration, easing, function () {
+                    this.display = 'block';
+                    if (typeof complete === 'function') {
+                        complete();
+                    }
+                }.bind(this));
+                return this;
+            }
+            //  The fadeOut method animates the element's opacity, before setting its
+            //  display property to none
+            grab.fadeOut = function (duration, easing, complete) {
+                this.animate({opacity: 0.0}, duration, easing, function () {
+                    this.display = 'none';
+                    if (typeof complete === 'function') {
+                        complete();
+                    }
+                }.bind(this));
+                return this;
+            }
+            
+            //  The hide method sets the element's visibility to 'hidden'
+            grab.hide = function () {
+                this.visibility = 'hidden';
+                return this;
+            }
+            //  The show method sets the element's visibility to 'visible'
+            grab.show = function () {
+                this.visibility = 'visible';
+                return this;
+            }
+            //  The before method will remove itself from its current DOM location, and
+            //  insert itself after the passed sibling
+            grab.after = function (sibling) {
+//                var fragment;
+//                if (this.element.parentNode) {
+//                    if (sibling && typeof sibling === 'string') {
+//                        fragment = document.createRange().createContextualFragment(sibling).firstChild;
+//                        this.element.parentNode.insertBefore(fragment, this.element.nextSibling);
+//                        return _grab(fragment.tagName);
+//                    } else if (sibling && sibling.uid) {
+//                        this.element.parentNode.insertBefore(sibling.element, this.element.nextSibling);
+//                        return sibling;
+//                    } else {
+//                        return null;
+//                    }
+//                }
+            }
+            //  The before method will remove itself from its current DOM location, and
+            //  insert itself before the passed sibling
+            grab.before = function (sibling) {
+//                var fragment = document.createRange().createContextualFragment(sibling).firstChild;
+//                if (this.element.parentNode) {
+//                    if (sibling && typeof sibling === 'string') {
+//                        this.element.parentNode.insertBefore(fragment, this.element);
+//                        return _grab(fragment.tagName);
+//                    } else if (sibling && sibling.uid) {
+//                        this.element.parentNode.insertBefore(sibling.element, this.element);
+//                        return sibling;
+//                    } else {
+//                        return null;
+//                    }
+//                }
+            }
+            //  The append method will remove the child from its current DOM location
+            //  and append it inside of itself, returning itself
+            grab.append = function (child) {
+//                var fragment;
+//                if (child && typeof child === 'string') {
+//                    fragment = document.createRange().createContextualFragment(child).firstChild;
+//                    this.element.appendChild(fragment);
+//                    return _grab(fragment.tagName)
+//                } else if (child && child.uid) {
+//                    this.element.appendChild(child.element);
+//                    return child;
+//                } else {
+//                    return null;
+//                }
+            }
+            //  The prepend method will remove the child from its current DOM location
+            //  and prepend it inside of itself, returning itself
+            grab.prepend = function (child) {
+//                var fragment;
+//                if (child && typeof child === 'string') {
+//                    fragment = document.createRange().createContextualFragment(child).firstChild;
+//                    this.element.prepend(fragment);
+//                    return _grab(fragment.tagName);
+//                } else if (child && child.uid) {
+//                    this.element.prepend(child.element);
+//                    return child;
+//                } else {
+//                    return null;
+//                }
+            }
+            //  The exit method removes the owner from the DOM, returning itself
+            grab.exit = function () {
+                if (this.element.parentNode) {
+                    this.element.parentNode.removeChild(this.element);
+                    return this;
+                }
+                return null;
+            }
+            //  The remove method removes children from the owner's children nodes,
+            //  returning itself
+            grab.remove = function (child) {
+                var i;
+                if (Array.isArray(child)) { // Array of children
+                    for (i = 0; i < child.length; i = i + 1) {
+                        this.remove(child[i]);
+                    }
+                    return this;
+                } else if (aux.isObject(child) && child.length) {  // Collection of children
+                    for (i = 0; i < child.length; i = i + 1) {
+                        this.remove(child[i]);
+                    }
+                    return this;
+                } else if (child.nodeType > 0) { // DOM object
+                    this.element.removeChild(_grab(child).element);
+                    return this;
+                } else if (child && child.uid) { // Grab object
+                    this.element.removeChild(child.element);
+                    return this;
+                }
+                return null;
+            }
+            //  The data method returns all 'data-*' attributes from the element, if no
+            //  data object is passed; data object keys become the '*' label or the
+            //  data attributes 'data-*'; if the method is used to set data, it will
+            //  return itself, otherwise it will return an object of attributes and
+            //  values
+            grab.data = function (data) {
+                var attributes = this.element.attributes,
+                    a = {};
+                if (aux.isObject(data)) { // Set a new 'data' attribute
+                    Object.keys(data).forEach(function (d) {
+                        this.element.setAttribute('data-' + d.replace('_', '-'), data[d]);
+                    }.bind(this));
+                    return this;
+                } else { // Get all 'data' attributes
+                    Object.keys(attributes).forEach(function (d) {
+                        var attribute = attributes[d].name;
+                        if (attribute.match(/^data-[A-Z]+$/ig)) {
+                            //  If the attribute matches 'data-*', remove the 'data-'
+                            //  substring and split the string at the hyphens; iterate
+                            //  through each substring, changing any substring after
+                            //  the first to capital case; then join it without spaces
+                            //  and make it the key for the equivalent a object value
+                            //  from the attributes object
+                            a[attribute.replace('data-', '').split('-').forEach(function (str, i) {
+                                if (i) {
+                                    str = str[0].toUpperCase() + str.slice(1).toLowerCase();
+                                }
+                            }).join('')] = attributes[d].value;
+                        }
+                    });
+                    return a;
+                }
+                return this;
+            }
+            //  The attr method can take a string and value pair and create an
+            //  attribute on the element, or it can take an object of key/value pairs
+            //  and bulk set them as attributes on the element, returning itself
+            grab.attr = function (attr, value) {
+                if (aux.isValidString(attr)) {
+                    this.element.setAttribute(attr, value);
+                } else if (aux.isObject(attr)) {
+                    Object.keys(attr).forEach(function (attribute) {
+                        attribute = attribute.replace(/([A-Z])/g, '-1$').trim().toLowerCase();
+                        this.element.setAttribute (attribute, attr[attribute]);
+                    }.bind(this));
+                }
+                return this;
+            }
+            //  The addClass method adds a passed string, or array of strings as css
+            //  classes on the element, returning itself
+            grab.addClass = function (className) {
+                if (Array.isArray(className)) {
+                    className.forEach(function (name) {
+                        if (aux.isValidString(className)) {
+                            this.element.classList.add(name);
+                        }
+                    });
+                } else if (aux.isValidString(className)) {
+                    this.element.classList.add(className);
+                }
+                return this;
+            }
+            //  The removeClass method removes a passed string, or array of strings as
+            //  css classes on the element, returning itself
+            grab.removeClass = function (className) {
+                if (Array.isArray(className)) {
+                    className.forEach(function (name) {
+                        if (aux.isValidString(className)) {
+                            this.element.classList.remove(name);
+                        }
+                    });
+                } else if (aux.isValidString(className)) {
+                    this.element.classList.remove(className);
+                }
+                return this;
+            }
+            //  The toggleClass method toggles a passed string, or array of strings as
+            //  css classes on the element, returning itself
+            grab.toggleClass = function (className) {
+                if (Array.isArray(className)) {
+                    className.forEach(function (name) {
+                        if (aux.isValidString(className)) {
+                            this.element.classList.toggle(name);
+                        }
+                    });
+                } else if (aux.isValidString(className)) {
+                    this.element.classList.toggle(className);
+                }
+                return this;
+            }
+            //  The id method sets the css id of the element, returning itself
+            grab.id = function (id) {
+                if (aux.isValidString(id)) {
+                    this.element.id = id;
+                }
+                return this;
+            }
+            //  The css method takes a string property and value pair, or an object of
+            //  key/value pairs; and updates the element's css appropriately, returning
+            //  itself
+            grab.css = function (property, value) {
+                if (aux.isValidString(property)) {
+                    this.element.style[property] = value;
+                } else if (aux.isObject(property)) {
+                    Object.keys(property).forEach(function (p) {
+                        this.element.style[p] = property[p];
+                    }.bind(this));
+                }
+                return this;
+            }
+            //  The clear method removes all events of a particular type from an
+            //  element, returning itself
+            grab.clear = function (event) {
+                if (aux.isValidString(event)) {
+                    this.events.removeMany('event', event);
+                } else if (!Boolean(event)) {
+                    this.events.removeAll();
+                }
+                return this;
+            }
+            //  The hover method sets a new hover event handler on the element,
+            //  returning itself
+            grab.hover = function (enter, leave) {
+                if (enter && typeof enter === 'function') {
+                    this.element.addEventListener('mouseenter', enter);
+                    this.events.add({event: 'hover', action: enter});
+                }
+                if (leave && typeof leave === 'function') {
+                    this.element.addEventListener('mouseleave', leave)
+                    this.events.add({event: 'hover', action: leave});
+                }
+                return this;
+            }
+            //  The off method removes a new event handler onto the element,
+            //  returning itself
+            grab.off = function (event, action) {
+                this.element.removeEventListener(event, action);
+                this.events.remove({event: event, action: action});
+                return this;
+            }
+            //  The on method adds a new event handler onto the element,
+            //  returning itself
+            grab.on = function (event, action) {
+                this.element.addEventListener(event, action);
+                this.events.add({event: event, action: action});
+                return this;
             }
         }
     }
