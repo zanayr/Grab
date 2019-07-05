@@ -1,7 +1,7 @@
 /*eslint-env browser*/
 (function () {
     'use strict';
-    window.chroma = (function (model) {
+    window.chroma = function (model) {
         //  COLORS  -----------------------------------------------------------  COLORS  //
         //  The following section deals with the parsing, checking and converting of most
         //  standard color models in the DOM to the rgba color model that grab uses
@@ -304,5 +304,5 @@
             }
         }
         return _color(model);
-    }());
+    }
 }());

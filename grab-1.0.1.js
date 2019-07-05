@@ -469,58 +469,26 @@
             function _parseValue (value, property) {
                 if (typeof value === 'string') {
                     if (property.match(/^border[A-Z]*|height|left|top|width$/ig)) { // All border, height, left top and width properties
-                        if (value.match(/^-?\d*\.?\d*px$/g)) {
+                        if (value.match(/^-?\d+\.?\d*px$/g)) {
                             return parseFloat(value, 10);
-                        } else if (value.match(/^-?\d*\.?\d*vw$/g)) {
+                        } else if (value.match(/^-?\d+\.?\d*vw$/g)) {
                             return window.innerWidth * (parseFloat(value, 10) / 100);
-                        } else if (value.match(/^-?\d*\.?\d*vh$/g)) {
+                        } else if (value.match(/^-?\d+\.?\d*vh$/g)) {
                             return window.innerHeight * (parseFloat(value, 10) / 100);
-                        } else if (property.match(/^height|top$/g)) {
-                            if (value.match(/^\d*\.?\d*%$/g)) {
+                        } else if (value.match(/^\d+\.?\d*%$/g)) {
+                            if (property.match(/^height|top/ig)) {
                                 return grab.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
-                            } else if (property.match(/^height$/g)) {
-                                if (value.match(/^auto|initial$/ig)) {
-                                    grab.element.style.height = value;
-                                    return grab.element.offsetHeight;
-                                }
-                            } else { // Top property
-                                if (value.match(/^auto|initial$/ig)) {
-                                    grab.element.style.top = value;
-                                    return grab.element.offsetTop;
-                                }
-                            }
-                        } else if (property.match(/^border[A-Z]*|left|width$/ig)) {
-                            if (value.match(/^-?\d*\.?\d*%$/g)) {
+                            } else if (property.match(/^left|width$/ig)) {
                                 return grab.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
-                            } else if (value.match(/^auto|initial$/ig)) {
-                                if (property.match(/^border[A-Z]+$/ig)) { // Notice the '+' in place of the '*'
-                                    grab.element.style.borderWidth = value;
-                                    return grab.element.borderWidth;
-                                } else if (property.match(/^border$/g)) {
-                                    grab.element.style.border = value;
-                                    return {color: grab.element.borderColor, width: grab.element.borderWidth};
-                                } else if (property.match(/^left$/g)) {
-                                    grab.element.style.left = value;
-                                    return grab.element.offsetLeft;
-                                } else { // Width property
-                                    grab.element.style.width = value;
-                                    return grab.element.offsetWidth;
-                                }
                             }
                         }
-                    } else if (property === 'opacity') { // Opacity property
-                        if (value.match(/^auto|initial|none$/g)) {
-                            return 1;
-                        } else if (value.match(/^transparent$/g)) {
-                            return 0;
-                        } else if (value.match(/^\d{1,3}\.?\d*%$/g)) {
+                    } else if (property === 'opacity') {
+                        if (value.match(/^\d{1,3}\.?\d*%$/g)) {
                             return parseFloat(value, 10) / 100;
-                        } else if (value.match(/^\d*\.?\d*$/g)) {
+                        } else if (value.match(/^\d+\.?\d*$/g)) {
                             return parseFloat(value, 10);
                         }
-                    } else if (property.match(/[A-Z]*color$/ig)) { // All color properties
-                        return chroma(value);
-                    } 
+                    }
                 } else if (aux.isNumber(value)) {
                     return value;
                 }
@@ -540,7 +508,7 @@
                             color = chroma(value);
                         }
                         if (aux.isObject(color)) {
-                            Object.assign(this.backgroundColor, color);
+                            this.values.backgroundColor = color;
                             this.element.style.backgroundColor = _colorString(color);
                         }
                     }
@@ -549,6 +517,7 @@
                     get: function () {
                         return {
                             color: this.borderColor,
+                            style: 'solid',
                             width: this.borderWidth
                         }
                     },
@@ -556,12 +525,25 @@
                         var border;
                         if (aux.isObject(value)) { // For animation purposes
                             border = Object.assign(this.border, value);
-                        } else {
-                            border = _parseValue(value, 'border');
-                        }
-                        if (aux.isObject(border)) {
-                            Object.assign(this.border, border);
-                            this.element.style.border = border.width + 'px ' + 'solid ' + border.color;
+                            this.borderWidth = border.width;
+                            this.bordercolor = border.color;
+                        } else if (aux.isValidString(value)) {
+                            border = {};
+                            value.split(' ').forEach(function (str) {
+                                if (str.match(/\d+.?\d*[a-z%]/)) {
+                                    border.width = _parseValue(str, 'border');
+                                    if (border.width) {
+                                        this.borderWidth = border.width;
+                                        this.element.style.borderStyle = 'solid';
+                                    }
+                                } else {
+                                    border.color = chroma(str);
+                                    if (border.color) {
+                                        this.borderColor = border.color;
+                                        this.element.style.borderStyle = 'solid';
+                                    }
+                                }
+                            }.bind(this));
                         }
                     }
                 },
@@ -577,7 +559,7 @@
                             color = chroma(value);
                         }
                         if (aux.isObject(color)) {
-                            Object.assign(this.borderColor, color);
+                            this.borderColor = color;
                             this.element.style.borderColor = _colorString(color);
                         }
                     }
@@ -651,14 +633,14 @@
                     },
                     set: function (value) {
                         var color;
-                        if (aux.isObject(value)) {
+                        if (aux.isObject(value)) { // For anumation purposes
                             color = Object.assign(this.color, value);
                         } else {
                             color = chroma(value);
                         }
                         if (aux.isObject(color)) {
-                            Object.assign(this.color, color);
-                            this.values.color = _colorString(color);
+                            this.values.color = color;
+                            this.element.style.color = _colorString(color);
                         }
                     }
                 },
@@ -667,7 +649,7 @@
                         var children = _collect([]),
                             i;
                         for (i = 0; i < this.element.children.length; i = i + 1) {
-                            children.add(this.element.children[i]);
+                            children.add(_grab(this.element.children[i]));
                         }
                         return children;
                     }
@@ -1100,7 +1082,7 @@
         //  A collection has all the same properties, getters and setters and methods
         //  as a grab object, where in these effect the collection as a whole
         function _collect (items) {
-            var collection = aux.arrayLikObject(),
+            var collection = aux.arrayLikeObject(),
                 i;
             //  The internal args function returns an array of passed arguments
             function _args (args) {
