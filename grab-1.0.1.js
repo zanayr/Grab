@@ -456,7 +456,7 @@
             //  INTERNAL FUNCTIONS
             //  The internal getStyle function returns a computed style from the dom
             function _getStyle (property) {
-                return widnow.getComputedStyle(grab.element, '')[property];
+                return window.getComputedStyle(grab.element, '')[property];
             }
             //  The internal colorString function returns a CSS rgba color string from
             //  a passed color object
@@ -839,6 +839,7 @@
 //                        return null;
 //                    }
 //                }
+                return sibling;
             }
             //  The before method will remove itself from its current DOM location, and
             //  insert itself before the passed sibling
@@ -855,6 +856,7 @@
 //                        return null;
 //                    }
 //                }
+                return sibling;
             }
             //  The append method will remove the child from its current DOM location
             //  and append it inside of itself, returning itself
@@ -870,6 +872,7 @@
 //                } else {
 //                    return null;
 //                }
+                return child;
             }
             //  The prepend method will remove the child from its current DOM location
             //  and prepend it inside of itself, returning itself
@@ -885,6 +888,7 @@
 //                } else {
 //                    return null;
 //                }
+                return child;
             }
             //  The exit method removes the owner from the DOM, returning itself
             grab.exit = function () {
@@ -929,7 +933,6 @@
                     Object.keys(data).forEach(function (d) {
                         this.element.setAttribute('data-' + d.replace('_', '-'), data[d]);
                     }.bind(this));
-                    return this;
                 } else { // Get all 'data' attributes
                     Object.keys(attributes).forEach(function (d) {
                         var attribute = attributes[d].name;
@@ -1031,8 +1034,8 @@
             //  element, returning itself
             grab.clear = function (event) {
                 if (aux.isValidString(event)) {
-                    this.events.removeMany('event', event);
-                } else if (!Boolean(event)) {
+                    this.events.removeByKeyValue('event', event);
+                } else if (!event) {
                     this.events.removeAll();
                 }
                 return this;
@@ -1054,7 +1057,7 @@
             //  returning itself
             grab.off = function (event, action) {
                 this.element.removeEventListener(event, action);
-                this.events.remove({event: event, action: action});
+                this.events.remove(this.events.findIndexByKeyValue('action', action));
                 return this;
             }
             //  The on method adds a new event handler onto the element,
@@ -1064,6 +1067,221 @@
                 this.events.add({event: event, action: action});
                 return this;
             }
+            //  The find method searches the elements children for a matching dom
+            //  element, returning a new grab object
+            grab.find = function (child) {
+                if (typeof child === 'string') {
+                    child = child.trim().replace(/\s/g, '').toLowerCase();
+                    if (child.match(/^[a-z]+$/g).length) {
+                        return _collect(document.getElementsByTagName(child));
+                    } else if (child.match(/^#[a-z0-9-]/g).length) {
+                        return _create(document.getElementById(child.slice(1)));
+                    } else if (child.match(/^\.[a-z0-9-]/g).length) {
+                        return _collect(document.getElementsByClassName(child.slice(1)));
+                    } else if (child.search(',' > -1)) {
+                        return child.split(',').map(function (o) {
+                            return _grab(o);
+                        });
+                    } else {
+                        return null;
+                    }
+                } else if (Array.isArray(child)) {
+                    return child.map(function (o) {
+                        return _grab(o);
+                    });
+                } else {
+                    return null;
+                }
+            }
+            return grab;
         }
+        //  The private collect function parses a passed parameter to create a new
+        //  collection of grab objects
+        //  A collection has all the same properties, getters and setters and methods
+        //  as a grab object, where in these effect the collection as a whole
+        function _collect (items) {
+            var collection = aux.arrayLikObject();
+            //  The internal args function returns an array of passed arguments
+            function _args (args) {
+                var i,
+                    a = [];
+                for (i = 0; i < args.length; i = i + 1) {
+                    a.push(args[i]);
+                }
+                return a;
+            }
+            //  The internal exec function applies an array of arguments to an action
+            function _exec(action, args) {
+                var i;
+                for (i = 0; i < collection.length; i = i = 1) {
+                    collection[i][action].apply(collection[i], args);
+                }
+                return null;
+            }
+            //  The internal execWithReturnValues applies an array of arguments to an
+            //  action and returns an array of returned values
+            function _execWithReturnArray(action, args) {
+                var i,
+                    returns = [];
+                for (i = 0; i < collection.length; i = i = 1) {
+                    returns.push(collection[i][action].apply(collection[i], args));
+                }
+                return returns;
+            }
+            //  METHODS
+            //  Again, these methods cycle through the collection's "elements" to apply
+            //  their action to all member grab elements; differences from the methods
+            //  above will be noted
+            grab.animate = function () {
+                _exec('animate', _args(arguments));
+                return this;
+            }
+            grab.fadeIn = function (duration, easing, complete) {
+                _exec('fadeIn', _args(arguments));
+                return this;
+            }
+            grab.fadeOut = function (duration, easing, complete) {
+                _exec('fadeOut', _args(arguments));
+                return this;
+            }
+            grab.hide = function () {
+                _exec('hide', _args(arguments));
+                return this;
+            }
+            grab.show = function () {
+                _exec('show', _args(arguments));
+                return this;
+            }
+            grab.after = function (sibling) {
+                return sibling;
+            }
+            grab.before = function (sibling) {
+                return sibling;
+            }
+            grab.append = function (child) {
+                return child;
+            }
+            grab.prepend = function (child) {
+                return child;
+            }
+            grab.exit = function () {
+                _exec('exit', _args(arguments));
+                return this;
+            }
+            grab.remove = function (child) {
+                _exec('remove', _args(arguments));
+                return this;
+            }
+            //  The data method on a collection will return an array of data attributes
+            //  on each element, if not passed an object of data values
+            grab.data = function (data) {
+                if (aux.isObject(data)) {
+                    _exec('data', _args(arguments));
+                } else if (!data) {
+                    return _execWithReturnArray('data', _args(arguments));
+                }
+                return this;
+            }
+            //  The attr method on a collection will return an array of all attributes
+            //  on each element, if not passed attr arguments
+            grab.attr = function (attr, value) {
+                if (aux.isValidString(attr)) {
+                    _exec('attr', _args(arguments));
+                } else if (aux.isObject(attr)) {
+                    _exec('attr', _args(arguments));
+                } else if (!attr) {
+                    return _execWithReturnArray('attr', _args(arguments));
+                }
+                return this;
+            }
+            grab.addClass = function (className) {
+                _exec('addClass', _args(arguments));
+                return this;
+            }
+            grab.removeClass = function (className) {
+                _exec('removeClass', _args(arguments));
+                return this;
+            }
+            grab.toggleClass = function (className) {
+                _exec('toggleClass', _args(arguments));
+                return this;
+            }
+            grab.id = function (id) {
+                _exec('id', _args(arguments));
+                return this;
+            }
+            grab.css = function (property, value) {
+                _exec('css', _args(arguments));
+                return this;
+            }
+            grab.clear = function (event) {
+                _exec('clear', _args(arguments));
+                return this;
+            }
+            grab.hover = function (enter, leave) {
+                _exec('hover', _args(arguments));
+                return this;
+            }
+            grab.off = function (event, action) {
+                _exec('off', _args(arguments));
+                return this;
+            }
+            grab.on = function (event, action) {
+                _exec('on', _args(arguments));
+                return this;
+            }
+            //  The find method searches the elements children for a matching dom
+            //  element, returning a new grab object
+            grab.find = function (child) {
+                if (typeof child === 'string') {
+                    child = child.trim().replace(/\s/g, '').toLowerCase();
+                    if (child.match(/^[a-z]+$/g).length) {
+                        return _collect(document.getElementsByTagName(child));
+                    } else if (child.match(/^#[a-z0-9-]/g).length) {
+                        return _create(document.getElementById(child.slice(1)));
+                    } else if (child.match(/^\.[a-z0-9-]/g).length) {
+                        return _collect(document.getElementsByClassName(child.slice(1)));
+                    } else if (child.search(',' > -1)) {
+                        return child.split(',').map(function (o) {
+                            return _grab(o);
+                        });
+                    } else {
+                        return null;
+                    }
+                } else if (Array.isArray(child)) {
+                    return child.map(function (o) {
+                        return _grab(o);
+                    });
+                } else {
+                    return null;
+                }
+            }
+            return collection;
+        }
+        //  The private grab function parses a passed parameter to create a new
+        //  grab object
+        function _grab (item) {
+            if (aux.isValidString(item)) {
+                item = item.trim().replace(/\s/g, '').toLowerCase(); // remove extra white space and make lowercase
+                if (item.match(/^[a-z]+$/g).length) { // A string creates a new element
+                    return _create(document.createElement(item));
+                } else if (item.match(/^<[a-z]+>$/g).length) { // A <tag> selector creates a new element
+                    return _create(document.createElement(item.slice(1, -1)));
+                } else if (item.match(/^#[a-z0-9-]+/g).length) { // An id selector
+                    return _create(document.getElementById(item.slice(1)));
+                } else if (item.match(/^.[a-z0-9-]+/g).length) { // A class selector
+                    return _collect(document.getElementsByClassName(item.slcie(1)));
+                } else if (item.search(',' > -1)) {
+                    return _collect(item.split(',')); // a string of selectors, delimited by commas
+                }
+            } else if (item.nodeType) { // Already a DOM object
+                return _create(item);
+            } else if (Array.isArray(item)) { // Array of selectos
+                return _collect(item);
+            }
+            return null;
+        }
+        //  Return a grab object
+        return _grab(selector);
     }
 }());

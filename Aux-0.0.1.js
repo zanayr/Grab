@@ -129,6 +129,19 @@
                 });
                 return _reset();
             }
+            //  Return the "index" of an "element" by searching a key/value pair
+            object.findIndexByKeyValue = function (key, value) {
+                var index;
+                Object.keys(object).forEach(function (element) {
+                    Object.keys(object[element]).forEach(function (k) {
+                        if (k === key && object[element][k] === value) {
+                            index = element;
+                        }
+                    });
+                });
+                return index;
+            }
+            //  Check for any supplemental properties or methods
             if (isObject(sup)) {
                 return Object.assign(object, sup);
             } else {
