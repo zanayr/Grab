@@ -820,68 +820,69 @@
             //  The before method will remove itself from its current DOM location, and
             //  insert itself after the passed sibling
             grab.after = function (sibling) {
-//                var fragment;
-//                if (this.element.parentNode) {
-//                    if (sibling && typeof sibling === 'string') {
-//                        fragment = document.createRange().createContextualFragment(sibling).firstChild;
-//                        this.element.parentNode.insertBefore(fragment, this.element.nextSibling);
-//                        return _grab(fragment.tagName);
-//                    } else if (sibling && sibling.uid) {
-//                        this.element.parentNode.insertBefore(sibling.element, this.element.nextSibling);
-//                        return sibling;
-//                    } else {
-//                        return null;
-//                    }
-//                }
+                if (this.element.parentNode) {
+                    if (aux.isValidString(sibling)) {
+                        sibling = this.after(_grab(sibling));
+                    } else if (sibling && sibling.uid) {
+                        //  Remove the sibling from the DOM if it has a parent node
+                        if (sibling.element.parentNode) {
+                            sibling.exit();
+                        }
+                        this.element.parentNode.insertBefore(sibling.element, this.element.nextSibling);
+                    }
+                } else { // If there is no parent node, return null
+                    return null;
+                }
                 return sibling;
             }
             //  The before method will remove itself from its current DOM location, and
             //  insert itself before the passed sibling
             grab.before = function (sibling) {
-//                var fragment = document.createRange().createContextualFragment(sibling).firstChild;
-//                if (this.element.parentNode) {
-//                    if (sibling && typeof sibling === 'string') {
-//                        this.element.parentNode.insertBefore(fragment, this.element);
-//                        return _grab(fragment.tagName);
-//                    } else if (sibling && sibling.uid) {
-//                        this.element.parentNode.insertBefore(sibling.element, this.element);
-//                        return sibling;
-//                    } else {
-//                        return null;
-//                    }
-//                }
+                if (this.element.parentNode) {
+                    if (aux.isValidString(sibling)) {
+                        sibling = this.before(_grab(sibling));
+                    } else if (sibling && sibling.uid) {
+                        //  Remove the sibling from the DOM if it has a parent node
+                        if (sibling.element.parentNode) {
+                            sibling.exit();
+                        }
+                        this.element.parentNode.insertBefore(sibling.element, this.element);
+                    }
+                } else { // If there is no parent node, return null
+                    return null;
+                }
                 return sibling;
             }
             //  The append method will remove the child from its current DOM location
             //  and append it inside of itself, returning itself
             grab.append = function (child) {
-//                var fragment;
-//                if (child && typeof child === 'string') {
-//                    fragment = document.createRange().createContextualFragment(child).firstChild;
-//                    this.element.appendChild(fragment);
-//                    return _grab(fragment.tagName)
-//                } else if (child && child.uid) {
-//                    this.element.appendChild(child.element);
-//                    return child;
-//                } else {
-//                    return null;
-//                }
+                if (aux.isValidString(child)) {
+                    child = this.append(_grab(child));
+                } else if (child && child.uid) {
+                    if (child.element.parentNode) {
+                        child.exit();
+                    }
+                    this.element.appendChild(child.element);
+                    return child;
+                } else {
+                    return null;
+                }
                 return child;
             }
             //  The prepend method will remove the child from its current DOM location
             //  and prepend it inside of itself, returning itself
             grab.prepend = function (child) {
-//                var fragment;
-//                if (child && typeof child === 'string') {
-//                    fragment = document.createRange().createContextualFragment(child).firstChild;
-//                    this.element.prepend(fragment);
-//                    return _grab(fragment.tagName);
-//                } else if (child && child.uid) {
-//                    this.element.prepend(child.element);
-//                    return child;
-//                } else {
-//                    return null;
-//                }
+                if (aux.isValidString(child)) {
+                    child = this.prepend(_grab(child));
+                } else if (child && child.uid) {
+                    if (child.element.parentNode) {
+                        child.exit();
+                    }
+                    this.element.prepend(child.element);
+                    return child;
+                } else {
+                    return null;
+                }
                 return child;
             }
             //  The exit method removes the owner from the DOM, returning itself
