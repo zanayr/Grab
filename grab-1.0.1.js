@@ -449,47 +449,53 @@
                 classes = element.className.length > 0 ? '.' + element.className.replace(' ', '.') : '';
             return element.tagName.toLowerCase() + id + classes;
         }
-        function _decomposeSelector(str) {
-            var chain,
-                arr = [],
-                i,
-                child;
-            if (aux.isValidString(str)) {
-                chain = str.replace(/>\s?/g, '>').split(/\s/g);
-            }
-            if (chain && chain.length > 1) {
-                chain.forEach(function (selc) {
-                    arr.push(foobar(selc));
-                });
-            } else {
-               return {
-                    tag: chain[0].match(/^>?[A-Z]+/ig) ? chain[0].match(/^>?[A-Z]+/ig)[0].replace(/>/g, '') : null,
-                    id: chain[0].match(/#([A-Za-z/d_-]+)/g) ? chain[0].match(/#([A-Za-z/d_-]+)/g)[0].slice(1) : null,
-                    classes: chain[0].match(/(\.[\dA-Za-z_-]+)/g) ? chain[0].match(/(\.[\dA-Za-z_-]+)/g).map(function (cls) {
-                        return cls.slice(1);
-                    }) : null,
-                    bool: chain[0].search('>') > -1 ? true : false
-                }
-            }
-            if (arr.length) {
-                for (i = arr.length - 1; i >= 0; i = i - 1) {
-                    if (child) {
-                        child = Object.assign(arr[i], {child: child});
-                    } else {
-                        child = arr[i];
-                    }
-                }
-                return child;
-            }
-            return null;
-        }
+//        function _decomposeSelector(str) {
+//            var chain,
+//                i,
+//                sub;
+//            if (aux.isValidString(str)) {
+//                chain = str.replace(/>\s?/g, '>').split(/\s/g);
+//                if (chain.length) {
+//                    for (i = chain.length - 1; i >= 0; i = i - 1) {
+//                        if (sub) {
+//                            sub = {
+//                                tag: chain[i].match(/^>?[A-Z]+/ig) ? chain[i].match(/^>?[A-Z]+/ig)[0].replace(/>/g, '') : null,
+//                                id: chain[i].match(/#([A-Za-z/d_-]+)/g) ? chain[i].match(/#([A-Za-z/d_-]+)/g)[0].slice(1) : null,
+//                                classes: chain[i].match(/(\.[\dA-Za-z_-]+)/g) ? chain[i].match(/(\.[\dA-Za-z_-]+)/g).map(function (cls) {
+//                                    return cls.slice(1);
+//                                }) : null,
+//                                child: chain[i].search('>') > -1 ? true : false,
+//                                sub: sub
+//                            }
+//                        } else {
+//                            sub = {
+//                                tag: chain[i].match(/^>?[A-Z]+/ig) ? chain[i].match(/^>?[A-Z]+/ig)[0].replace(/>/g, '') : null,
+//                                id: chain[i].match(/#([A-Za-z/d_-]+)/g) ? chain[i].match(/#([A-Za-z/d_-]+)/g)[0].slice(1) : null,
+//                                classes: chain[i].match(/(\.[\dA-Za-z_-]+)/g) ? chain[i].match(/(\.[\dA-Za-z_-]+)/g).map(function (cls) {
+//                                    return cls.slice(1);
+//                                }) : null,
+//                                child: chain[i].search('>') > -1 ? true : false
+//                            }
+//                        }
+//                        Object.defineProperty(sub, 'selector', {
+//                            get: function () {
+//                                var tag = this.tag,
+//                                    id = this.id,
+//                                    classes = this.classes.join('.');
+//                                return (tag ? tag : '') + (id ? '#' + id : '') + (classes ? '.' + classes : '');
+//                            }
+//                        });
+//                    }
+//                    return sub;
+//                }
+//            }
+//            return null;
+//        }
         function _selector (element, string) {
-            console.log(typeof string, string === 'sp an');
             var tag = string.match(/^[A-Z]+/ig),
                 id = string.match(/#([A-Za-z/d_-]+)/g),
                 classes = string.match(/(\.[\dA-Za-z_-]+)/g),
                 valid = true;
-            console.log('tag:', string, string.toString() === 'sp an', 'sp an'.match(/^[A-Z]+/ig));
             if (tag) {
                 tag = tag[0].toLowerCase();
             }
@@ -887,6 +893,7 @@
             //  The before method will remove itself from its current DOM location, and
             //  insert itself after the passed sibling
             grab.after = function (sibling) {
+                var i;
                 if (this.element.parentNode) {
                     if (aux.isValidString(sibling)) {
                         sibling = this.after(_grab(sibling));
@@ -896,9 +903,11 @@
                             sibling.exit();
                         }
                         this.element.parentNode.insertBefore(sibling.element, this.element.nextSibling);
+                    } else if (sibling.length) {
+                        for (i = 0; i < sibling.length; i = i + 1) {
+                            this.after(sibling[i]);
+                        }
                     }
-                } else if (sibling.length) {
-                    console.log('here');
                 } else { // If there is no parent node, return null
                     return null;
                 }
@@ -907,6 +916,7 @@
             //  The before method will remove itself from its current DOM location, and
             //  insert itself before the passed sibling
             grab.before = function (sibling) {
+                var i;
                 if (this.element.parentNode) {
                     if (aux.isValidString(sibling)) {
                         sibling = this.before(_grab(sibling));
@@ -916,6 +926,10 @@
                             sibling.exit();
                         }
                         this.element.parentNode.insertBefore(sibling.element, this.element);
+                    } else if (sibling.length) {
+                        for (i = 0; i < sibling.length; i = i + 1) {
+                            this.before(sibling[i]);
+                        }
                     }
                 } else { // If there is no parent node, return null
                     return null;
@@ -925,6 +939,7 @@
             //  The append method will remove the child from its current DOM location
             //  and append it inside of itself, returning itself
             grab.append = function (child) {
+                var i;
                 if (aux.isValidString(child)) {
                     child = this.append(_grab(child));
                 } else if (child && child.uid) {
@@ -933,6 +948,10 @@
                     }
                     this.element.appendChild(child.element);
                     return child;
+                } else if (child.length) {
+                    for (i = 0; i < child.length; i = i + 1) {
+                        this.append(child[i]);
+                    }
                 } else {
                     return null;
                 }
@@ -941,6 +960,7 @@
             //  The prepend method will remove the child from its current DOM location
             //  and prepend it inside of itself, returning itself
             grab.prepend = function (child) {
+                var i;
                 if (aux.isValidString(child)) {
                     child = this.prepend(_grab(child));
                 } else if (child && child.uid) {
@@ -949,6 +969,10 @@
                     }
                     this.element.prepend(child.element);
                     return child;
+                } else if (child.length) {
+                    for (i = 0; i < child.length; i = i + 1) {
+                        this.append(child[i]);
+                    }
                 } else {
                     return null;
                 }
@@ -1191,7 +1215,6 @@
                         child.split(',').forEach(function (c) {
                             var nodes = this.element.children;
                             for (i = 0; i < nodes.length; i = i + 1) {
-                                console.log(c, _selector(nodes[i], c));
                                 if (_selector(nodes[i], c)) {
                                     children.push(nodes[i]);
                                 }
@@ -1229,7 +1252,7 @@
                     //  Split strings delimited by commas and cycle through each
                     //  substring, pushing nodes that match into the children array
                     if (child.search(',') > -1) {
-                        aux.stripString(child).split(',').forEach(function (c) {
+                        child.split(',').forEach(function (c) {
                             var nodes = this.element.querySelectorAll(c);
                             for (i = 0; i < nodes.length; i = i + 1) {
                                 children.push(nodes[i]);
@@ -1238,7 +1261,7 @@
                     } else {
                         //  Select all children nodes that match the child argument
                         //  for matches of the passed child argument
-                        children = this.element.querySelectorAll(aux.stripString(child));
+                        children = this.element.querySelectorAll(child);
                         if (children.length === 1) { // Return a single grab object
                             return _grab(children[0]);
                         }
