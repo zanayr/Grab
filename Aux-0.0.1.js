@@ -60,7 +60,7 @@
         //  The camelCase function returns a string divided by spaces, hyphens or
         //  underscores with a camel case word.
         function camelCase (str, del) {
-            if (!isValidString(del)) {
+            if (!validateString(del)) {
                 //  Replace all white space and "_" with hyphens
                 str = str.replace(/\s|_/g, '-');
                 del = '-';
@@ -73,7 +73,7 @@
         }
         //  The public isValidString function checks if a passed parameter is a string,
         //  and if that string is not empty, returning the coffisponding boolean value
-        function isValidString (string) {
+        function validateString (string) {
             if (typeof string !== 'string') { // Invalid if no string is passed
                 return false;
             }
@@ -89,7 +89,7 @@
         //  The public arrayLikeObject function creates an array like object with
         //  some basic helper methods including, add, remove, removeAll and removeByKey
         //  If passed an object it can spread new methods or properties into it
-        function arrayLikeObject (sup) {
+        function store (sup) {
             var object = {
                 length: 0
             }
@@ -168,13 +168,13 @@
         }
         //  Return object with public functions
         return {
-            arrayLikeObject: arrayLikeObject,
             camelCase: camelCase,
             getHashID: getHashID,
             isNumber: isNumber,
             isObject: isObject,
             isString: isString,
-            isValidString: isValidString,
+            validateString: validateString,
+            store: store,
             stripString: stripString
         }
     }());

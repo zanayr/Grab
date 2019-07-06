@@ -486,7 +486,7 @@
         function _create (dom) {
             var grab = {
                 element: dom,
-                events: aux.arrayLikeObject(),
+                events: aux.store(),
                 uid: aux.getHashID(0),
                 values: {
                     name: _getName(dom)
@@ -621,7 +621,7 @@
                         return this.element.id;
                     },
                     set: function (value) {
-                        if (aux.isValidString(value)) {
+                        if (aux.validateString(value)) {
                             this.element.id = value;
                         }
                     }
@@ -759,7 +759,7 @@
             grab.after = function (sibling) {
                 var i;
                 if (this.element.parentNode) {
-                    if (aux.isValidString(sibling)) {
+                    if (aux.validateString(sibling)) {
                         sibling = this.after(_grab(sibling));
                     } else if (sibling && sibling.uid) {
                         //  Remove the sibling from the DOM if it has a parent node
@@ -782,7 +782,7 @@
             grab.before = function (sibling) {
                 var i;
                 if (this.element.parentNode) {
-                    if (aux.isValidString(sibling)) {
+                    if (aux.validateString(sibling)) {
                         sibling = this.before(_grab(sibling));
                     } else if (sibling && sibling.uid) {
                         //  Remove the sibling from the DOM if it has a parent node
@@ -804,7 +804,7 @@
             //  and append it inside of itself, returning itself
             grab.append = function (child) {
                 var i;
-                if (aux.isValidString(child)) {
+                if (aux.validateString(child)) {
                     child = this.append(_grab(child));
                 } else if (child && child.uid) {
                     if (child.element.parentNode) {
@@ -825,7 +825,7 @@
             //  and prepend it inside of itself, returning itself
             grab.prepend = function (child) {
                 var i;
-                if (aux.isValidString(child)) {
+                if (aux.validateString(child)) {
                     child = this.prepend(_grab(child));
                 } else if (child && child.uid) {
                     if (child.element.parentNode) {
@@ -881,7 +881,7 @@
             grab.data = function (data, value) {
                 var attributes = this.element.attributes,
                     a = {};
-                if (aux.isValidString(data) && aux.isString(value)) { // Data and value are string pairs
+                if (aux.validateString(data) && aux.isString(value)) { // Data and value are string pairs
                     this.element.setAttribute('data-' + data, value);
                  }else if (aux.isObject(data)) { // Data is an object of key/value pairs
                     Object.keys(data).forEach(function (d) {
@@ -910,7 +910,7 @@
             grab.attr = function (attr, value) {
                 var attributes = this.element.attributes,
                     a = {};
-                if (aux.isValidString(attr) && aux.isString(value)) { // Attr and value are string pairs
+                if (aux.validateString(attr) && aux.isString(value)) { // Attr and value are string pairs
                     this.element.setAttribute(attr, value);
                 } else if (aux.isObject(attr)) { // Attr is an object of key/value pairs
                     Object.keys(attr).forEach(function (attribute) {
@@ -935,7 +935,7 @@
             //  The addClass method adds a passed string, or array of strings as css
             //  classes on the element, returning itself
             grab.addClass = function (className) {
-                if (aux.isValidString(className)) {
+                if (aux.validateString(className)) {
                     if (className.search(',') > -1) { // Split the string at the commas, and let it casscade to the array block below
                         className = className.split(',');
                     } else { // Set class, removing all extra white space
@@ -944,7 +944,7 @@
                 }
                 if (Array.isArray(className)) {
                     className.forEach(function (name) {
-                        if (aux.isValidString(name)) {
+                        if (aux.validateString(name)) {
                             this.element.classList.add(aux.stripString(name));
                         }
                     }.bind(this));
@@ -954,7 +954,7 @@
             //  The removeClass method removes a passed string, or array of strings as
             //  css classes on the element, returning itself
             grab.removeClass = function (className) {
-                if (aux.isValidString(className)) {
+                if (aux.validateString(className)) {
                     if (className.search(',') > -1) { // Split the string at the commas, and let it casscade to the array block below
                         className = className.split(',');
                     } else { // Set class, removing all extra white space
@@ -963,7 +963,7 @@
                 }
                 if (Array.isArray(className)) {
                     className.forEach(function (name) {
-                        if (aux.isValidString(name)) {
+                        if (aux.validateString(name)) {
                             this.element.classList.remove(aux.stripString(name));
                         }
                     }.bind(this));
@@ -973,7 +973,7 @@
             //  The toggleClass method toggles a passed string, or array of strings as
             //  css classes on the element, returning itself
             grab.toggleClass = function (className) {
-                if (aux.isValidString(className)) {
+                if (aux.validateString(className)) {
                     if (className.search(',') > -1) { // Split the string at the commas, and let it casscade to the array block below
                         className = className.split(',');
                     } else { // Set class, removing all extra white space
@@ -982,7 +982,7 @@
                 }
                 if (Array.isArray(className)) {
                     className.forEach(function (name) {
-                        if (aux.isValidString(name)) {
+                        if (aux.validateString(name)) {
                             this.element.classList.toggle(aux.stripString(name));
                         }
                     }.bind(this));
@@ -993,7 +993,7 @@
             //  key/value pairs; and updates the element's css appropriately, returning
             //  itself
             grab.css = function (property, value) {
-                if (aux.isValidString(property)) {
+                if (aux.validateString(property)) {
                     this.element.style[property] = value;
                 } else if (aux.isObject(property)) {
                     Object.keys(property).forEach(function (p) {
@@ -1007,7 +1007,7 @@
             grab.clear = function (event) {
                 var matched = [],
                     i;
-                if (aux.isValidString(event)) {
+                if (aux.validateString(event)) {
                     if (event === 'hover') {
                         for (i = 0; i < this.events.length; i = i + 1) {
                             if (this.events[i].event === 'mouseenter' || this.events[i].event === 'mouseleave') {
@@ -1070,7 +1070,7 @@
             grab.child = function (child) {
                 var children = [], // Array of children
                     i;
-                if (aux.isValidString(child)) {
+                if (aux.validateString(child)) {
                     //  Split strings delimited by commas and cycle through each
                     //  substring, pushing nodes that match into the children array
                     if (child.search(',') > -1) {
@@ -1109,7 +1109,7 @@
             //  element, returning a new grab object
             grab.find = function (child) {
                 var children = [];
-                if (aux.isValidString(child)) {
+                if (aux.validateString(child)) {
                     //  Select all children nodes that match the child argument
                     //  for matches of the passed child argument
                     children = this.element.querySelectorAll(child);
@@ -1129,7 +1129,7 @@
         //  A collection has all the same properties, getters and setters and methods
         //  as a grab object, where in these effect the collection as a whole
         function _collect (items) {
-            var collection = aux.arrayLikeObject(),
+            var collection = aux.store(),
                 i;
             //  The internal args function returns an array of passed arguments
             function _args (args) {
@@ -1208,7 +1208,7 @@
             collection.data = function (data, value) {
                 var d = {},
                     r;
-                if (aux.isValidString(data) && aux.isString(value)) { // Data and value are string pairs
+                if (aux.validateString(data) && aux.isString(value)) { // Data and value are string pairs
                     for (r = 0; r < this.length; r = r + 1) {
                         this[r].data(data, value);
                     }
@@ -1229,7 +1229,7 @@
             collection.attr = function (attr, value) {
                 var a = {},
                     r;
-                if (aux.isValidString(attr) && aux.isString(value)) { // Attr and value are string pairs
+                if (aux.validateString(attr) && aux.isString(value)) { // Attr and value are string pairs
                     for (r = 0; r < this.length; r = r + 1) {
                         this[r].attr(attr, value);
                     }
@@ -1303,7 +1303,7 @@
                     collection.add(items[i]);
                 } else if (items[i].nodeType) {
                     collection.add(_create(items[i]));
-                } else if (aux.isValidString(items[i])) {
+                } else if (aux.validateString(items[i])) {
                     collection.add(_create(document.querySelectorAll(items[i])[0]));
                 }
             }
@@ -1314,7 +1314,7 @@
         //  grab object
         function _grab (item) {
             var selected;
-            if (aux.isValidString(item)) { // remove extra white space
+            if (aux.validateString(item)) { // remove extra white space
                 if (item.match(/^<[a-z]+>$/ig)) { // A <tag> selector creates a new element
                     return _create(document.createElement(item.slice(1, -1)));
                 } else { // An id selector
