@@ -164,7 +164,7 @@
                         update.object[update.property] = color;
                     } else {
                         color[update.channel] = animation.last + (animation.current - animation.last) * interpolation;
-                        update.object[update.channel] = color;
+                        update.object[update.property] = color;
                     }
                 } else {
                     if (update.collect) {
@@ -242,8 +242,9 @@
                     },
                     set: function (value) {
                         //  Check if the update has an associated complete object
-                        if (this.complete && !callbacks[this.complete].member[this.uid]) {
-                            callbacks[this.complete].member[this.uid] = 1; // Set the member value to 1, indicating that his complete is done
+                        console.log(callbacks);
+                        if (this.complete && !callbacks[this.complete].members[this.uid]) {
+                            callbacks[this.complete].members[this.uid] = 1; // Set the member value to 1, indicating that his complete is done
                         }
                         this.values.collect = Boolean(value);
                     }
@@ -347,7 +348,7 @@
                 var update;
                 _duplicates(object, property);
                 if (property.match(/[A-Z]*color$/ig)) {
-                    Object.keys(object[property].forEach(function (channel, l) {
+                    Object.keys(object[property]).forEach(function (channel, l) {
                         update = _create(
                             _animation(object[property][channel], values[property][channel]),
                             complete,
@@ -362,7 +363,7 @@
                             callbacks[complete].members[update.uid] = 0; // Set initial complete member state
                         }
                         waiting.push(update); // Add each update (channel) to the waiting array
-                    }));
+                    });
                 } else {
                     update = _create(
                         _animation(object[property], values[property]),
@@ -799,7 +800,7 @@
                 },
                 top: {
                     get: function () {
-                        return this.values
+                        return this.values.top
                     },
                     set: function (value) {
                         var top = _parseValue(value, 'top');
@@ -838,7 +839,7 @@
                     set: function (value) {
                         var z = parseInt(value, 10);
                         if (aux.isNumber(z)) {
-                            this.element.style.zIndex = this.values.zIndex = z
+                            this.element.style.zIndex = this.values.zIndex = z;
                         }
                     }
                 }
@@ -851,17 +852,21 @@
                 Object.keys(values).forEach(function (property) {
                     if (property.match(/^border[A-Z]*|[A-Z]*color|height|left|opacity|top|width$/ig)) { // Check if the property can be animated
                         grab[property] = _getStyle(property); // get origin value
-                        v[property] = _parseValue(values[property], property); // get target value
+                        if (property.match(/^[A-Z]*color$/ig)) {
+                            v[property] = chroma(values[property]);
+                        } else {
+                            v[property] = _parseValue(values[property], property); // get target value
+                        }
                     }
                     engine.add(this, v, duration, easing, complete); // Add animation to engine
-                });
+                }.bind(this));
                 return this;
             }
             //  The fadeIn method animates the element's opacity, before setting its
             //  display property to block
             grab.fadeIn = function (duration, easing, complete) {
+                this.display = 'block';
                 this.animate({opacity: 1.0}, duration, easing, function () {
-                    this.display = 'block';
                     if (typeof complete === 'function') {
                         complete();
                     }
