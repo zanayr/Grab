@@ -1,9 +1,7 @@
-helper-0.0.1.js
-grab-0.0.9.js
-sandbox.js
+.DS_Store
 *.html
 *.css
 *.txt
-/lib/*
-.DS_Store
-/void/
+/env/
+/last/
+/tests/
