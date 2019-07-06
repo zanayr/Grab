@@ -57,6 +57,20 @@
             }
             return true;
         }
+        //  The camelCase function returns a string divided by spaces, hyphens or
+        //  underscores with a camel case word.
+        function camelCase (str, del) {
+            if (!isValidString(del)) {
+                //  Replace all white space and "_" with hyphens
+                str = str.replace(/\s|_/g, '-');
+                del = '-';
+            }
+            //  Split the string at the delimiter and iterate though the array of
+            //  strings, replacing the first character with an uppercase character
+            return str.split(del).map(function (s, i) {
+                return i ? s[0].toUpperCase() + s.slice(1).toLowerCase() : s;
+            }).join('');
+        }
         //  The public isValidString function checks if a passed parameter is a string,
         //  and if that string is not empty, returning the coffisponding boolean value
         function isValidString (string) {
@@ -155,6 +169,7 @@
         //  Return object with public functions
         return {
             arrayLikeObject: arrayLikeObject,
+            camelCase: camelCase,
             getHashID: getHashID,
             isNumber: isNumber,
             isObject: isObject,

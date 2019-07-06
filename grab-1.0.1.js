@@ -878,12 +878,14 @@
             //  data attributes 'data-*'; if the method is used to set data, it will
             //  return itself, otherwise it will return an object of attributes and
             //  values
-            grab.data = function (data) {
+            grab.data = function (data, value) {
                 var attributes = this.element.attributes,
                     a = {};
-                if (aux.isObject(data)) { // Set a new 'data' attribute
+                if (aux.isValidString(data) && aux.isString(value)) { // Data and value are string pairs
+                    this.element.setAttribute('data-' + data, value);
+                 }else if (aux.isObject(data)) { // Data is an object of key/value pairs
                     Object.keys(data).forEach(function (d) {
-                        this.element.setAttribute('data-' + d.replace('_', '-'), data[d]);
+                        this.element.setAttribute('data-' + d, data[d]);
                     }.bind(this));
                 } else if (!data) { // Get all 'data' attributes
                     Object.keys(attributes).forEach(function (d) {
@@ -895,13 +897,7 @@
                             //  the first to capital case; then join it without spaces
                             //  and make it the key for the equivalent a object value
                             //  from the attributes object
-                            a[attribute.replace('data-', '').split('-').map(function (str, i) {
-                                if (i) {
-                                    return str = str[0].toUpperCase() + str.slice(1).toLowerCase();
-                                } else {
-                                    return str;
-                                }
-                            }).join('')] = attributes[d].value;
+                            a[aux.camelCase(attribute.replace(/^data-/g, ''))] = attributes[d].value;
                         }
                     });
                     return a;
@@ -914,9 +910,9 @@
             grab.attr = function (attr, value) {
                 var attributes = this.element.attributes,
                     a = {};
-                if (aux.isValidString(attr)) {
+                if (aux.isValidString(attr) && aux.isString(value)) { // Attr and value are string pairs
                     this.element.setAttribute(attr, value);
-                } else if (aux.isObject(attr)) {
+                } else if (aux.isObject(attr)) { // Attr is an object of key/value pairs
                     Object.keys(attr).forEach(function (attribute) {
                         attribute = attribute.replace(/([A-Z])/g, '-1$').trim().toLowerCase();
                         this.element.setAttribute (attribute, attr[attribute]);
@@ -924,13 +920,7 @@
                 } else if (!attr) {
                     Object.keys(attributes).forEach(function (d) {
                         var attribute = attributes[d].name;
-                        a[attribute.split('-').map(function (str, i) {
-                            if (i) {
-                                return str = str[0].toUpperCase() + str.slice(1).toLowerCase();
-                            } else {
-                                return str;
-                            }
-                        }).join('')] = attributes[d].value;
+                        a[aux.camelCase(attribute)] = attributes[d].value;
                     });
                     return a;
                 }
@@ -1215,23 +1205,43 @@
             }
             //  The data method on a collection will return an array of data attributes
             //  on each element, if not passed an object of data values
-            collection.data = function (data) {
-                if (aux.isObject(data)) {
-                    _exec('data', _args(arguments));
-                } else if (!data) {
-                    return _execWithReturnArray('data', _args(arguments));
+            collection.data = function (data, value) {
+                var d = {},
+                    r;
+                if (aux.isValidString(data) && aux.isString(value)) { // Data and value are string pairs
+                    for (r = 0; r < this.length; r = r + 1) {
+                        this[r].data(data, value);
+                    }
+                } else if (aux.isObject(data)) { // Data is an object or key/value pairs
+                    for (r = 0; r < this.length; r = r + 1) {
+                        this[r].data(data);
+                    }
+                } else if (!data) { // No data present, return a object of data objects, by member id
+                    for (r = 0; r < this.length; r = r + 1) {
+                        d[this[r].uid] = this[r].data();
+                    }
+                    return d;
                 }
                 return this;
             }
             //  The attr method on a collection will return an array of all attributes
             //  on each element, if not passed attr arguments
-            collection.attr = function (attr) {
-                if (aux.isValidString(attr)) {
-                    _exec('attr', _args(arguments));
-                } else if (aux.isObject(attr)) {
-                    _exec('attr', _args(arguments));
-                } else if (!attr) {
-                    return _execWithReturnArray('attr', _args(arguments));
+            collection.attr = function (attr, value) {
+                var a = {},
+                    r;
+                if (aux.isValidString(attr) && aux.isString(value)) { // Attr and value are string pairs
+                    for (r = 0; r < this.length; r = r + 1) {
+                        this[r].attr(attr, value);
+                    }
+                } else if (aux.isObject(attr)) { // Attr is an object or key/value pairs
+                    for (r = 0; r < this.length; r = r + 1) {
+                        this[r].attr(attr);
+                    }
+                } else if (!attr) { // No attr present, return a object of data objects, by member id
+                    for (r = 0; r < this.length; r = r + 1) {
+                        a[this[r].uid] = this[r].attr();
+                    }
+                    return a;
                 }
                 return this;
             }
