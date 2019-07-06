@@ -4,6 +4,9 @@
 /* AUX-0.0.2.js
 Aux is a simple library of code that I have found is easier to leave here and import
 into my projects than to constantly rewrite.
+
+By Ryan Fickenscher 7/6/19
+https://github.com/zanayr
 */
 
 

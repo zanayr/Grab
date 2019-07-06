@@ -6,6 +6,9 @@
 Chroma is a simple javascript library that converts most color models to an rgba object.
 Valid color models include rgb, rgba, hexadecimal, hsl, hsla, hsv, hsva and the
 standard broswer color strings.
+
+By Ryan Fickenscher 7/6/19
+https://github.com/zanayr
 */
 
 

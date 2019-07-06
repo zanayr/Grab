@@ -7,7 +7,10 @@
 Grab is a DOM manipulation library that I developed as a project to learn more about
 how the DOM worked and can by changed. This library includes it's own animation engine
 and abstraction layer to hide all the complicated features of the DOM.
-For now I've kept the library to basic features and will slowly add new features
+For now I've kept the library to basic features and will slowly add new features.
+
+By Ryan Fickenscher 7/6/19
+https://github.com/zanayr
 */
 
 
