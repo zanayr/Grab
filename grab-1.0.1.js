@@ -242,7 +242,6 @@
                     },
                     set: function (value) {
                         //  Check if the update has an associated complete object
-                        console.log(callbacks);
                         if (this.complete && !callbacks[this.complete].members[this.uid]) {
                             callbacks[this.complete].members[this.uid] = 1; // Set the member value to 1, indicating that his complete is done
                         }
@@ -553,6 +552,11 @@
                         }
                     }
                 },
+                classList: {
+                    get: function () {
+                        return this.element.classList;
+                    }
+                },
                 color: {
                     get: function () {
                         return this.values.color ? this.values.color : chroma(_getStyle('color'));
@@ -609,6 +613,16 @@
                     set: function (value) {
                         if (typeof value === 'string') {
                             this.element.innerHTML = value;
+                        }
+                    }
+                },
+                id: {
+                    get: function () {
+                        return this.element.id;
+                    },
+                    set: function (value) {
+                        if (aux.isValidString(value)) {
+                            this.element.id = value;
                         }
                     }
                 },
@@ -931,49 +945,57 @@
             //  The addClass method adds a passed string, or array of strings as css
             //  classes on the element, returning itself
             grab.addClass = function (className) {
+                if (aux.isValidString(className)) {
+                    if (className.search(',') > -1) { // Split the string at the commas, and let it casscade to the array block below
+                        className = className.split(',');
+                    } else { // Set class, removing all extra white space
+                        this.element.classList.add(aux.stripString(className));
+                    }
+                }
                 if (Array.isArray(className)) {
                     className.forEach(function (name) {
-                        if (aux.isValidString(className)) {
-                            this.element.classList.add(name);
+                        if (aux.isValidString(name)) {
+                            this.element.classList.add(aux.stripString(name));
                         }
-                    });
-                } else if (aux.isValidString(className)) {
-                    this.element.classList.add(className);
+                    }.bind(this));
                 }
                 return this;
             }
             //  The removeClass method removes a passed string, or array of strings as
             //  css classes on the element, returning itself
             grab.removeClass = function (className) {
+                if (aux.isValidString(className)) {
+                    if (className.search(',') > -1) { // Split the string at the commas, and let it casscade to the array block below
+                        className = className.split(',');
+                    } else { // Set class, removing all extra white space
+                        this.element.classList.remove(aux.stripString(className));
+                    }
+                }
                 if (Array.isArray(className)) {
                     className.forEach(function (name) {
-                        if (aux.isValidString(className)) {
-                            this.element.classList.remove(name);
+                        if (aux.isValidString(name)) {
+                            this.element.classList.remove(aux.stripString(name));
                         }
-                    });
-                } else if (aux.isValidString(className)) {
-                    this.element.classList.remove(className);
+                    }.bind(this));
                 }
                 return this;
             }
             //  The toggleClass method toggles a passed string, or array of strings as
             //  css classes on the element, returning itself
             grab.toggleClass = function (className) {
+                if (aux.isValidString(className)) {
+                    if (className.search(',') > -1) { // Split the string at the commas, and let it casscade to the array block below
+                        className = className.split(',');
+                    } else { // Set class, removing all extra white space
+                        this.element.classList.toggle(aux.stripString(className));
+                    }
+                }
                 if (Array.isArray(className)) {
                     className.forEach(function (name) {
-                        if (aux.isValidString(className)) {
-                            this.element.classList.toggle(name);
+                        if (aux.isValidString(name)) {
+                            this.element.classList.toggle(aux.stripString(name));
                         }
-                    });
-                } else if (aux.isValidString(className)) {
-                    this.element.classList.toggle(className);
-                }
-                return this;
-            }
-            //  The id method sets the css id of the element, returning itself
-            grab.id = function (id) {
-                if (aux.isValidString(id)) {
-                    this.element.id = id;
+                    }.bind(this));
                 }
                 return this;
             }
@@ -1223,10 +1245,6 @@
             }
             collection.toggleClass = function () {
                 _exec('toggleClass', _args(arguments));
-                return this;
-            }
-            collection.id = function () {
-                _exec('id', _args(arguments));
                 return this;
             }
             collection.css = function () {
