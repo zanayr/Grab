@@ -42,6 +42,7 @@
         function validateString (str) {
             return isString(str) && str.length > 0;
         }
+        
         //  STRING AUXILIARY FUNCTIONS  ------------------------------------  STRING  //
         //  The camelCase function takes a string and splits it by a delimiter,
         //  returning a string in camel case
@@ -62,6 +63,7 @@
         function strip (string) {
             return string.replace(/\s/g, '');
         }
+        
         //  MISC. AUXILIARY FUNCTIONS  --------------------------------------  MISC.  //
         //  The getHashID function returns a 32 character alpha-numeric string, with the
         //  ability to pass an iterator as a unique value
@@ -76,6 +78,7 @@
             });
         }
         
+        //  CREATE STORE  --------------------------------------------------  STORE  //
         //  The store function returns an object that is array like, storing values at
         //  numerical keys and comes with serveral helper functions; a supplemental
         //  object can be passed to include custom methods or properties
