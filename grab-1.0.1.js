@@ -1096,25 +1096,13 @@
             //  The find method searches the elements children for a matching dom
             //  element, returning a new grab object
             grab.find = function (child) {
-                var children = [],
-                    i;
+                var children = [];
                 if (aux.isValidString(child)) {
-                    //  Split strings delimited by commas and cycle through each
-                    //  substring, pushing nodes that match into the children array
-                    if (child.search(',') > -1) {
-                        child.split(',').forEach(function (c) {
-                            var nodes = this.element.querySelectorAll(c);
-                            for (i = 0; i < nodes.length; i = i + 1) {
-                                children.push(nodes[i]);
-                            }
-                        }.bind(this));
-                    } else {
-                        //  Select all children nodes that match the child argument
-                        //  for matches of the passed child argument
-                        children = this.element.querySelectorAll(child);
-                        if (children.length === 1) { // Return a single grab object
-                            return _grab(children[0]);
-                        }
+                    //  Select all children nodes that match the child argument
+                    //  for matches of the passed child argument
+                    children = this.element.querySelectorAll(child);
+                    if (children.length === 1) { // Return a single grab object
+                        return _grab(children[0]);
                     }
                 }
                 if (children.length > 1) { // Return a collection of grab objects
@@ -1285,8 +1273,10 @@
             for (i = 0; i < items.length; i = i + 1) {
                 if (items[i].uid) {
                     collection.add(items[i]);
-                } else {
+                } else if (items[i].nodeType) {
                     collection.add(_create(items[i]));
+                } else if (aux.isValidString(items[i])) {
+                    collection.add(_create(document.querySelectorAll(items[i])[0]));
                 }
             }
             //  Return final collection
@@ -1295,24 +1285,22 @@
         //  The private grab function parses a passed parameter to create a new
         //  grab object
         function _grab (item) {
-            if (aux.isValidString(item)) {
-                item = item.trim().replace(/\s/g, ''); // remove extra white space
-                if (item.search(',') > -1) {
-                    // split nd recurse
-                    return;
-                } else if (item.match(/^[a-z]+$/g)) { // A string creates a new element
-                    return _create(document.createElement(item));
-                } else if (item.match(/^<[a-z]+>$/g)) { // A <tag> selector creates a new element
+            var selected;
+            if (aux.isValidString(item)) { // remove extra white space
+                if (item.match(/^<[a-z]+>$/ig)) { // A <tag> selector creates a new element
                     return _create(document.createElement(item.slice(1, -1)));
-                } else if (item.match(/^#[a-z0-9-]+/g)) { // An id selector
-                    return _create(document.getElementById(item.slice(1)));
-                } else if (item.match(/^.[a-z0-9-]+/g)) { // A class selector
-                    return _collect(document.getElementsByClassName(item.slice(1)));
+                } else { // An id selector
+                    selected = document.querySelectorAll(item);
                 }
             } else if (item.nodeType) { // Already a DOM object
                 return _create(item);
             } else if (Array.isArray(item)) { // Array of selectos
                 return _collect(item);
+            }
+            if (selected.length === 1) {
+                return _create(selected[0]);
+            } else if (selected.length > 1) {
+                return _collect(selected);
             }
             return null;
         }
