@@ -93,8 +93,9 @@ https://github.com/zanayr
         //  rgba values
         function _rgba (str) {
             var values;
+            
             if (aux.validateString(str)) {
-                str.match(/(-?\d{1,3}\.?\d*)/g);
+                values = str.match(/(-?\d{1,3}\.?\d*)/g);
                 if (!values) {
                     return null;
                 } else {

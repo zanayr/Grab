@@ -457,12 +457,6 @@ https://github.com/zanayr
     
     //  GRAB  ---------------------------------------------------------------  GRAB  //
     window.grab = function (selector) {
-        function _getName (element) {
-            var id = element.id ? '#' + element.id : '',
-                classes = element.className.length > 0 ? '.' + element.className.replace(' ', '.') : '';
-            return element.tagName.toLowerCase() + id + classes;
-        }
-
         function _selector (element, string) {
             var tag = string.match(/^[A-Z]+/ig),
                 id = string.match(/#([A-Za-z/d_-]+)/g),
@@ -501,9 +495,7 @@ https://github.com/zanayr
                 element: dom,
                 events: aux.createStore(),
                 uid: aux.getHashID(0),
-                values: {
-                    name: _getName(dom)
-                }
+                values: {}
             }
             //  INTERNAL FUNCTIONS
             //  The internal getStyle function returns a computed style from the dom
@@ -653,7 +645,9 @@ https://github.com/zanayr
                 },
                 name: {
                     get: function () {
-                        return this.values.name;
+                        var id = this.id ? '#' + this.id : '',
+                            classes = this.element.className.length > 0 ? '.' + this.element.className.replace(' ', '.') : '';
+                        return this.element.tagName.toLowerCase() + id + classes;
                     }
                 },
                 opacity: {
