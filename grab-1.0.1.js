@@ -449,6 +449,73 @@
                 classes = element.className.length > 0 ? '.' + element.className.replace(' ', '.') : '';
             return element.tagName.toLowerCase() + id + classes;
         }
+        function _decomposeSelector(str) {
+            var chain,
+                arr = [],
+                i,
+                child;
+            if (aux.isValidString(str)) {
+                chain = str.replace(/>\s?/g, '>').split(/\s/g);
+            }
+            if (chain && chain.length > 1) {
+                chain.forEach(function (selc) {
+                    arr.push(foobar(selc));
+                });
+            } else {
+               return {
+                    tag: chain[0].match(/^>?[A-Z]+/ig) ? chain[0].match(/^>?[A-Z]+/ig)[0].replace(/>/g, '') : null,
+                    id: chain[0].match(/#([A-Za-z/d_-]+)/g) ? chain[0].match(/#([A-Za-z/d_-]+)/g)[0].slice(1) : null,
+                    classes: chain[0].match(/(\.[\dA-Za-z_-]+)/g) ? chain[0].match(/(\.[\dA-Za-z_-]+)/g).map(function (cls) {
+                        return cls.slice(1);
+                    }) : null,
+                    bool: chain[0].search('>') > -1 ? true : false
+                }
+            }
+            if (arr.length) {
+                for (i = arr.length - 1; i >= 0; i = i - 1) {
+                    if (child) {
+                        child = Object.assign(arr[i], {child: child});
+                    } else {
+                        child = arr[i];
+                    }
+                }
+                return child;
+            }
+            return null;
+        }
+        function _selector (element, string) {
+            console.log(typeof string, string === 'sp an');
+            var tag = string.match(/^[A-Z]+/ig),
+                id = string.match(/#([A-Za-z/d_-]+)/g),
+                classes = string.match(/(\.[\dA-Za-z_-]+)/g),
+                valid = true;
+            console.log('tag:', string, string.toString() === 'sp an', 'sp an'.match(/^[A-Z]+/ig));
+            if (tag) {
+                tag = tag[0].toLowerCase();
+            }
+            if (id) {
+                id = id[0].slice(1);
+            }
+            if (classes) {
+                classes = classes.map(function (cls) {
+                    return cls.slice(1);
+                });
+            }
+            if  (tag && element.tagName.toLowerCase() !== tag) {
+                valid = false;
+            }
+            if (id && element.id !== id) {
+                valid = false;
+            }
+            if (classes) {
+                classes.forEach(function (cls) {
+                    if (!element.classList.contains(cls)) {
+                        valid = false;
+                    }
+                });
+            }
+            return valid;
+        }
         // The internal create function returns an grab object with special properties,
         //  getters and setters
         function _create (dom) {
@@ -830,6 +897,8 @@
                         }
                         this.element.parentNode.insertBefore(sibling.element, this.element.nextSibling);
                     }
+                } else if (sibling.length) {
+                    console.log('here');
                 } else { // If there is no parent node, return null
                     return null;
                 }
@@ -1113,31 +1182,40 @@
             //  The child method parses a passed string and returns the direct children
             //  of the grab element that match, returning null if there is no match
             grab.child = function (child) {
-                var children = [],
+                var children = [], // Array of children
                     i;
                 if (aux.isValidString(child)) {
+                    //  Split strings delimited by commas and cycle through each
+                    //  substring, pushing nodes that match into the children array
                     if (child.search(',') > -1) {
-                        aux.stripString(child).split(',').forEach(function (c) {
+                        child.split(',').forEach(function (c) {
                             var nodes = this.element.children;
                             for (i = 0; i < nodes.length; i = i + 1) {
-                                if (_getName(nodes[i]).search(c) > -1) {
+                                console.log(c, _selector(nodes[i], c));
+                                if (_selector(nodes[i], c)) {
                                     children.push(nodes[i]);
                                 }
                             }
                         }.bind(this));
                     } else {
+                        //  Cycle though the grab element's children nodes and search
+                        //  for matches of the passed child argument
                         var nodes = this.element.children;
                         for (i = 0; i < nodes.length; i = i + 1) {
-                            if (_getName(nodes[i]).search(child) > -1) {
+                            if (_selector(nodes[i], child)) {
                                 children.push(nodes[i]);
                             }
                         }
-                        if (children.length < 2) { // Return a single grab object
+                        //  If the children array is only one item, return a grab
+                        //  object and not a collection of grab objects
+                        if (children.length === 1) {
                             return _grab(children[0]);
                         }
                     }
                 }
-                if (children.length) { // Return a collection of grab objects
+                //  If the children array has any length greater than 1, pass the array
+                //  to the _collect function
+                if (children.length > 1) {
                     return _collect(children);
                 }
                 return null;
@@ -1148,6 +1226,8 @@
                 var children = [],
                     i;
                 if (aux.isValidString(child)) {
+                    //  Split strings delimited by commas and cycle through each
+                    //  substring, pushing nodes that match into the children array
                     if (child.search(',') > -1) {
                         aux.stripString(child).split(',').forEach(function (c) {
                             var nodes = this.element.querySelectorAll(c);
@@ -1156,13 +1236,15 @@
                             }
                         }.bind(this));
                     } else {
+                        //  Select all children nodes that match the child argument
+                        //  for matches of the passed child argument
                         children = this.element.querySelectorAll(aux.stripString(child));
-                        if (children.length < 2) { // Return a single grab object
+                        if (children.length === 1) { // Return a single grab object
                             return _grab(children[0]);
                         }
                     }
                 }
-                if (children.length) { // Return a collection of grab objects
+                if (children.length > 1) { // Return a collection of grab objects
                     return _collect(children);
                 }
                 return null;
@@ -1188,7 +1270,7 @@
             //  The internal exec function applies an array of arguments to an action
             function _exec(action, args) {
                 var i;
-                for (i = 0; i < collection.length; i = i = 1) {
+                for (i = 0; i < collection.length; i = i + 1) {
                     collection[i][action].apply(collection[i], args);
                 }
                 return null;
@@ -1198,7 +1280,8 @@
             function _execWithReturnArray(action, args) {
                 var i,
                     returns = [];
-                for (i = 0; i < collection.length; i = i = 1) {
+                for (i = 0; i < collection.length; i = i + 1) {
+//                    console.log(i);
                     returns.push(collection[i][action].apply(collection[i], args));
                 }
                 return returns;
@@ -1305,31 +1388,25 @@
                 _exec('on', _args(arguments));
                 return this;
             }
-            //  The find method searches the elements children for a matching dom
-            //  element, returning a new grab object
-            collection.find = function (child) {
-                if (typeof child === 'string') {
-                    child = child.trim().replace(/\s/g, '').toLowerCase();
-                    if (child.match(/^[a-z]+$/g)) {
-                        return _collect(document.getElementsByTagName(child));
-                    } else if (child.match(/^#[a-z0-9-]/g)) {
-                        return _create(document.getElementById(child.slice(1)));
-                    } else if (child.match(/^\.[a-z0-9-]/g)) {
-                        return _collect(document.getElementsByClassName(child.slice(1)));
-                    } else if (child.search(',' > -1)) {
-                        return child.split(',').map(function (o) {
-                            return _grab(o);
-                        });
-                    } else {
-                        return null;
+            collection.child = function () {
+                var children = [];
+                _execWithReturnArray('child', _args(arguments)).forEach(function (col) {
+                    var r;
+                    for (r = 0; r < col.length; r = r + 1) {
+                        children.push(col[r]);
                     }
-                } else if (Array.isArray(child)) {
-                    return child.map(function (o) {
-                        return _grab(o);
-                    });
-                } else {
-                    return null;
-                }
+                });
+                return _collect(children);
+            }
+            collection.find = function () {
+                var children = [];
+                _execWithReturnArray('find', _args(arguments)).forEach(function (col) {
+                    var r;
+                    for (r = 0; r < col.length; r = r + 1) {
+                        children.push(col[r]);
+                    }
+                });
+                return _collect(children);
             }
             //  Add passed items
             for (i = 0; i < items.length; i = i + 1) {
@@ -1357,7 +1434,7 @@
                 } else if (item.match(/^#[a-z0-9-]+/g)) { // An id selector
                     return _create(document.getElementById(item.slice(1)));
                 } else if (item.match(/^.[a-z0-9-]+/g)) { // A class selector
-                    return _collect(document.getElementsByClassName(item.slcie(1)));
+                    return _collect(document.getElementsByClassName(item.slice(1)));
                 }
             } else if (item.nodeType) { // Already a DOM object
                 return _create(item);
