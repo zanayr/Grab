@@ -44,7 +44,7 @@ The `fizz.children` property returns a grab collection of grab objects, each a c
 the DOM element.
 ```
 var children = fizz.children;
-console.dir(children);
+console.log(children);
 ►{0: {…}, 1: {…}, 2: {…}, values: {…}, add: ƒ, remove: ƒ, empty: ƒ, animate: ƒ, …}
 ```
 
@@ -53,7 +53,7 @@ The `fizz.display` property returns and sets the DOM element's display styling.
 The returned value is a string.
 ```
 fizz.display = 'flex';
-console.dir(fizz.display);
+console.log(fizz.display);
 flex
 ```
 
@@ -62,7 +62,7 @@ The `fizz.height` property returns (in pixels) or sets the DOM element's height 
 See the above Models Chart for supported height models. The returned value is a number.
 ```
 fizz.height = '50vh';
-console.dir(fizz.height);
+console.log(fizz.height);
 250
 ```
 
@@ -71,7 +71,7 @@ The `fizz.html` property returns and sets the internal HTML of the DOM element. 
 returned markup is a string.
 ```
 fizz.html = '<h1>Hello World!</h1>';
-console.dir(fizz.html);
+console.log(fizz.html);
 <h1>Hello World!</h1>
 ```
 
@@ -80,7 +80,7 @@ The `fizz.id` property returns and sets the id attribute of the DOM element. The
 returned id is a string.
 ```
 fizz.id = 'grab-me';
-console.dir(fizz.id);
+console.log(fizz.id);
 grab-me
 ```
 
@@ -89,7 +89,7 @@ The `fizz.left` property returns (in pixels) and sets the DOM element's left sty
 See the above Models Chart for supported left models. The returned value is a number.
 ```
 fizz.left = '33.34%';
-console.dir(fizz.left);
+console.log(fizz.left);
 166.7
 ```
 
@@ -97,7 +97,7 @@ console.dir(fizz.left);
 The `fizz.name` property returns a string by joining tag, id and all classes of the
 DOM element.
 ```
-console.dir(fizz.name);
+console.log(fizz.name);
 div#grab-me.fizz.buzz
 ```
 
@@ -107,7 +107,7 @@ styling. See the above Models Chart for supported opacity models. The returned v
 is a number.
 ```
 fizz.opacity = '50%';
-console.dir(fizz.opacity);
+console.log(fizz.opacity);
 0.5
 ```
 
@@ -116,7 +116,7 @@ The `fizz.top` property returns (in pixels) and sets the DOM element's top styli
 See the above Models Chart for supported top models. The returned value is a number.
 ```
 fizz.top = '100px';
-console.dir(fizz.top);
+console.log(fizz.top);
 100
 ```
 
@@ -126,7 +126,7 @@ See the above Models Chart for supported visibility models. The returned value i
 string.
 ```
 fizz.visibility = 'hidden';
-console.dir(fizz.visibility);
+console.log(fizz.visibility);
 hidden
 ```
 
@@ -135,7 +135,7 @@ The `fizz.width` property returns (in pixels) or sets the DOM element's width st
 See the above Models Chart for supported width models. The returned value is a number.
 ```
 fizz.width = 200;
-console.dir(fizz.width);
+console.log(fizz.width);
 200
 ```
 
@@ -144,7 +144,7 @@ The `fizz.zIndex` property returns or sets the DOM element's z index. The return
 value is a number.
 ```
 fizz.zIndex = 99;
-console.dir(fizz.zIndex);
+console.log(fizz.zIndex);
 99
 ```
 
