@@ -2,31 +2,14 @@
 (function () {
     'use strict';
     window.aux = (function () {
-        //  The public getHashID function returns a hash id made of a hexidecimal string
-        function getHashID (z) {
-            return ('xxxxxxxx-xxxx-' + z % 10 + 'xxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g, function(c) {
-                var r = Math.random() * 16 | 0,
-                    v = c === 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
+        //  VALIDATION AUXILIARY FUNCTIONS  ----------------------------  VALIDATION  //
+        //  The isNumber function tests a passed parameter, checking if it is a number,
+        //  returning an appropriate boolean value
+        function isNumber (n) {
+            return typeof n === 'number' && !Number.isNaN(n) && Number.isFinite(n);
         }
-        //  The public isNumber function checks if a passed parameter is a number
-        //  returning the corrisponding boolean value
-        function isNumber (number) {
-            if (typeof number !== 'number') {
-                return false;
-            }
-            if (Number.isNaN(number)) {
-                return false;
-            }
-            if (!Number.isFinite(number)) {
-                return false;
-            }
-            return true;
-        }
-        //  The public isObject function checks if a passed parameter is an object
-        //  literal, returning the corrisponding boolean value
-        //  Thanks to Rick [1]
+        //  The isObject function tests a passed parameter, checking if it is an object
+        //  literal, returning the appropriate boolean value [1]
         function isObject (object) {
             var test = object,
                 check = true; // flag to change once the super most prototype has been found
@@ -49,16 +32,19 @@
                 }());
             }
         }
-        //  The public isString function checks if a passed parameter is a string,
-        //  returning the coffisponding boolean value
-        function isString (string) {
-            if (typeof string !== 'string') { // Invalid if no string is passed
-                return false;
-            }
-            return true;
+        //  The isString function tests a passed parameter, checking if it is a string,
+        //  returning an appropriate boolean value
+        function isString (str) {
+            return typeof str === 'string';
         }
-        //  The camelCase function returns a string divided by spaces, hyphens or
-        //  underscores with a camel case word.
+        //  The public isValidString function checks if a passed parameter is a string,
+        //  and if that string is not empty, returning the coffisponding boolean value
+        function validateString (str) {
+            return isString(str) && str.length > 0;
+        }
+        //  STRING AUXILIARY FUNCTIONS  ------------------------------------  STRING  //
+        //  The camelCase function takes a string and splits it by a delimiter,
+        //  returning a string in camel case
         function camelCase (str, del) {
             if (!validateString(del)) {
                 //  Replace all white space and "_" with hyphens
@@ -71,100 +57,90 @@
                 return i ? s[0].toUpperCase() + s.slice(1).toLowerCase() : s;
             }).join('');
         }
-        //  The public isValidString function checks if a passed parameter is a string,
-        //  and if that string is not empty, returning the coffisponding boolean value
-        function validateString (string) {
-            if (typeof string !== 'string') { // Invalid if no string is passed
-                return false;
-            }
-            if (!string) { // Invalid if an empty string is passed
-                return false;
-            }
-            return true;
+        
+        //  The strip function removes all white space from a string
+        function strip (string) {
+            return string.replace(/\s/g, '');
         }
-        //  The stripString function removes all extra white space from a string
-        function stripString (string) {
-            return string.trim().replace(/\s/g, '');
-        }
-        //  The public arrayLikeObject function creates an array like object with
-        //  some basic helper methods including, add, remove, removeAll and removeByKey
-        //  If passed an object it can spread new methods or properties into it
-        function store (sup) {
-            var object = {
-                length: 0
+        //  MISC. AUXILIARY FUNCTIONS  --------------------------------------  MISC.  //
+        //  The getHashID function returns a 32 character alpha-numeric string, with the
+        //  ability to pass an iterator as a unique value
+        function getHashID (i) {
+            if (typeof i === 'undefined' || !isNumber(i)) { // Validate the iterator value
+                i = 0;
             }
+            return ('xxxxxxxx-xxxx-' + i % 10 + 'xxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0,
+                    v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        
+        //  The store function returns an object that is array like, storing values at
+        //  numerical keys and comes with serveral helper functions; a supplemental
+        //  object can be passed to include custom methods or properties
+        function createStore (sup) {
+            var store = {
+                values: {
+                    length: 0
+                }
+            }
+            Object.defineProperty(store, 'length', {
+                get: function () {
+                    return this.values.length;
+                },
+                set: function (value) {
+                    if (isNumber(value)) {
+                        this.values.length = value;
+                    }
+                }
+            });
+            //  PRIVATE FUNCTIONS
             //  The private reset function resets the "array" position values, removing
             //  skipped "elements"
             function _reset() {
-                var count = 0,
-                    temp = {}; // Temporary object
-                Object.keys(Object.assign({}, object)).forEach(function (key) {
+                var j = 0,
+                    t = {}; // Temporary object
+                Object.keys(Object.assign({}, this)).forEach(function (key) {
                     if (isNumber(parseInt(key, 10))) {
-                        temp[count] = object[key]; // Copy the element
-                        delete object[key]; // Delete the element from the previous object
-                        count = count + 1;
+                        t[j] = this[key]; // Copy the data
+                        delete this[key]; // Delete the data from the original
+                        j = j + 1;
                     }
-                });
-                object.length = count;
-                return Object.assign(object, temp); // Rejoin the temp into the object
+                }.bind(this));
+                this.length = j;
+                return Object.assign(this, t); // Remerge the temp into the object
             }
-            //  Add an "element", return position
-            object.add = function (element) {
-                object[object.length] = element;
-                object.length = object.length + 1;
-                return object.length - 1;
+            //  METHODS
+            //  The add method adds a passed "element" into the "array" at the next
+            //  numerical position
+            store.add = function (element) {
+                var pos = this.length;
+                this.length = this.length + 1;
+                this[pos] = element;
+                return pos; // Return the added "element" position
             }
-            //  Remove an "element" by passed position value and reset the "order",
-            //  returning the reset object
-            object.remove = function (element) {
-                if (isNumber(parseInt(element))) {
-                    delete object[element]; // Delete element by element
+            //  The remove method removes an "element" at an "index" before reseting
+            //  the "array"
+            store.remove = function (index) {
+                if (isNumber(parseInt(index))) {
+                    delete this[index];
                 }
-                return _reset();
+                return _reset.apply(this);
             }
-            //  Remove all "elements" and reset the "order", returning the "empty"
-            //  object
-            object.removeAll = function () {
-                Object.keys(Object.assign({}, object)).forEach(function (key) {
-                    if (isNumber(parseInt(key, 10))) {
-                        delete object[key]; // Delete the element from the object
-                    }
-                });
-                object.length = 0;
-                return object;
+            //  This empty method removes all added "elements" from the "array"
+            store.empty = function () {
+                var len = this.length,
+                    i;
+                for (i = 0; i < len; i = i + 1) {
+                    delete this[i];
+                }
+                return _reset.apply(this);
             }
-            //  Remove all "elements" that match a give key and value pair, returning
-            //  the reset object
-            object.removeByKeyValue = function (key, value) {
-                Object.keys(Object.assign({}, object)).forEach(function (k) {
-                    if (isNumber(parseInt(k, 10))) {
-                        Object.keys(Object.assign({}, object[k])).forEach(function (l) {
-                            if (l === key && object[k][l] === value) {
-                                delete object[k]; // delete matched "element"
-                            }
-                        });
-                    }
-                });
-                return _reset();
+            if (isObject(sup)) { //  Check for any supplemental properties or methods
+                return Object.assign(store, sup);
             }
-            //  Return the "index" of an "element" by searching a key/value pair
-            object.findIndexByKeyValue = function (key, value) {
-                var index = -1;
-                Object.keys(object).forEach(function (element) {
-                    Object.keys(object[element]).forEach(function (k) {
-                        if (k === key && object[element][k] === value) {
-                            index = element;
-                        }
-                    });
-                });
-                return index;
-            }
-            //  Check for any supplemental properties or methods
-            if (isObject(sup)) {
-                return Object.assign(object, sup);
-            } else {
-                return object;
-            }
+            return store;
         }
         //  Return object with public functions
         return {
@@ -174,8 +150,8 @@
             isObject: isObject,
             isString: isString,
             validateString: validateString,
-            store: store,
-            stripString: stripString
+            createStore: createStore,
+            strip: strip
         }
     }());
 }());

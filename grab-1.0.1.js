@@ -435,7 +435,6 @@
                     }
                 }
             }
-//            return null;
         }
         //  Return the public functions
         return {
@@ -486,7 +485,7 @@
         function _create (dom) {
             var grab = {
                 element: dom,
-                events: aux.store(),
+                events: aux.createStore(),
                 uid: aux.getHashID(0),
                 values: {
                     name: _getName(dom)
@@ -1046,10 +1045,13 @@
             //  returning itself
             grab.off = function (event, action) {
                 var i;
-                if (action.action) {
-                    i = this.events.findIndexByKeyValue('action', action.action);
-                } else {
-                    i = this.events.findIndexByKeyValue('action', action);
+                if (action && action.action) { // Check if action is an event object
+                    action = action.action;
+                }
+                for (i = 0; i < this.events.length; i = i + 1) {
+                    if (this.events[i].action === action) {
+                        break;
+                    }
                 }
                 this.element.removeEventListener(event, this.events[i].action);
                 this.events.remove(i);
@@ -1129,7 +1131,7 @@
         //  A collection has all the same properties, getters and setters and methods
         //  as a grab object, where in these effect the collection as a whole
         function _collect (items) {
-            var collection = aux.store(),
+            var collection = aux.createStore(),
                 i;
             //  The internal args function returns an array of passed arguments
             function _args (args) {
