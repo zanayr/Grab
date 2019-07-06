@@ -1,4 +1,12 @@
 /*eslint-env browser*/
+
+
+/* AUX-0.0.2.js
+Aux is a simple library of code that I have found is easier to leave here and import
+into my projects than to constantly rewrite.
+*/
+
+
 (function () {
     'use strict';
     window.aux = (function () {
@@ -9,10 +17,11 @@
             return typeof n === 'number' && !Number.isNaN(n) && Number.isFinite(n);
         }
         //  The isObject function tests a passed parameter, checking if it is an object
-        //  literal, returning the appropriate boolean value [1]
+        //  literal, returning the appropriate boolean value
+        //  This code comes from Rick [1]
         function isObject (object) {
             var test = object,
-                check = true; // flag to change once the super most prototype has been found
+                check = true; // Continue flag
             //  First check if the parameter is not a type of object or null, return
             //  false if true; else loop through the objects proptotypes recursively;
             //  checking each if they are the base prototype, when that is found break
@@ -65,8 +74,8 @@
         }
         
         //  MISC. AUXILIARY FUNCTIONS  --------------------------------------  MISC.  //
-        //  The getHashID function returns a 32 character alpha-numeric string, with the
-        //  ability to pass an iterator as a unique value
+        //  The getHashID function returns a 32 character alpha-numeric string, with
+        //  the ability to pass an iterator as a unique value
         function getHashID (i) {
             if (typeof i === 'undefined' || !isNumber(i)) { // Validate the iterator value
                 i = 0;
@@ -158,3 +167,7 @@
         }
     }());
 }());
+
+
+//  SOURCES  -------------------------------------------------------------  SOURCES  //
+//  [1]     https://stackoverflow.com/questions/1173549/how-to-determine-if-an-object-is-an-object-literal-in-javascript

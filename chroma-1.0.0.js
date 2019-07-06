@@ -1,14 +1,20 @@
 /*eslint-env browser*/
+/*global aux:false*/
+
+
+/* CHROMA-1.0.0.js
+Chroma is a simple javascript library that converts most color models to an rgba object.
+Valid color models include rgb, rgba, hexadecimal, hsl, hsla, hsv, hsva and the
+standard broswer color strings.
+*/
+
+
 (function () {
     'use strict';
     window.chroma = function (model) {
-        //  COLORS  -----------------------------------------------------------  COLORS  //
-        //  The following section deals with the parsing, checking and converting of most
-        //  standard color models in the DOM to the rgba color model that grab uses
-
-        //  The _checkRGBA function should take an array of RGBA values and determine if
-        //  they are valid or not
-        function _checkRGBA (arr) {
+        //  The private validateRGBA function validates an arrya of rgba values,
+        //  returning null if any of the values are invalid
+        function _validateRGBA (arr) {
             var valid = true,
                 i;
             //  1.  All channel values should be positive, integer,
@@ -34,9 +40,9 @@
             return valid ? arr : null;
         }
 
-        //  The _checkHex function should take a string of a hexidecimal value and
-        //  determine if it is a valid hexidecimal value
-        function _checkHex (str) {
+        //  The private validateHex function validates a string of hexadecimal
+        //  characters, returning null if any of the values are invalid
+        function _validateHex (str) {
             var value = str.replace(/^#|0x|0X/, ''),
                 i;
             //  1.  All hexidecimal values should be a number 0 to 9, a to f; where a to f
@@ -50,9 +56,9 @@
             return value;
         }
 
-        //  The _checkHSXA function should take an array of HSXA values and determine if
-        //  they are valid or not
-        function _checkHSXA (arr) {
+        //  The private validateHSXA function validates an array of hsl/va values,
+        //  returning null if any of the values are invalid
+        function _validateHSXA (arr) {
             var i,
                 valid = true;
             //  1.  Hues (element 0) must be contained in the set [-360, 360]
@@ -80,104 +86,106 @@
             return valid ? arr : null;
         }
 
-        //  The _rgba function should take a string of and parse it for valid rgba values
-        //  Valid formats are 'rgb(0, 0, 0)', 'rgba(0, 0, 0, 0.0)' or even a string of
-        //  values delimited by commas, e.g. '0, 0, 0' and '0, 0, 0, 0.0'
+        //  The private rgba function takes a valid string and returns an array of
+        //  rgba values
         function _rgba (str) {
-            var values = str.match(/(-?\d{1,3}\.?\d*)/g);
-            if (!values) {
-                return null;
-            } else {
-                values = values.map(function (value) {
-                    return parseFloat(value, 10);
-                });
-                if (typeof values[3] === 'undefined') {
-                    values[3] = 1;
-                }
-            }
-            return _checkRGBA(values);
-        }
-
-        //  The _standard function should take a string and apply it to a temporary div in
-        //  the DOM; returning its color styling as a parsed rgba array
-        //  Valid formats are any color names, e.g. 'blue' or 'lightcoral'
-        function _standard (str) {
-            var div = document.createElement('div'),
-                color;
-            div.style.color = str;
-            document.body.appendChild(div);
-            color = window.getComputedStyle(div, '')['color'];
-            document.body.removeChild(div);
-            color = _rgba(color);
-            if ((str !== 'black' && str !== 'transparent') && !color[0] && !color[1] && !color[2]) {
-                return null;
-            } else {
-                return _checkRGBA(color);
-            }
-        }
-
-        //  The _hexa should take a hexidecimal string and parse it for an array of valid
-        //  RGBA values; the function takes many shorthand formats and even the new hexa
-        //  standard
-        //  Valid formats begin with '#', '0x' or '0X' and a string of length 1 to 8,
-        //  except 5 and 7, of hexidecimal values '0' to 'f'
-        function _hexa (str) {
-            var value = _checkHex(str),
-                values;
-            if (value) {
-                switch (value.length) {
-                    case 1: // Hexidecimal shorthand a, returns aaaaaa
-                        value = value + value;
-                        values = [parseInt(value, 16), parseInt(value, 16), parseInt(value, 16), 1];
-                        break;
-                    case 2: // Hexidecima shorthand ab, returns ababab
-                        values = [parseInt(value, 16), parseInt(value, 16), parseInt(value, 16), 1];
-                        break;
-                    case 3: // Hexidecimal shorthand abc, returns aabbcc
-                        values = [parseInt(value[0] + value[0], 16), parseInt(value[1] + value[1], 16), parseInt(value[2] + value[2], 16), 1];
-                        break;
-                    case 4: // Hexidecimal/alpha shorthand abcd, returns aabbccdd
-                        values = [parseInt(value[0] + value[0], 16), parseInt(value[1] + value[1], 16), parseInt(value[2] + value[2], 16), parseInt(value[3] + value[3], 16) / 255];
-                        break;
-                    case 6: // Hexidecimal abcdef
-                        values = value.match(/([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})/i).slice(1).map(function (v) {
-                            return parseInt(v, 16);
-                        }).concat(1); // Set alpha
-                        break;
-                    case 8: // Hexidecimal/alpha abcdef01
-                        values = value.match(/([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})/i).slice(1).map(function (v, i) {
-                            return i < 3 ? parseInt(v, 16) : parseInt(v, 16) / 255;
-                        });
-                        break;
-                    default:
-                        break;
-                }
-            }
-            return value ? _checkRGBA(values) : null;
-        }
-
-        //  The _hsx function should take a string and return an array of hsx/a values to
-        //  be checked later
-        //  Valid string formats are both hsl/a and hsv/a models, e.g. 'hsl/v(0, 0, 0)' and
-        //  'hsl/va(0, 0, 0, 0.0)'
-        function _hsx (str) {
-            var values = str.match(/(-?\d{1,3}\.?\d*)/g);
-            if (values) {
-                return _checkHSXA(values.map(function (value, z) {
-                    if (z === 0) {
-                        return value.includes('-') ? (360 + (parseFloat(value, 10) % 360)) / 360 : (parseFloat(value, 10) % 360) / 360;
-                    } else if (z < 3) {
-                        return parseFloat(value, 10) / 100;
-                    } else {
+            var values;
+            if (aux.validateString(str)) {
+                str.match(/(-?\d{1,3}\.?\d*)/g);
+                if (!values) {
+                    return null;
+                } else {
+                    values = values.map(function (value) {
                         return parseFloat(value, 10);
+                    });
+                    if (typeof values[3] === 'undefined') {
+                        values[3] = 1;
                     }
-                }));
+                }
+                return _validateRGBA(values);
             }
             return null;
         }
 
-        //  Convert hsla values into an array of rgba values; I wish I could tell you how
-        //  this works, but this code comes from Garry Tan[3]
+        //  The private standard function taks a valid string and returns an array of
+        //  rgba vlaues
+        function _standard (str) {
+            var div = document.createElement('div'),
+                color;
+            if (aux.validateString(str)) {
+                div.style.color = str;
+                document.body.appendChild(div);
+                color = window.getComputedStyle(div, '')['color'];
+                document.body.removeChild(div);
+                color = _rgba(color);
+                if ((str !== 'black' && str !== 'transparent') && !color[0] && !color[1] && !color[2]) {
+                    return null;
+                } else {
+                    return _validateRGBA(color);
+                }
+            }
+            return null;
+        }
+        //  The private hexa function takes a valid string and returns an array of rgba
+        //  values
+        function _hexa (str) {
+            var value,
+                values;
+            if (aux.validateString(str)) {
+                value = _validateHex(str);
+                if (value) {
+                    switch (value.length) {
+                        case 1: // Hexidecimal shorthand a, returns aaaaaa
+                            value = value + value;
+                            values = [parseInt(value, 16), parseInt(value, 16), parseInt(value, 16), 1];
+                            break;
+                        case 2: // Hexidecima shorthand ab, returns ababab
+                            values = [parseInt(value, 16), parseInt(value, 16), parseInt(value, 16), 1];
+                            break;
+                        case 3: // Hexidecimal shorthand abc, returns aabbcc
+                            values = [parseInt(value[0] + value[0], 16), parseInt(value[1] + value[1], 16), parseInt(value[2] + value[2], 16), 1];
+                            break;
+                        case 4: // Hexidecimal/alpha shorthand abcd, returns aabbccdd
+                            values = [parseInt(value[0] + value[0], 16), parseInt(value[1] + value[1], 16), parseInt(value[2] + value[2], 16), parseInt(value[3] + value[3], 16) / 255];
+                            break;
+                        case 6: // Hexidecimal abcdef
+                            values = value.match(/([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})/i).slice(1).map(function (v) {
+                                return parseInt(v, 16);
+                            }).concat(1); // Set alpha
+                            break;
+                        case 8: // Hexidecimal/alpha abcdef01
+                            values = value.match(/([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})/i).slice(1).map(function (v, i) {
+                                return i < 3 ? parseInt(v, 16) : parseInt(v, 16) / 255;
+                            });
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+            return value ? _validateRGBA(values) : null;
+        }
+        //  The private hsx function takes a valid string and returns an array of hsx/a
+        function _hsx (str) {
+            var values;
+            if (aux.validateString(str)) {
+                values = str.match(/(-?\d{1,3}\.?\d*)/g);
+                if (values) {
+                    return _validateHSXA(values.map(function (value, z) {
+                        if (z === 0) {
+                            return value.includes('-') ? (360 + (parseFloat(value, 10) % 360)) / 360 : (parseFloat(value, 10) % 360) / 360;
+                        } else if (z < 3) {
+                            return parseFloat(value, 10) / 100;
+                        } else {
+                            return parseFloat(value, 10);
+                        }
+                    }));
+                }
+            }
+            return null;
+        }
+        //  The private hsla function converts hsva values into an array of rgba values
+        //  This code comes from Garry Tan [1]
         function _hsla (h, s, l, a) {
             var r,
                 g,
@@ -204,11 +212,10 @@
                 g = _hue(h);
                 b = _hue(h - 1 / 3);
             }
-            return _checkRGBA([Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), a]);
+            return _validateRGBA([Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), a]);
         }
-
-        //  Convert hsva values into an array of rgba values; I wish I could tell you how
-        //  this works, but this code comes from Garry Tan[3]
+        //  The private hsva function converts hsva values into an array of rgba values
+        //  This code comes from Garry Tan [1]
         function _hsva (h, s, v, a) {
             var r,
                 g,
@@ -249,14 +256,14 @@
                     g = P;
                     b = Q;
             }
-            return _checkRGBA([Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), a]);
+            return _validateRGBA([Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), a]);
         }
-
-        //  Color Method  //
-        //  The Color method should convert most color models into an array of the rgba
-        //  color model; valid models are the rgb/a, hex/a, hsl/a and hsv/a models; as
-        //  well as some overloads to pass rgb/a models including strings of rgb/a values
-        //  delimited by commas, an array of numbers or as seperate parameters
+        
+        //  COLOR  ---------------------------------------------------------  COLOR  //
+        //  The private color function should convert most color models into an object
+        //  of the rgba color model, as well as some overloads to pass rgb/a models
+        //  including strings of rgb/a values delimited by commas, arrays of numbers or
+        //  as seperate parameters or standard browser color strings
         function _color (value) {
             var arr = [],
                 color,
@@ -282,7 +289,7 @@
                 if (!arr[3]) {
                     arr[3] = 1;
                 }
-                color = _checkRGBA(arr);
+                color = _validateRGBA(arr);
             } else if (arguments.length > 1) {
                 for (i = 0; i < arguments.length; i = i + 1) {
                     arr.push(parseFloat(arguments[i], 10));
@@ -290,7 +297,7 @@
                 if (!arr[3]) {
                     arr[3] = 1;
                 }
-                color = _checkRGBA(arr);
+                color = _validateRGBA(arr);
             }
             if (color) {
                 return {
@@ -306,3 +313,7 @@
         return _color(model);
     }
 }());
+
+
+//  SOURCES  -------------------------------------------------------------  SOURCES  //
+//  [1]     http://axonflux.com/handy-rgb-to-hsl-and-rgb-to-hsv-color-model-c

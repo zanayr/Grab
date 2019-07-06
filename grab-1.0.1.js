@@ -1,6 +1,16 @@
 /*eslint-env browser*/
 /*global aux: false*/
 /*global chroma:false*/
+
+
+/* GRAB-1.2.0.js
+Grab is a DOM manipulation library that I developed as a project to learn more about
+how the DOM worked and can by changed. This library includes it's own animation engine
+and abstraction layer to hide all the complicated features of the DOM.
+For now I've kept the library to basic features and will slowly add new features
+*/
+
+
 (function () {
     'use strict';
     //  ANIMATION ENGINE  ----------------------------------------------  ANIMATION  //
