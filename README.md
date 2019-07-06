@@ -15,7 +15,7 @@ that has many fun and helpful methods and properties.
 
 
 ## Properties
-**Background Color**
+**Background Color**  
 The `fizz.backgroundColor` property effects the DOM element's background color styling.
 it returns an object of rgba color channels and can be set using any of valid chroma.js
 (see below) color models.
@@ -25,11 +25,11 @@ console.log(fizz.backgroundColor);
 ►{alpha: 1, blue: 0, green: 96, red: 128}
 ```
 
-**Class List**
+**Class List**  
 The `fizz.classList` property is simply an abstraction of the grab object's internal
 DOM element's classList property.
 
-**Color**
+**Color**  
 The `fizz.color` property effects the DOM element's color (font color) styling. It
 returns an object of rgba color channels and can be set using any of valid chroma.js
 (see below) color models.
@@ -39,7 +39,7 @@ console.log(fizz.color);
 ►{alpha: 1, blue: 128, green: 128, red: 240}
 ```
 
-**Children**
+**Children**  
 The `fizz.children` property returns a grab collection of grab objects, each a child of
 the DOM element.
 ```
@@ -48,7 +48,7 @@ console.dir(children);
 ►{0: {…}, 1: {…}, 2: {…}, values: {…}, add: ƒ, remove: ƒ, empty: ƒ, animate: ƒ, …}
 ```
 
-**Display**
+**Display**  
 The `fizz.display` property returns and sets the DOM element's display styling.
 The returned value is a string.
 ```
@@ -57,7 +57,7 @@ console.dir(fizz.display);
 flex
 ```
 
-**Height**
+**Height**  
 The `fizz.height` property returns (in pixels) or sets the DOM element's height styling.
 See the above Models Chart for supported height models. The returned value is a number.
 ```
@@ -66,7 +66,7 @@ console.dir(fizz.height);
 250
 ```
 
-**Html**
+**Html**  
 The `fizz.html` property returns and sets the internal HTML of the DOM element. The
 returned markup is a string.
 ```
@@ -75,7 +75,7 @@ console.dir(fizz.html);
 <h1>Hello World!</h1>
 ```
 
-**Id**
+**Id**  
 The `fizz.id` property returns and sets the id attribute of the DOM element. The
 returned id is a string.
 ```
@@ -84,7 +84,7 @@ console.dir(fizz.id);
 grab-me
 ```
 
-**Left**
+**Left**  
 The `fizz.left` property returns (in pixels) and sets the DOM element's left styling.
 See the above Models Chart for supported left models. The returned value is a number.
 ```
@@ -93,7 +93,7 @@ console.dir(fizz.left);
 166.7
 ```
 
-**Name**
+**Name**  
 The `fizz.name` property returns a string by joining tag, id and all classes of the
 DOM element.
 ```
@@ -101,7 +101,7 @@ console.dir(fizz.name);
 div#grab-me.fizz.buzz
 ```
 
-**Opacity**
+**Opacity**  
 The `fizz.opacity` property returns and sets the DOM element's opacity (tansparency)
 styling. See the above Models Chart for supported opacity models. The returned value
 is a number.
@@ -111,7 +111,7 @@ console.dir(fizz.opacity);
 0.5
 ```
 
-**Top**
+**Top**  
 The `fizz.top` property returns (in pixels) and sets the DOM element's top styling.
 See the above Models Chart for supported top models. The returned value is a number.
 ```
@@ -120,7 +120,7 @@ console.dir(fizz.top);
 100
 ```
 
-**Visibility**
+**Visibility**  
 The `fizz.visibility` property returns and sets the DOM element's visibility styling.
 See the above Models Chart for supported visibility models. The returned value is a
 string.
@@ -130,7 +130,7 @@ console.dir(fizz.visibility);
 hidden
 ```
 
-**Width**
+**Width**  
 The `fizz.width` property returns (in pixels) or sets the DOM element's width styling.
 See the above Models Chart for supported width models. The returned value is a number.
 ```
@@ -139,7 +139,7 @@ console.dir(fizz.width);
 200
 ```
 
-**Z Index**
+**Z Index**  
 The `fizz.zIndex` property returns or sets the DOM element's z index. The returned
 value is a number.
 ```
