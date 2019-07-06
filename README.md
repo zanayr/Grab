@@ -150,15 +150,3 @@ console.log(fizz.zIndex);
 
 
 ## Methods
-
-
-# Chroma.js
-A simple color conversion library
----
-
-
-
-# Aux.js
-A simple auxiliary library with helpful methods
----
-

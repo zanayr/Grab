@@ -676,6 +676,16 @@ https://github.com/zanayr
                         }
                     }
                 },
+                visibility: {
+                    get: function () {
+                        return this.values.visibility;
+                    },
+                    set: function (value) {
+                        if (typeof value === 'string') {
+                            this.element.style.visibility = this.values.visibility = value;
+                        }
+                    }
+                },
                 width: {
                     get: function () {
                         return this.values.width;
@@ -685,16 +695,6 @@ https://github.com/zanayr
                         if (aux.isNumber(width)) {
                             this.values.width = width;
                             this.element.style.width = width + 'px';
-                        }
-                    }
-                },
-                visibility: {
-                    get: function () {
-                        return this.values.visibility;
-                    },
-                    set: function (value) {
-                        if (typeof value === 'string') {
-                            this.element.style.visibility = this.values.visibility = value;
                         }
                     }
                 },
