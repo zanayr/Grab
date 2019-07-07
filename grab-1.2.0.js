@@ -934,7 +934,7 @@ https://github.com/zanayr
                 return this;
             }
             //  The classes method returns an array of element classes
-            grab.classes = function () {
+            grab.getClass = function () {
                 return Object.keys(this.element.classList).map(function (i) {
                     return this.element.classList[i];
                 }.bind(this));
