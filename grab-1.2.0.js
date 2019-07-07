@@ -946,13 +946,13 @@ https://github.com/zanayr
                     if (className.search(',') > -1) { // Split the string at the commas, and let it casscade to the array block below
                         className = className.split(',');
                     } else { // Set class, removing all extra white space
-                        this.element.classList.add(aux.stripString(className));
+                        this.element.classList.add(aux.strip(className));
                     }
                 }
                 if (Array.isArray(className)) {
                     className.forEach(function (name) {
                         if (aux.validateString(name)) {
-                            this.element.classList.add(aux.stripString(name));
+                            this.element.classList.add(aux.strip(name));
                         }
                     }.bind(this));
                 }
@@ -965,13 +965,13 @@ https://github.com/zanayr
                     if (className.search(',') > -1) { // Split the string at the commas, and let it casscade to the array block below
                         className = className.split(',');
                     } else { // Set class, removing all extra white space
-                        this.element.classList.remove(aux.stripString(className));
+                        this.element.classList.remove(aux.strip(className));
                     }
                 }
                 if (Array.isArray(className)) {
                     className.forEach(function (name) {
                         if (aux.validateString(name)) {
-                            this.element.classList.remove(aux.stripString(name));
+                            this.element.classList.remove(aux.strip(name));
                         }
                     }.bind(this));
                 }
@@ -984,13 +984,13 @@ https://github.com/zanayr
                     if (className.search(',') > -1) { // Split the string at the commas, and let it casscade to the array block below
                         className = className.split(',');
                     } else { // Set class, removing all extra white space
-                        this.element.classList.toggle(aux.stripString(className));
+                        this.element.classList.toggle(aux.strip(className));
                     }
                 }
                 if (Array.isArray(className)) {
                     className.forEach(function (name) {
                         if (aux.validateString(name)) {
-                            this.element.classList.toggle(aux.stripString(name));
+                            this.element.classList.toggle(aux.strip(name));
                         }
                     }.bind(this));
                 }
