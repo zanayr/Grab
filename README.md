@@ -15,7 +15,7 @@ that has many fun and helpful methods and properties.
   
   
 ## Models
-**Colors**
+**Colors**  
 Grab uses my chorma.js library for color conversion. All color models are converted
 to an object of rgba channels.
 ```
@@ -56,7 +56,7 @@ console.log(fizz.color);
 ►{alpha: 1, blue: 203, green: 192, red: 255}
 ```
   
-**Dimensions**
+**Dimensions**  
 Grab accepts many common browser supported dimensional units.
 ```
 //  Number (pixels)
@@ -77,11 +77,12 @@ console.log(fizz.height);
 417
 ```
   
-**Translation**
+**Translation**  
 Grab accepts many common browser supported translational units.
 ```
 //  Number (pixels)
 fizz.left = 100;
+
 //  Pixel
 fizz.left = '48px';
 
@@ -97,7 +98,7 @@ console.log(fizz.left);
 600
 ```
   
-**Opacity**
+**Opacity**  
 Grab accepts a couple of opacity values.
 ```
 //  Number
@@ -248,51 +249,51 @@ console.log(fizz.zIndex);
   
   
 ## Methods
+**Add Class**  
+  
+**After**  
+  
 **Animate**  
+  
+**Append**  
+  
+**Attr**  
+  
+**Before**  
+
+**Child**  
+  
+**Clear**  
+  
+**CSS**  
+  
+**Data**  
+  
+**Exit**  
   
 **Fade In**  
   
 **Fade Out**  
   
-**Hide**  
-  
-**Show**  
-  
-**After**  
-  
-**Before**  
-  
-**Append**  
-  
-**Prepend**  
-  
-**Exit**  
-  
-**Remove**  
-  
-**Data**  
-  
-**Attr**  
+**Find**  
   
 **Get Class**  
   
-**Add Class**  
-  
-**Remove Class**  
-  
-**Toggle Class**  
-  
-**CSS**  
-  
-**Clear**  
+**Hide**  
   
 **Hover**  
   
-**On**  
-  
 **Off**  
   
-**Child**  
+**On**  
   
-**Find**  
+**Prepend**  
+  
+**Remove**  
+  
+**Remove Class**  
+  
+**Show**  
+  
+**Toggle Class**  
   
