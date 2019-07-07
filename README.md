@@ -1,9 +1,9 @@
 # Grab.js
 Grab is a small custom javascript library built to manipulate the DOM. It provides a
 very basic approach to effect the DOM
-
-  
-  
+<br />
+<br />
+<br />
 ## Models
 **Colors**  
 Grab uses my chorma.js library for color conversion. All color models are converted
@@ -48,7 +48,7 @@ console.log(fizz.color);
   
   
   
-# Get Started
+## Get Started
 To grab a DOM element, simply call the global grab function, which returns an object
 that has many fun and helpful methods and properties.
 ```
