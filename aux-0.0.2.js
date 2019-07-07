@@ -152,6 +152,19 @@ https://github.com/zanayr
                 }
                 return _reset.apply(this);
             }
+            store.all = function () {
+                var len = this.length,
+                    copy = {},
+                    i;
+                for (i = 0; i < len; i = i + 1) {
+                    copy[i] = this[i];
+                }
+                Object.defineProperty(copy, 'length', {
+                    propertyIsEnumerable: false,
+                    value: this.length
+                });
+                return Object.freeze(copy);
+            }
             if (isObject(sup)) { //  Check for any supplemental properties or methods
                 return Object.assign(store, sup);
             }
