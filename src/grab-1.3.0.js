@@ -13,12 +13,11 @@ By Ryan Fickenscher 7/6/19
 https://github.com/zanayr
 */
 
-
+var grab2;
 (function () {
     'use strict';
-    //  Color Parser  //
-    //  Taken from https://github.com/zanayr/chroma  //
-    var chroma;
+    //  COLOR PARSER  ------------------------------------------------------  COLOR  //
+    var color;
     (function () {
         var x11Dictionary = {
             snow: [255, 250, 250], ghostwhite: [248, 248, 255], whitesmoke: [245, 245, 245],
@@ -115,7 +114,7 @@ https://github.com/zanayr
             }
         }
         //  Chroma Object Function  //
-        function chromaObject (arr) {
+        function colorObject (arr) {
             var obj = {};
             //  Getter and Setters  //
             Object.defineProperties(obj, {
@@ -277,14 +276,14 @@ https://github.com/zanayr
         }
 
         //  CHROMA  FUNCTION  //
-        chroma = function (model) {
-            var parsed = chroma.parse(model);
+        color = function (model) {
+            var parsed = color.parse(model);
             if (parsed && parsed.length > 1)
-                return chromaObject(from[parsed[0]](parsed.slice(1)));
+                return colorObject(from[parsed[0]](parsed.slice(1)));
             return null;
         };
         //  Parse Method  //
-        chroma.parse = function (value) {
+        color.parse = function (value) {
             var match;
             function percents (arr) {
                 var i, c = 0;
@@ -365,15 +364,20 @@ https://github.com/zanayr
             }
             return null;
         };
+        //  Rgba Method  //
+        color.rgba = function (obj) {
+            var color = color.parse(obj);
+            return 'rgba(' + color[0] + ', ' + color[1] + ', ' + color[2] + ', ' + color[3] + ')';
+        };
         //  Validate Method  //
-        chroma.validate = function (value) {
-            var parsed = chroma.parse(value);
+        color.validate = function (value) {
+            var parsed = color.parse(value);
             if (parsed && parsed.length > 1)
                 return true;
             return false;
         };
     }());
-    
+
     //  ANIMATION ENGINE  ----------------------------------------------  ANIMATION  //
     var engine = (function () {
         var state = false,
@@ -814,6 +818,294 @@ https://github.com/zanayr
     }());
     
     //  GRAB  ---------------------------------------------------------------  GRAB  //
+    (function () {
+        //  Validation Functions  //
+        function validLiteral (obj) {
+            var test = object,
+                check = true;
+            if (typeof object !== 'object' || object === null) {
+                return false;
+            } else {
+                return (function () {
+                    while (check) {
+                        if (Object.getPrototypeOf(test = Object.getPrototypeOf(test)) === null) {
+                            check = false;
+                            break;
+                        }
+                    }
+                    return Object.getPrototypeOf(object) === test;
+                }());
+            }
+        }
+        //  Auxillary Functions  //
+        function getStyle (element, property) {
+            return window.getComputedStyle(element, '')[property];
+        }
+        function getUid (z) {
+            if (typeof z !== 'number' && !Number.isFinite(z))
+                z = 0;
+            return ('xxxxxxxx-xxxx-' + z % 10 + 'xxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0,
+                    v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        function getValue (property, value) {
+            if (typeof value === 'string' && value.length) {
+                if (/^border[A-Z]*|height|left|top|width$/ig.test(property)) {
+                    if (/^-?\d+\.?\d*px$/g.test(value)) {
+                        return parseFloat(value, 10);
+                    } else if (/^-?\d+\.?\d*vw$/g.test(value)) {
+                        return window.innerWidth * (parseFloat(value, 10) / 100);
+                    } else if (/^-?\d+\.?\d*vh$/g.test(value)) {
+                        return window.innerHeight * (parseFloat(value, 10) / 100);
+                    } else if (/^\d+\.?\d*%$/g.test(value)) {
+                        if (/^height|top/ig.test(property)) {
+                            return grab.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
+                        } else if (/^left|width$/ig.test(property)) {
+                            return grab.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
+                        }
+                    }
+                } else if (property === 'opacity') {
+                    if (/^\d{1,3}\.?\d*%$/g.test(value)) {
+                        return parseFloat(value, 10) / 100;
+                    } else if (/^\d+\.?\d*$/g.test(value)) {
+                        return parseFloat(value, 10);
+                    }
+                }
+            } else if (typeof value === 'number' && Number.isFinite(value)) {
+                return value;
+            }
+            return null;
+        }
+        function create (element, u) {
+            var g = {};
+            Object.defineProperties(g, {
+                backgroundColor: {
+                    get: function () {
+                        return this.values.backgroundColor;
+                    },
+                    set: function (value) {
+                        var c;
+                        if (color.validate(value)) {
+                            c = color(value);
+                            this.values.backgroundColor = c;
+                            this.element.style.backgroundColor = color.rgba(c);
+                        }
+                        return value;
+                    }
+                },
+                classList: {
+                    get: function () {
+                        return this.element.classList;
+                    }
+                },
+                color: {
+                    get: function () {
+                        return this.values.color;
+                    },
+                    set: function (value) {
+                        var c;
+                        if (aux.isObject(value)) { // For anumation purposes
+                            color = Object.assign(this.color, value);
+                        } else {
+                            color = chroma(value);
+                        }
+                        if (color.validate(value)) {
+                            c = color(value);
+                            this.values.color = c;
+                            this.element.style.color = color.rgba(c);
+                        }
+                    }
+                },
+                children: {
+                    get: function () {
+                        return collect(this.element.children);
+                    }
+                },
+                display: {
+                    get: function () {
+                        return this.values.display;
+                    },
+                    set: function (value) {
+                        if (typeof value === 'string' && g) {
+                            this.element.style.display = value;
+                            this.values.display = this.element.style.display; // Return last valid display setting
+                        }
+                        return value;
+                    }
+                },
+                element: {
+                    value: element
+                },
+                height: {
+                    get: function () {
+                        return this.values.height
+                    },
+                    set: function (value) {
+                        var h = getValue('height', value);
+                        if (typeof h === 'number' && Number.isFinite(h)) {
+                            this.values.height = h;
+                            this.element.style.height = h + 'px';
+                        }
+                        return value;
+                    }
+                },
+                html: {
+                    get: function () {
+                        return this.element.innerHTML;
+                    },
+                    set: function (value) {
+                        if (typeof value === 'string')
+                            this.element.innerHTML = value;
+                        return value;
+                    }
+                },
+                id: {
+                    get: function () {
+                        return this.element.id;
+                    },
+                    set: function (value) {
+                        if (typeof value === 'string' && !/^\d/g.test(value) && /[\da-z-_]+/ig.test(value))
+                            this.element.id = value;
+                        return value;
+                    }
+                },
+                left: {
+                    get: function () {
+                        return this.values.left;
+                    },
+                    set: function (value) {
+                        var l = getValue('left', value);
+                        if (typeof l === 'number' && Number.isFinite(l)) {
+                            this.values.left = l;
+                            this.element.style.left = l + 'px';
+                        }
+                        return l;
+                    }
+                },
+                selector: {
+                    get: function () {
+                        var id = this.id ? '#' + this.id : '',
+                            classes = this.element.className.length > 0 ? '.' + this.element.className.replace(' ', '.') : '';
+                        return this.element.tagName.toLowerCase() + id + classes;
+                    }
+                },
+                opacity: {
+                    get: function () {
+                        return this.values.opacity;
+                    },
+                    set: function (value) {
+                        var o = getValue('opacity', value);
+                        if (typeof o === 'number' && Number.isFinite(o) && 0 <= o && o <= 1) {
+                            this.values.opacity = o;
+                            this.element.style.opacity = o;
+                        }
+                        return value;
+                    }
+                },
+                top: {
+                    get: function () {
+                        return this.values.top
+                    },
+                    set: function (value) {
+                        var t = getValue('top', value);
+                        if (typeof t === 'number' && Number.isFinite(t)) {
+                            this.values.top = t;
+                            this.element.style.top = t + 'px';
+                        }
+                        return value;
+                    }
+                },
+                uid: {
+                    value: getUid(u)
+                },
+                values: {
+                    value: {
+                        backgroundColor: color(getStyle(element, 'backgroundColor')),
+                        color: color(getStyle(element, 'color')),
+                        display: getStyle(element, 'display'),
+                        height: getStyle(element, 'height'),
+                        left: getStyle(element, 'left'),
+                        opacity: getStyle(element, 'opacity'),
+                        top: getStyle(element, 'top'),
+                        visibility: getStyle(element, 'visibility'),
+                        width: getStyle(element, 'width'),
+                        zIndex: getStyle(element, 'zIndex')
+                    }
+                },
+                visibility: {
+                    get: function () {
+                        return this.values.visibility;
+                    },
+                    set: function (value) {
+                        if (typeof value === 'string') {
+                            this.element.style.visibility = value;
+                            this.values.visibility = this.elements.style.visibility; // get last valid visibility
+                        }
+                        return value;
+                    }
+                },
+                width: {
+                    get: function () {
+                        return this.values.width;
+                    },
+                    set: function (value) {
+                        var w = getValue('width', value);
+                        if (typeof w === 'number' && Number.isFinite(w)) {
+                            this.values.width = w;
+                            this.element.style.width = w + 'px';
+                        }
+                        return value;
+                    }
+                },
+                zIndex: {
+                    get: function () {
+                        return this.values.zIndex;
+                    },
+                    set: function (value) {
+                        var z = parseInt(value, 10);
+                        if (typeof z === 'number' && Number.isFinite(z)) {
+                            this.values.zIndex = z;
+                            this.element.style.zIndex = z;
+                        }
+                        return value;
+                    }
+                }
+            });
+            return g;
+        }
+        function collect (items) {
+            return items;
+        }
+        function grab (item) {
+            var selected;
+            if (typeof item === 'string') {
+                if (/<[a-z]+>/g.test(item)) {
+                    return create(document.createElement(item.slice(1, -1)));
+                } else if (/^#/g.test(item)) {
+                    selected = document.getElementById(item.slice(1));
+                } else if (/^\./g.test(item)) {
+                    selected = document.getElementsByClassName(item.slice(1));
+                } else if (/[a-z]+/g.test(item)) {
+                    selected = document.getElementsByTagName(item);
+                } else if (/(#?\.?[a-z])/g.test(item)) {
+                    selected = document.querySelectorAll(item);
+                }
+            } else if (item.nodeType) {
+                return create(item);
+            } else if (Array.isArray(item)) {
+                return collect(item);
+            }
+
+            if (selected)
+                return selected.length ? collect(selected) : create(selected);
+            return null;
+        }
+        grab2 = function (selector) {
+            return grab(selector);
+        }
+    }());
     window.grab = function (selector) {
         function _selector (element, string) {
             var tag = string.match(/^[A-Z]+/ig),
