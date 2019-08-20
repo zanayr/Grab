@@ -1043,6 +1043,11 @@ var grab2;
                         return this.element.classList;
                     }
                 },
+                clear: {
+                    value: function () {
+
+                    }
+                },
                 color: {
                     get: function () {
                         return this.values.color;
