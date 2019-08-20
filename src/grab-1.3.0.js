@@ -1,6 +1,4 @@
 /*eslint-env browser*/
-/*global aux: false*/
-/*global chroma:false*/
 
 
 /* GRAB-1.2.0.js
@@ -821,9 +819,9 @@ var grab2;
     (function () {
         //  Validation Functions  //
         function validLiteral (obj) {
-            var test = object,
+            var test = obj,
                 check = true;
-            if (typeof object !== 'object' || object === null) {
+            if (typeof obj !== 'object' || obj === null) {
                 return false;
             } else {
                 return (function () {
@@ -833,7 +831,7 @@ var grab2;
                             break;
                         }
                     }
-                    return Object.getPrototypeOf(object) === test;
+                    return Object.getPrototypeOf(obj) === test;
                 }());
             }
         }
@@ -879,8 +877,101 @@ var grab2;
             return null;
         }
         function create (element, u) {
-            var g = {};
-            Object.defineProperties(g, {
+            var grab = {};
+            Object.defineProperties(grab, {
+                addClass: {
+                    value: function (className) {
+                        //  The addClass method adds a passed string, or array of
+                        //  strings as css classes on the element, returning itself
+                        var c;
+                        if (typeof className === 'string' && className.length) {
+                            if (className.includes(',')) {
+                                className = className.split(',');
+                            } else {
+                                this.element.classList.add(className.replace(/\s/g, ''));
+                            }
+                        }
+                        if (Array.isArray(className)) {
+                            for (c = 0; c < className.length; c = c + 1)
+                                this.element.classList.add(className[c].replace(/\s/g, ''));
+                        }
+                        return this;
+                    }
+                },
+                after: {
+                    value: function (sibling) {
+                        //  The after method will remove itself from its current DOM
+                        //  location, and insert itself after the passed sibling,
+                        //  returning itself
+                        var i;
+                        if (typeof sibling === 'string' && sibline.length) {
+                            this.after(grab2(sibling));
+                        } else if (sibling && sibling.uid) {
+                            //  Remove the sibling from the DOM if it has a parent node
+                            if (sibling.element.parentNode)
+                                sibling.exit();
+                            this.element.parentNode.insertBefore(sibling.element, this.element.nextSibling);
+                        } else if (sibling.length) {
+                            for (i = 0; i < sibling.length; i = i + 1)
+                                this.after(sibling[i]);
+                        }
+                        return this;
+                    }
+                },
+                animate: {
+                    value: function () {
+
+                    }
+                },
+                append: {
+                    value: function (child) {
+                        //  The append method will remove the child from its current DOM location
+                        //  and append it inside of itself, returning itself
+                        var i;
+                        if (typeof child === 'string' && child.length) {
+                            child = this.append(grab2(child));
+                        } else if (child && child.uid) {
+                            if (child.element.parentNode)
+                                child.exit();
+                            this.element.appendChild(child.element);
+                        } else if (child.length) {
+                            for (i = 0; i < child.length; i = i + 1)
+                                this.append(child[i]);
+                        }
+                        return this;
+                    }
+                },
+                attr: {
+                    value: function (attr, value) {
+                        //  The attr method can take a string and value pair and create
+                        //  an attribute on the element, or it can take an object of
+                        //  key/value pairs and bulk set them as attributes on the
+                        //  element, returning itself
+                        var attributes = this.element.attributes,
+                            a,
+                            obj = {};
+                        if (typeof attr === 'string' && attr.length && typeof value === 'string' && value.length) {
+                            this.element.setAttribute(attr.replace(/([A-Z])/g, '-1$').trim().toLowerCase(), value);
+                        } else if (validLiteral(attr)) {
+                            for (a in attr)
+                                this.element.setAttribute(a.replace(/([A-Z])/g, '-1$').trim().toLowerCase(), attr[a]);
+                        } else if (!attr) {
+                            Object.keys(attributes).forEach(function (a) {
+                                var key = attributes[a].name.split('-').map(function (s, i) {
+                                    return i ? s[0].toUpperCase() + s.slice(1).toLowerCase() : s;
+                                }).join('');
+                                //  Split the string at the hyphens; iterate
+                                //  through each substring, changing any substring
+                                //  after the first to capital case; then join it
+                                //  without spaces and make it the key for the
+                                //  equivalent object value from the attributes object
+                                obj[key] = attributes[a].value;
+                            });
+                            return obj;
+                        }
+                        return this;
+                    }
+                },
                 backgroundColor: {
                     get: function () {
                         return this.values.backgroundColor;
@@ -895,6 +986,58 @@ var grab2;
                         return value;
                     }
                 },
+                before: {
+                    value: function (sibling) {
+                        //  The before method will remove itself from its current DOM
+                        //  location, and insert itself before the passed sibling,
+                        //  returning itself
+                        var i;
+                        if (typeof sibling === 'string' && sibling.length) {
+                            this.before(grab2(sibling));
+                        } else if (sibling && sibling.uid) {
+                            //  Remove the sibling from the DOM if it has a parent node
+                            if (sibling.element.parentNode)
+                                sibling.exit();
+                            this.element.parentNode.insertBefore(sibling.element, this.element);
+                        } else if (sibling.length) {
+                            for (i = 0; i < sibling.length; i = i + 1)
+                                this.before(sibling[i]);
+                        }
+                        return this;
+                    }
+                },
+                child: {
+                    value: function (child) {
+                        var children = [];
+                        if (typeof child === 'string' && child.length) {
+                            if (child.includes(',')) {
+                                this.children.each(function (ch) {
+                                    child.split(',').forEach(function (c) {
+                                        ch.selector.match(/(#?\.?[a-z][\da-z]*)/ig).forEach(function (s) {
+                                            if (s === c)
+                                                children.push(ch);
+                                        });
+                                    });
+                                });
+                            } else {
+                                this.children.each(function (ch) {
+                                    ch.selector.match(/(#?\.?[a-z][\da-z]*)/ig).forEach(function (s) {
+                                        if (s === child)
+                                            children.push(ch);
+                                    });
+                                });
+                            }
+                        }
+                        if (children.length)
+                            return children.length === 1 ? grab2(children[0]) : collect(children);
+                        return null;
+                    }
+                },
+                children: {
+                    get: function () {
+                        return collect(this.element.children);
+                    }
+                },
                 classList: {
                     get: function () {
                         return this.element.classList;
@@ -906,11 +1049,6 @@ var grab2;
                     },
                     set: function (value) {
                         var c;
-                        if (aux.isObject(value)) { // For anumation purposes
-                            color = Object.assign(this.color, value);
-                        } else {
-                            color = chroma(value);
-                        }
                         if (color.validate(value)) {
                             c = color(value);
                             this.values.color = c;
@@ -918,9 +1056,55 @@ var grab2;
                         }
                     }
                 },
-                children: {
-                    get: function () {
-                        return collect(this.element.children);
+                css: {
+                    value: function (property, value) {
+                        //  The css method takes a string property and value pair, or
+                        //  an object of key/value pairs; and updates the element's css
+                        //  appropriately, returning itself
+                        var p;
+                        if (typeof property === 'string' && property.length) {
+                            this.element.style[property] = value;
+                        } else if (validLiteral(property)) {
+                            for (p in property)
+                                this.element.style[p] = property[p];
+                        }
+                        return this;
+                    }
+                },
+                data: {
+                    value: function (data, value) {
+                        //  The data method returns all 'data-*' attributes from the
+                        //  element, if no data object is passed; data object keys
+                        //  become the '*' label or the data attributes 'data-*'; if
+                        //  the method is used to set data, it will return itself,
+                        //  otherwise it will return an object of attributes and values
+                        var attributes = this.element.attributes,
+                            d,
+                            obj = {};
+                        if (typeof data === 'string' && data.length && typeof value === 'string' && value.length) {
+                            this.element.setAttribute('data-' + data, value);
+                        } else if (validLiteral(data)) {
+                            for (d in data)
+                                this.element.setAttribute('data-' + d, data[d]);
+                        } else if (!data) {
+                            Object.keys(attributes).forEach(function (a) {
+                                var attribute = attributes[a].name,
+                                    key = attribute.replace(/^data-/g, '').split('-').map(function (s, i) {
+                                        return i ? s[0].toUpperCase() + s.slice(1).toLowerCase() : s;
+                                    }).join('');
+                                if (/^data-[A-Z-]+$/ig.test(attribute))
+                                    //  If the attribute matches 'data-*', remove the
+                                    //  'data-' substring and split the string at the
+                                    //  hyphens; iterate through each substring,
+                                    //  changing any substring after the first to
+                                    //  capital case; then join it without spaces and
+                                    //  make it the key for the equivalent object value
+                                    //  from the attributes object
+                                    obj[key] = attributes[a].value;
+                            });
+                            return obj;
+                        }
+                        return this;
                     }
                 },
                 display: {
@@ -928,15 +1112,46 @@ var grab2;
                         return this.values.display;
                     },
                     set: function (value) {
-                        if (typeof value === 'string' && g) {
+                        if (typeof value === 'string') {
                             this.element.style.display = value;
                             this.values.display = this.element.style.display; // Return last valid display setting
                         }
                         return value;
                     }
                 },
+                fadeIn: {
+                    value: function () {
+
+                    }
+                },
+                fadeOut: {
+                    value: function () {
+
+                    }
+                },
+                find: {
+                    value: function () {
+
+                    }
+                },
                 element: {
                     value: element
+                },
+                exit: {
+                    value: function () {
+                        //  The exit method removes itself from the DOM, returning itself
+                        if (this.element.parentNode)
+                            this.element.parentNode.removeChild(this.element);
+                        return this;
+                    }
+                },
+                getClass: {
+                    value: function () {
+                        //  The getClass method returns an array of element classes
+                        return Object.keys(this.element.classList).map(function (i) {
+                            return this.element.classList[i];
+                        }.bind(this));
+                    }
                 },
                 height: {
                     get: function () {
@@ -949,6 +1164,19 @@ var grab2;
                             this.element.style.height = h + 'px';
                         }
                         return value;
+                    }
+                },
+                hide: {
+                    value: function () {
+                        //  The hide method sets the element's visibility to `hidden`,
+                        //  returning itself
+                        this.visibility = 'hidden';
+                        return this;
+                    }
+                },
+                hover: {
+                    value: function () {
+
                     }
                 },
                 html: {
@@ -984,11 +1212,99 @@ var grab2;
                         return l;
                     }
                 },
+                off: {
+                    value: function () {
+
+                    }
+                },
+                on: {
+                    value: function () {
+
+                    }
+                },
+                prepend: {
+                    value: function () {
+                        //  The prepend method will remove the child from its current DOM location
+                        //  and prepend it inside of itself, returning itself
+                        var i;
+                        if (typeof child === 'string' && child.length) {
+                            child = this.prepend(grab2(child));
+                        } else if (child && child.uid) {
+                            if (child.element.parentNode)
+                                child.exit();
+                            this.element.prepend(child.element);
+                        } else if (child.length) {
+                            for (i = 0; i < child.length; i = i + 1)
+                                this.prepend(child[i]);
+                        }
+                        return this;
+                    }
+                },
+                remove: {
+                    value: function (child) {
+                        //  The remove method removes children from the owner's children nodes,
+                        //  returning itself
+                        var i;
+                        if (typeof child === 'string' && child.length) {
+                            if (child.includes(',')) {
+                                this.remove(grab2(child));
+                            } else {
+
+                            }
+                        }
+                        if (Array.isArray(child)) {
+                            for (i = 0; i < child.length; i = i + 1) {
+                                this.remove(child[i]);
+                            }
+                            return this;
+                        } else if (aux.isObject(child) && child.length) {  // Collection of children
+                            for (i = 0; i < child.length; i = i + 1) {
+                                this.remove(child[i]);
+                            }
+                            return this;
+                        } else if (child.nodeType > 0) { // DOM object
+                            this.element.removeChild(_grab(child).element);
+                            return this;
+                        } else if (child && child.uid) { // Grab object
+                            this.element.removeChild(child.element);
+                            return this;
+                        }
+                        return null;
+                    }
+                },
+                removeClass: {
+                    value: function (className) {
+                        //  The removeClass method removes a passed string, or array of
+                        //  strings as css classes on the element, returning itself
+                        var c;
+                        if (typeof className === 'string' && className.length) {
+                            if (className.includes(',')) {
+                                className = className.split(',');
+                            } else {
+                                this.element.classList.remove(className.replace(/\s/g, ''));
+                            }
+                        }
+                        if (Array.isArray(className)) {
+                            for (c = 0; c < className.length; c = c + 1)
+                                if (typeof className[c] === 'string' && className[c].length)
+                                    this.element.classList.remove(className[c].replace(/\s/g, ''));
+                        }
+                        return this;
+                    }
+                },
                 selector: {
                     get: function () {
                         var id = this.id ? '#' + this.id : '',
                             classes = this.element.className.length > 0 ? '.' + this.element.className.replace(' ', '.') : '';
                         return this.element.tagName.toLowerCase() + id + classes;
+                    }
+                },
+                show: {
+                    value: function () {
+                        //  The show method sets the element's visibility to `visible`,
+                        //  returning itself
+                        this.visibility = 'visible';
+                        return this;
                     }
                 },
                 opacity: {
@@ -1002,6 +1318,34 @@ var grab2;
                             this.element.style.opacity = o;
                         }
                         return value;
+                    }
+                },
+                toggle: {
+                    value: function () {
+                        //  The toggle method sets the element's display to either
+                        //  `none` or `block`, returning itself
+                        this.display = this.display === 'none' ? 'block' : 'none';
+                        return this;
+                    }
+                },
+                toggleClass: {
+                    value: function (className) {
+                        //  The toggleClass method toggles a passed string, or array of
+                        //  strings as css classes on the element, returning itself
+                        var c;
+                        if (typeof className === 'string' && className.length) {
+                            if (className.includes(',')) {
+                                className = className.split(',');
+                            } else {
+                                this.element.classList.toggle(className.replace(/\s/g, ''));
+                            }
+                        }
+                        if (Array.isArray(className)) {
+                            for (c = 0; c < className.length; c = c + 1)
+                                if (typeof className[c] === 'string' && className[c].length)
+                                    this.element.classList.toggle(className[c].replace(/\s/g, ''));
+                        }
+                        return this;
                     }
                 },
                 top: {
@@ -1041,7 +1385,7 @@ var grab2;
                     set: function (value) {
                         if (typeof value === 'string') {
                             this.element.style.visibility = value;
-                            this.values.visibility = this.elements.style.visibility; // get last valid visibility
+                            this.values.visibility = this.element.style.visibility; // get last valid visibility
                         }
                         return value;
                     }
@@ -1073,37 +1417,65 @@ var grab2;
                     }
                 }
             });
-            return g;
+            return grab;
         }
         function collect (items) {
-            return items;
-        }
-        function grab (item) {
-            var selected;
-            if (typeof item === 'string') {
-                if (/<[a-z]+>/g.test(item)) {
-                    return create(document.createElement(item.slice(1, -1)));
-                } else if (/^#/g.test(item)) {
-                    selected = document.getElementById(item.slice(1));
-                } else if (/^\./g.test(item)) {
-                    selected = document.getElementsByClassName(item.slice(1));
-                } else if (/[a-z]+/g.test(item)) {
-                    selected = document.getElementsByTagName(item);
-                } else if (/(#?\.?[a-z])/g.test(item)) {
-                    selected = document.querySelectorAll(item);
+            var collection = {},
+                i;
+            for (i = 0; i < items.length; i = i + 1) {
+                if (items[i].uid) {
+                    Object.defineProperty(collection, i, {value: items[i]});
+                } else {
+                    Object.defineProperty(collection, i, {value: create(items[i], i)});
                 }
-            } else if (item.nodeType) {
-                return create(item);
-            } else if (Array.isArray(item)) {
-                return collect(item);
             }
-
-            if (selected)
-                return selected.length ? collect(selected) : create(selected);
-            return null;
+            Object.defineProperties(collection, {
+                each: {
+                    value: function (fn) {
+                        var n;
+                        for (n = 0; n < this.length; n = n + 1)
+                            if (this.hasOwnProperty(n))
+                                fn.apply(null, [this[n], n]);
+                        return this;
+                    }
+                },
+                length: {
+                    value: i
+                }
+            });
+            return collection;
         }
         grab2 = function (selector) {
-            return grab(selector);
+            var selected;
+            if (typeof selector === 'string') {
+                if (/^<[a-z][\da-z]*>$/g.test(selector)) {
+                    return create(document.createElement(selector.slice(1, -1)));
+                } else if (/^#/g.test(selector)) {
+                    selected = document.getElementById(selector.slice(1));
+                } else if (/^\./g.test(selector)) {
+                    selected = document.getElementsByClassName(selector.slice(1));
+                } else if (/^[a-z][\da-z]*$/g.test(selector)) {
+                    selected = document.getElementsByTagName(selector);
+                } else if (/(#?\.?[a-z][\da-z]*)/g.test(selector)) {
+                    selected = document.querySelectorAll(selector);
+                } else if (selector.includes(',')) {
+                    selected = selector.split(',').map(function (s) {
+                        return grab2(s);
+                    });
+                }
+                if (selected && selected.length) {
+                    return selected.length === 1 ? create(selected[0]) : collect(selected);
+                } else if (selected.nodeType) {
+                    return create(selected);
+                }
+            } else if (selector.nodeType) {
+                return create(selector);
+            } else if (Array.isArray(selector)) {
+                return collect(selector);
+            } else if (selected && selected.length) {
+                return collect(selector);
+            }
+            return null;
         }
     }());
     window.grab = function (selector) {
