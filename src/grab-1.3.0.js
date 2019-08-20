@@ -1044,8 +1044,27 @@ var grab2;
                     }
                 },
                 clear: {
-                    value: function () {
-
+                    value: function (event) {
+                        var e;
+                        if (typeof event === 'string' && event.length) {
+                            for (e in Object.assign({}, this.events)) {
+                                if (this.events[e].event === event) {
+                                    if (event === 'hover') {
+                                        this.element.removeEventListener('mouseenter', this.events[e].fn.enter);
+                                        this.element.removeEventListener('mouseleave', this.events[e].fn.exit);
+                                    } else {
+                                        this.element.removeEventListener(this.events[e].event, this.events[e].fn);
+                                    }
+                                    delete this.events[e];
+                                }
+                            }
+                        } else if (!event) {
+                            for (e in Object.assign({}, this.events)) {
+                                this.element.removeEventListener(this.events[e].event, this.events[e].fn);
+                                delete this.events[e];
+                            }
+                        }
+                        return null;
                     }
                 },
                 color: {
@@ -1124,6 +1143,9 @@ var grab2;
                         return value;
                     }
                 },
+                events: {
+                    value: {}
+                },
                 fadeIn: {
                     value: function () {
 
@@ -1135,8 +1157,19 @@ var grab2;
                     }
                 },
                 find: {
-                    value: function () {
-
+                    value: function (child) {
+                        //  The find method searches the elements children for a matching dom
+                        //  element, returning a new grab object
+                        var children = [];
+                        if (typeof child === 'string' && child.length) {
+                            //  Select all children nodes that match the child argument
+                            //  for matches of the passed child argument
+                            children = this.element.querySelectorAll(child);
+                            if (children.length === 1)
+                                return create(children[0]);
+                            return collect(children);
+                        }
+                        return null;
                     }
                 },
                 element: {
@@ -1180,8 +1213,19 @@ var grab2;
                     }
                 },
                 hover: {
-                    value: function () {
-
+                    value: function (enter, exit) {
+                        var id = getUid();
+                        if ((enter && typeof enter === 'function') || (exit && typeof exit === 'function'))
+                            this.events[id] = {event: 'hover', fn: {}};
+                        if (enter && typeof enter === 'function') {
+                            this.events[id].fn = {enter: enter.bind(this)};
+                            this.element.addEventListener('mouseenter', this.events[id].fn.enter);
+                        }
+                        if (exit && typeof exit === 'function') {
+                            Object.assign(this.events[id].fn, {exit: exit.bind(this)});
+                            this.element.addEventListener('mouseleave', this.events[id].fn.exit);
+                        }
+                        return this;
                     }
                 },
                 html: {
@@ -1218,13 +1262,27 @@ var grab2;
                     }
                 },
                 off: {
-                    value: function () {
-
+                    value: function (eid) {
+                        var e;
+                        if (typeof eid === 'string' && eid.length) {
+                            this.element.removeEventListener(this.events[eid].event, this.events[eid].fn);
+                            delete this.events[eid];
+                        } else if (!eid) {
+                            for (e in Object.assign({}, this.events))
+                                this.off(e);
+                        }
+                        return null;
                     }
                 },
                 on: {
-                    value: function () {
-
+                    value: function (event, fn) {
+                        var id = getUid();
+                        if (typeof event === 'string' && event.length && fn && typeof fn === 'function') {
+                            this.events[id] = {event: event, fn: fn.bind(this)};
+                            this.element.addEventListener(event, this.events[id].fn);
+                            return id;
+                        }
+                        return null;
                     }
                 },
                 prepend: {
@@ -1374,12 +1432,12 @@ var grab2;
                         backgroundColor: color(getStyle(element, 'backgroundColor')),
                         color: color(getStyle(element, 'color')),
                         display: getStyle(element, 'display'),
-                        height: getStyle(element, 'height'),
-                        left: getStyle(element, 'left'),
+                        height: getValue('height', getStyle(element, 'height')),
+                        left: getValue('left', getStyle(element, 'left')),
                         opacity: getStyle(element, 'opacity'),
-                        top: getStyle(element, 'top'),
+                        top: getValue('top', getStyle(element, 'top')),
                         visibility: getStyle(element, 'visibility'),
-                        width: getStyle(element, 'width'),
+                        width: getValue('width', getStyle(element, 'width')),
                         zIndex: getStyle(element, 'zIndex')
                     }
                 },
