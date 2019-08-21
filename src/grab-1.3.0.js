@@ -15,7 +15,8 @@ var grab2;
 (function () {
     'use strict';
     //  COLOR PARSER  ------------------------------------------------------  COLOR  //
-    var color;
+    var color,
+        loop;
     (function () {
         var x11Dictionary = {
             snow: [255, 250, 250], ghostwhite: [248, 248, 255], whitesmoke: [245, 245, 245],
@@ -999,17 +1000,92 @@ var grab2;
         }
         function Loop () {
             Object.defineProperties(this, {
+                add: {
+                    value: function (object, values) {
+                        var i,
+                            duration,
+                            easing,
+                            complete,
+                            l = this;
+                        //  Arguments can be in any order after the values object parameter
+                        for (i = 2; i < arguments.length; i = i + 1) {
+                            if (validNumber(arguments[i])) {
+                                duration = arguments[i];
+                            } else if (validString(arguments[i])) {
+                                easing = arguments[i];
+                            } else if (validFunction(arguments[i])) {
+                                complete = arguments[i];
+                            }
+                        }
+                        // Set default values for duration or easing if they are not passed
+                        if (!validNumber(duration))
+                            duration = 1000;
+                        if (!validString(easing))
+                            easing = 'linear';
+                        //  Check for duplicate updates in the update array
+                        if (validLiteral(values)) {
+                            Object.keys(values).forEach(function (property, j) {
+                                var update;
+                                if (/[A-Z]*color$/ig.test(property)) {
+                                    Object.keys(object[property]).forEach(function (channel, p) {
+                                        update = new Update(
+                                            new Animation(object[property][channel], values[property][channel]),
+                                            duration,
+                                            easing,
+                                            property,
+                                            object,
+                                            getUid(p)
+                                        );
+                                        update.channel = channel;
+                                        l.waiting.push(update);
+                                    });
+                                } else {
+                                    update = new Update(
+                                        new Animation(object[property], values[property]),
+                                        duration,
+                                        easing,
+                                        property,
+                                        object,
+                                        getUid(j)
+                                    );
+                                    l.waiting.push(update);
+                                }
+                            });
+                            if (!this.state)
+                                this.start();
+                            return null;
+                        }
+                },
+                collect: {
+                    value: function () {
+                        var i,
+                            j,
+                            u = [];
+                        console.log('collecting...');
+                        for (i = 0; i < this.updates.length; i = i + 1)
+                            for (j = 0; j < this.garbage.length; j = j + 1)
+                                if (this.updates[i].uid !== this.garbage[j].uid)
+                                    u.push(this.updates[i]);
+                        this.updates = u;
+                        this.garbage.length = 0;
+                        return null;
+                    }
+                },
                 delta: {
                     get: function () {
                         return this.values.delta;
                     },
                     set: function (value) {
                         if (validNumber(value))
-                            this.values.delta = delta;
+                            this.values.delta = value;
                     }
                 },
-                easingFunctions: {},
-                events: {},
+                easingFunctions: {
+                    value: {}
+                },
+                events: {
+                    value: {}
+                },
                 frameId: {
                     get: function () {
                         return this.values.frameId;
@@ -1037,7 +1113,9 @@ var grab2;
                             this.values.framesThisSecond = value;
                     }
                 },
-                garbage: [],
+                garbage: {
+                    value: []
+                },
                 lastFramesPerSecond: {
                     get: function () {
                         return this.values.lastFramesPerSecond;
@@ -1055,6 +1133,46 @@ var grab2;
                         this.values.lastFrameTime = value;
                     }
                 },
+                loop: {
+                    value: function (timestamp) {
+                        var cycles = 0;
+                        if (this.state) {
+                            console.log('looping...');
+                            if (timestamp < this.lastFrameTime + this.timestep) {
+                                this.frameId = window.requestAnimationFrame(this.loop.bind(this));
+                                return;
+                            }
+                            this.delta = this.delta + (timestamp - this.lastFrameTime);
+                            this.lastFrameTime = timestamp;
+                            if (timestamp > this.lastFrameTime + 1000) {
+                                this.framesPerSecond = 0.25 * this.framesThisSecond + 0.75 * this.framesPerSecond;
+                                this.lastFramesPerSecond = timestamp;
+                                this.framesThisSecond = 0;
+                            }
+                            this.framesThisSecond = this.framesThisSecond + 1;
+                            while (this.delta >= this.timestep) {
+                                if (this.waiting.length) {
+                                    this.updates = this.updates.concat(this.waiting);
+                                    waiting.length = 0;
+                                }
+                                this.update();
+                                this.delta = this.delta - this.timestep;
+                                cycles = cycles + 1;
+                                if (cycles >= 240) {
+                                    this.panic();
+                                    break;
+                                }
+                            }
+                            this.render(this.delta / this.timestep);
+                            this.collect();
+                            if (this.updates.length || this.waiting.length) {
+                                this.frameId = window.requestAnimationFrame(this.loop.bind(this));
+                            } else {
+                                this.stop();
+                            }
+                        }
+                    }
+                },
                 maxFramesPerSecond: {
                     get: function () {
                         return this.values.maxFramesPerSecond;
@@ -1062,6 +1180,53 @@ var grab2;
                     set: function (value) {
                         if (validNumber(value))
                             this.values.maxFramesPerSecond;
+                    }
+                },
+                panic: {
+                    value: function () {
+                        this.delta = 0;
+                        return null;
+                    }
+                },
+                render: {
+                    value: function (interpolation) {
+                        console.log('rendering...');
+                        this.updates.forEach(function (update) {
+                            var a = update.animation,
+                                c = {};
+                            if (/[A-Z]*color$/ig.test(update.property)) {
+                                if (update.complete) {
+                                    c[update.channel] = animation.current;
+                                    update.object[update.property] = c;
+                                } else {
+                                    c[update.channel] = a.last + (a.current - a.last) * interpolation;
+                                    update.object[update.property] = c;
+                                }
+                            } else {
+                                if (update.complete) {
+                                    update.object[update.property] = a.current;
+                                    return;
+                                } else {
+                                    update.object[update.property] = a.last + (a.current - a.last) * interpolation;
+                                }
+                            }
+                        });
+                        return null;
+                    }
+                },
+                start: {
+                    value: function () {
+                        if (!this.state) {
+                            this.frameId = window.requestAnimationFrame(function (timestamp) {
+                                this.state = 1;
+                                this.render(1);
+                                this.lastFrameTime = timestamp;
+                                this.lastFramesPerSecond = timestamp;
+                                this.framesThisSecond = 0;
+                                this.frameId = window.requestAnimationFrame(this.loop.bind(this));
+                            }.bind(this));
+                        }
+                        return null;
                     }
                 },
                 state: {
@@ -1073,12 +1238,49 @@ var grab2;
                             this.values.state = value;
                     }
                 },
+                stop: {
+                    value: function () {
+                        this.state = 0;
+                        window.cancelAnimationFrame(this.frameId);
+                        return null;
+                    }
+                },
                 timestep: {
                     get: function () {
                         return 1000 / this.maxFramesPerSecond;
                     }
                 },
-                updates: [],
+                update: {
+                    value: function () {
+                        var i, // index
+                            l, // length
+                            u, // update
+                            e, // easing equation result
+                            p; // percent of duration complete
+                        console.log('updating...');
+                        for (i = 0, l = this.updates.length; i < l; i = i + 1) {
+                            u = this.updates[i];
+                            e = 0;
+                            p = 0;
+                            u.animation.time = u.animation.time + loop.timestep;
+                            u.animation.last = u.animation.current;
+                            p = u.animation.time / u.duration;
+                            e = this.easingFunctions[easing](p > 1 ? 1 : p);
+                            if (u.animation.distance * e >= u.animation.distance) {
+                                u.animation.current = u.animation.target;
+                                u.end();
+                            } else {
+                                u.animation.current = u.animation.vector * e + u.animation.origin;
+                            }
+                            if (u.complete)
+                                this.garbage.push(u);
+                        }
+                    }
+                },
+                updates: {
+                    value: [],
+                    writable: true
+                },
                 values: {
                     value: {
                         delta: 0,
@@ -1090,7 +1292,9 @@ var grab2;
                         state: 0
                     }
                 },
-                waiting: []
+                waiting: {
+                    value: []
+                }
             });
             Object.defineProperties(this.easingFunctions, {
                 linear: {
@@ -1140,86 +1344,119 @@ var grab2;
                 }
             });
         }
-        function update () {
-            loop.updates.forEach(function (update) {
-                var a = update.animation,
-                    d = 0,
-                    p = 0;
-                a.time = a.time + loop.timestep;
-                a.last = a.current;
-                p = a.time / update.duration;
-                d = update.easing(p > 1 ? 1 : p);
-                if (a.distance * d >= a.distance) {
-                    a.current = a.target;
-                    update.end();
-                } else {
-                    a.current = a.vector * d + a.origin;
-                }
-                if (update.complete)
-                    loop.garbage.push(update);
-            });
-        }
-        function render (interpolation) {
-            loop.updates.forEach(function (update) {
-                var a = update.animation,
-                    c = {};
-                if (/[A-Z]*color$/ig.test(update.property)) {
-                    if (update.complete) {
-                        c[update.channel] = animation.current;
-                        update.object[update.property] = c;
-                    } else {
-                        c[update.channel] = a.last + (a.current - a.last) * interpolation;
-                        update.object[update.property] = c;
-                    }
-                } else {
-                    if (update.complete) {
-                        update.object[update.property] = a.current;
-                        return;
-                    } else {
-                        update.object[update.property] = a.last + (a.current - a.last) * interpolation;
-                    }
-                }
-            });
-            return null;
-        }
+        // function update () {
+        //     loop.updates.forEach(function (update) {
+        //         var a = update.animation,
+        //             d = 0,
+        //             p = 0;
+        //         a.time = a.time + loop.timestep;
+        //         a.last = a.current;
+        //         p = a.time / update.duration;
+        //         d = update.easing(p > 1 ? 1 : p);
+        //         if (a.distance * d >= a.distance) {
+        //             a.current = a.target;
+        //             update.end();
+        //         } else {
+        //             a.current = a.vector * d + a.origin;
+        //         }
+        //         if (update.complete)
+        //             loop.garbage.push(update);
+        //     });
+        // }
+        // function start () {
+        //     if (!loop.state) {
+        //         loop.frameId = window.requestAnimationFrame(function (timestamp) {
+        //             loop.state = 1;
+        //             render(1);
+        //             loop.lastFrameTime = timestamp;
+        //             loop.lastFramesPerSecond = timestamp;
+        //             loop.framesThisSecond = 0;
+        //             loop.frameId = window.requestAnimationFrame(function (ts) {
+        //                 loop.loop();
+        //             });
+        //         });
+        //     }
+        //     return null;
+        // }
+        // function panic () {
+        //     loop.delta = 0;
+        //     return null;
+        // }
+        // function render (interpolation) {
+            // loop.updates.forEach(function (update) {
+            //     var a = update.animation,
+            //         c = {};
+            //     if (/[A-Z]*color$/ig.test(update.property)) {
+            //         if (update.complete) {
+            //             c[update.channel] = animation.current;
+            //             update.object[update.property] = c;
+            //         } else {
+            //             c[update.channel] = a.last + (a.current - a.last) * interpolation;
+            //             update.object[update.property] = c;
+            //         }
+            //     } else {
+            //         if (update.complete) {
+            //             update.object[update.property] = a.current;
+            //             return;
+            //         } else {
+            //             update.object[update.property] = a.last + (a.current - a.last) * interpolation;
+            //         }
+            //     }
+            // });
+            // return null;
+        // }
+        // function remove (update) {
+            // loop.updates = loop.updates.filter(function (u) {
+            //     return update.uid !== u.uid;
+            // });
+            // return null;
+        // }
+        // function collect () {
+            // garbage.forEach(function (update) {
+            //     //  Broadcast an event
+            //     remove(update);
+            // });
+            // garbage.length = 0;
+            // return null;
+        // }
 
-        Loop.prototype.loop = function (timestamp) {
-            var cycles = 0;
-            if (this.state) {
-                if (timestamp < this.lastFrameTime + this.timestep) {
-                    this.frameId = window.requestAnimationFrame(this.loop);
-                    return;
-                }
-                this.delta = this.delta + (timestamp - this.lastFrameTime);
-                this.lastFrameTime = timestamp;
-                if (timestamp > this.lastFrameTime + 1000) {
-                    this.framesPerSecond = 0.25 * this.framesThisSecond + 0.75 * this.framesPerSecond;
-                    this.lastFramesPerSecond = timestamp;
-                    this.framesThisSecond = 0;
-                }
-                this.framesThisSecond = this.framesThisSecond + 1;
-                while (this.delta >= this.timestep) {
-                    if (this.waiting.length) {
-                        this.updates = this.updates.concat(this.waiting);
-                        waiting.length = 0;
-                    }
-                    update();
-                    this.delta = this.delta - this.timestep;
-                    cycles = cycles + 1;
-                    if (cycles >= 240) {
-                        panic();
-                        break;
-                    }
-                    render(this.delta / this.timestep);
-                    collect();
-                    if (this.updates.length || waiting.length) {
-                        this.frameId = window.requestAnimationFrame(this.loop);
-                    } else {
-                        stop();
-                    }
-                }
-            }
-        }
+        // Loop.prototype.loop = function (timestamp) {
+            // var cycles = 0;
+            // if (this.state) {
+            //     if (timestamp < this.lastFrameTime + this.timestep) {
+            //         this.frameId = window.requestAnimationFrame(this.loop);
+            //         return;
+            //     }
+            //     this.delta = this.delta + (timestamp - this.lastFrameTime);
+            //     this.lastFrameTime = timestamp;
+            //     if (timestamp > this.lastFrameTime + 1000) {
+            //         this.framesPerSecond = 0.25 * this.framesThisSecond + 0.75 * this.framesPerSecond;
+            //         this.lastFramesPerSecond = timestamp;
+            //         this.framesThisSecond = 0;
+            //     }
+            //     this.framesThisSecond = this.framesThisSecond + 1;
+            //     while (this.delta >= this.timestep) {
+            //         if (this.waiting.length) {
+            //             this.updates = this.updates.concat(this.waiting);
+            //             waiting.length = 0;
+            //         }
+            //         update();
+            //         this.delta = this.delta - this.timestep;
+            //         cycles = cycles + 1;
+            //         if (cycles >= 240) {
+            //             panic();
+            //             break;
+            //         }
+            //         render(this.delta / this.timestep);
+            //         collect();
+            //         if (this.updates.length || waiting.length) {
+            //             this.frameId = window.requestAnimationFrame(this.loop);
+            //         } else {
+            //             stop();
+            //         }
+            //     }
+            // }
+        // }
 
         
         //  GRAB  -----------------------------------------------------------  GRAB  //
@@ -1899,6 +2136,8 @@ var grab2;
             }
             return null;
         }
+        loop = new Loop();
+        loop.start();
     }());
 
 
