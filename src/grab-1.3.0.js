@@ -817,6 +817,7 @@ var grab2;
     
     //  GRAB  ---------------------------------------------------------------  GRAB  //
     (function () {
+        'use strict';
         //  Validation Functions  //
         function validCollection (c) {
             return Object.getPrototypeOf(c) === Collection.prototype;
@@ -850,6 +851,7 @@ var grab2;
         function validString (s) {
             return typeof s === 'string' && s.length;
         }
+
         //  Auxillary Functions  //
         function getStyle (element, property) {
             return window.getComputedStyle(element, '')[property];
@@ -891,6 +893,336 @@ var grab2;
             }
             return null;
         }
+        function Animation (origin, target) {
+            Object.defineProperties(this, {
+                current: {
+                    get: function () {
+                        return this.values.current;
+                    },
+                    set: function (value) {
+                        if (validNumber(value))
+                            this.values.current = value;
+                    }
+                },
+                distance: {
+                    get: function () {
+                        return Math.abs(this.values.vector);
+                    }
+                },
+                last: {
+                    get: function () {
+                        return this.values.last;
+                    },
+                    set: function (value) {
+                        if (validNumber(value))
+                            this.values.last = value;
+                    }
+                },
+                origin: {
+                    get: function () {
+                        return this.values.origin;
+                    }
+                },
+                target: {
+                    get: function () {
+                        return this.values.target;
+                    }
+                },
+                time: {
+                    get: function () {
+                        return this.values.time;
+                    },
+                    set: function (value) {
+                        if (validNumber(value))
+                            this.values.time = value;
+                    }
+                },
+                values: {
+                    current: origin,
+                    last: undefined,
+                    origin: origin,
+                    target: target,
+                    time: 0,
+                    vector: target - origin
+                },
+                vector: {
+                    get: function () {
+                        return this.values.vector;
+                    }
+                }
+            });
+        }
+        function Update (animation, duration, easing, object, property, id) {
+            Object.defineProperties(this, {
+                animation: {
+                    get: function () {
+                        return this.values.animation;
+                    }
+                },
+                complete: {
+                    get: function () {
+                        return this.values.complete;
+                    }
+                },
+                duration: {
+                    get: function () {
+                        return this.values.duration;
+                    }
+                },
+                property: {
+                    get: function () {
+                        return this.values.property;
+                    }
+                },
+                end: {
+                    value: function () {
+                        this.values.complete = 1;
+                    }
+                },
+                uid: {
+                    get: function () {
+                        return this.values.uid;
+                    }
+                },
+                values: {
+                    value: {
+                        animation: animation,
+                        complete: 0,
+                        duration: duration,
+                        easing: easing,
+                        object: object,
+                        property: property,
+                        uid: id
+                    }
+                }
+            });
+        }
+        function Loop () {
+            Object.defineProperties(this, {
+                delta: {
+                    get: function () {
+                        return this.values.delta;
+                    },
+                    set: function (value) {
+                        if (validNumber(value))
+                            this.values.delta = delta;
+                    }
+                },
+                easingFunctions: {},
+                events: {},
+                frameId: {
+                    get: function () {
+                        return this.values.frameId;
+                    },
+                    set: function (value) {
+                        if (validNumber(value))
+                            this.values.frameId = value;
+                    }
+                },
+                framesPerSecond: {
+                    get: function () {
+                        return this.values.framesPerSecond;
+                    },
+                    set: function (value) {
+                        if (validNumber(value))
+                            this.values.framesPerSecond = value;
+                    }
+                },
+                framesThisSecond: {
+                    get: function () {
+                        return this.values.framesThisSecond;
+                    },
+                    set: function (value) {
+                        if (validNumber(value))
+                            this.values.framesThisSecond = value;
+                    }
+                },
+                garbage: [],
+                lastFramesPerSecond: {
+                    get: function () {
+                        return this.values.lastFramesPerSecond;
+                    },
+                    set: function (value) {
+                        if (validNumber(value))
+                            this.values.lastFramesPerSecond = value;
+                    }
+                },
+                lastFrameTime: {
+                    get: function () {
+                        return this.values.lastFrameTime;
+                    },
+                    set: function (value) {
+                        this.values.lastFrameTime = value;
+                    }
+                },
+                maxFramesPerSecond: {
+                    get: function () {
+                        return this.values.maxFramesPerSecond;
+                    },
+                    set: function (value) {
+                        if (validNumber(value))
+                            this.values.maxFramesPerSecond;
+                    }
+                },
+                state: {
+                    get: function () {
+                        return this.values.state;
+                    },
+                    set: function (value) {
+                        if (value === 0 || value === 1)
+                            this.values.state = value;
+                    }
+                },
+                timestep: {
+                    get: function () {
+                        return 1000 / this.maxFramesPerSecond;
+                    }
+                },
+                updates: [],
+                values: {
+                    value: {
+                        delta: 0,
+                        frameId: 0,
+                        framesPerSecond: 0,
+                        framesThisSecond: 0,
+                        lastFrameTime: 0,
+                        maxFramesPerSecond: 60,
+                        state: 0
+                    }
+                },
+                waiting: []
+            });
+            Object.defineProperties(this.easingFunctions, {
+                linear: {
+                    value: function (d) {
+                        return d;
+                    }
+                }, 
+                easeInQuad: {
+                    value: function (d) {
+                        return Math.pow(d, 2);
+                    }
+                },
+                easeInCubic: {
+                    value: function (d) {
+                        return Math.pow(d, 3);
+                    }
+                },
+                easeInQuart: {
+                    value: function (d) {
+                        return Math.pow(d, 4);
+                    }
+                },
+                easeInQuint: {
+                    value: function (d) {
+                        return Math.pow(d, 5);
+                    }
+                },
+                easeOutQuad: {
+                    value: function (d) {
+                        return 1 - Math.pow(1 - d, 2);
+                    }
+                },
+                easeOutCubic: {
+                    value: function (d) {
+                        return 1 - Math.pow(1 - d, 3);
+                    }
+                },
+                easeOutQuart: {
+                    value: function (d) {
+                        return 1 - Math.pow(1 - d, 4);
+                    }
+                },
+                easeOutQuint: {
+                    value: function (d) {
+                        return 1 - Math.pow(1 - d, 5);
+                    }
+                }
+            });
+        }
+        function update () {
+            loop.updates.forEach(function (update) {
+                var a = update.animation,
+                    d = 0,
+                    p = 0;
+                a.time = a.time + loop.timestep;
+                a.last = a.current;
+                p = a.time / update.duration;
+                d = update.easing(p > 1 ? 1 : p);
+                if (a.distance * d >= a.distance) {
+                    a.current = a.target;
+                    update.end();
+                } else {
+                    a.current = a.vector * d + a.origin;
+                }
+                if (update.complete)
+                    loop.garbage.push(update);
+            });
+        }
+        function render (interpolation) {
+            loop.updates.forEach(function (update) {
+                var a = update.animation,
+                    c = {};
+                if (/[A-Z]*color$/ig.test(update.property)) {
+                    if (update.complete) {
+                        c[update.channel] = animation.current;
+                        update.object[update.property] = c;
+                    } else {
+                        c[update.channel] = a.last + (a.current - a.last) * interpolation;
+                        update.object[update.property] = c;
+                    }
+                } else {
+                    if (update.complete) {
+                        update.object[update.property] = a.current;
+                        return;
+                    } else {
+                        update.object[update.property] = a.last + (a.current - a.last) * interpolation;
+                    }
+                }
+            });
+            return null;
+        }
+
+        Loop.prototype.loop = function (timestamp) {
+            var cycles = 0;
+            if (this.state) {
+                if (timestamp < this.lastFrameTime + this.timestep) {
+                    this.frameId = window.requestAnimationFrame(this.loop);
+                    return;
+                }
+                this.delta = this.delta + (timestamp - this.lastFrameTime);
+                this.lastFrameTime = timestamp;
+                if (timestamp > this.lastFrameTime + 1000) {
+                    this.framesPerSecond = 0.25 * this.framesThisSecond + 0.75 * this.framesPerSecond;
+                    this.lastFramesPerSecond = timestamp;
+                    this.framesThisSecond = 0;
+                }
+                this.framesThisSecond = this.framesThisSecond + 1;
+                while (this.delta >= this.timestep) {
+                    if (this.waiting.length) {
+                        this.updates = this.updates.concat(this.waiting);
+                        waiting.length = 0;
+                    }
+                    update();
+                    this.delta = this.delta - this.timestep;
+                    cycles = cycles + 1;
+                    if (cycles >= 240) {
+                        panic();
+                        break;
+                    }
+                    render(this.delta / this.timestep);
+                    collect();
+                    if (this.updates.length || waiting.length) {
+                        this.frameId = window.requestAnimationFrame(this.loop);
+                    } else {
+                        stop();
+                    }
+                }
+            }
+        }
+
+        
+        //  GRAB  -----------------------------------------------------------  GRAB  //
         function Element (element, u) {
             Object.defineProperties(this, {
                 addClass: {
