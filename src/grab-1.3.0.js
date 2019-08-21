@@ -818,10 +818,22 @@ var grab2;
     //  GRAB  ---------------------------------------------------------------  GRAB  //
     (function () {
         //  Validation Functions  //
-        function validLiteral (obj) {
-            var test = obj,
+        function validCollection (c) {
+            return Object.getPrototypeOf(c) === Collection.prototype;
+        }
+        function validElement (e) {
+            return Object.getPrototypeOf(e) === Element.prototype;
+        }
+        function validFunction (f) {
+            return Object.getPrototypeOf(f) === Function.prototype;
+        }
+        function validNumber (n) {
+            return typeof n === 'number' && Number.isFinite(n);
+        }
+        function validLiteral (o) {
+            var test = o,
                 check = true;
-            if (typeof obj !== 'object' || obj === null) {
+            if (typeof o !== 'object' || o === null) {
                 return false;
             } else {
                 return (function () {
@@ -831,16 +843,19 @@ var grab2;
                             break;
                         }
                     }
-                    return Object.getPrototypeOf(obj) === test;
+                    return Object.getPrototypeOf(o) === test;
                 }());
             }
+        }
+        function validString (s) {
+            return typeof s === 'string' && s.length;
         }
         //  Auxillary Functions  //
         function getStyle (element, property) {
             return window.getComputedStyle(element, '')[property];
         }
         function getUid (z) {
-            if (typeof z !== 'number' && !Number.isFinite(z))
+            if (!validNumber(z));
                 z = 0;
             return ('xxxxxxxx-xxxx-' + z % 10 + 'xxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g, function(c) {
                 var r = Math.random() * 16 | 0,
@@ -871,19 +886,18 @@ var grab2;
                         return parseFloat(value, 10);
                     }
                 }
-            } else if (typeof value === 'number' && Number.isFinite(value)) {
+            } else if (validNumber(value)) {
                 return value;
             }
             return null;
         }
-        function create (element, u) {
-            var grab = {};
-            Object.defineProperties(grab, {
+        function Element (element, u) {
+            Object.defineProperties(this, {
                 addClass: {
                     value: function (className) {
                         //  The addClass method adds a passed string, or array of
                         //  strings as css classes on the element, returning itself
-                        var c;
+                        var i;
                         if (typeof className === 'string' && className.length) {
                             if (className.includes(',')) {
                                 className = className.split(',');
@@ -891,10 +905,9 @@ var grab2;
                                 this.element.classList.add(className.replace(/\s/g, ''));
                             }
                         }
-                        if (Array.isArray(className)) {
-                            for (c = 0; c < className.length; c = c + 1)
-                                this.element.classList.add(className[c].replace(/\s/g, ''));
-                        }
+                        if (Array.isArray(className))
+                            for (i = 0; i < className.length; i = i + 1)
+                                this.addClass(className[i]);
                         return this;
                     }
                 },
@@ -904,7 +917,7 @@ var grab2;
                         //  location, and insert itself after the passed sibling,
                         //  returning itself
                         var i;
-                        if (typeof sibling === 'string' && sibline.length) {
+                        if (validString(sibling)) {
                             this.after(grab2(sibling));
                         } else if (sibling && sibling.uid) {
                             //  Remove the sibling from the DOM if it has a parent node
@@ -928,7 +941,7 @@ var grab2;
                         //  The append method will remove the child from its current DOM location
                         //  and append it inside of itself, returning itself
                         var i;
-                        if (typeof child === 'string' && child.length) {
+                        if (validString(child)) {
                             child = this.append(grab2(child));
                         } else if (child && child.uid) {
                             if (child.element.parentNode)
@@ -947,17 +960,17 @@ var grab2;
                         //  an attribute on the element, or it can take an object of
                         //  key/value pairs and bulk set them as attributes on the
                         //  element, returning itself
-                        var attributes = this.element.attributes,
+                        var attrs = this.element.attributes,
                             a,
-                            obj = {};
-                        if (typeof attr === 'string' && attr.length && typeof value === 'string' && value.length) {
+                            o = {};
+                        if (validString(attr) && validString(value)) {
                             this.element.setAttribute(attr.replace(/([A-Z])/g, '-1$').trim().toLowerCase(), value);
                         } else if (validLiteral(attr)) {
                             for (a in attr)
                                 this.element.setAttribute(a.replace(/([A-Z])/g, '-1$').trim().toLowerCase(), attr[a]);
                         } else if (!attr) {
-                            Object.keys(attributes).forEach(function (a) {
-                                var key = attributes[a].name.split('-').map(function (s, i) {
+                            Object.keys(attrs).forEach(function (a) {
+                                var key = attrs[a].name.split('-').map(function (s, i) {
                                     return i ? s[0].toUpperCase() + s.slice(1).toLowerCase() : s;
                                 }).join('');
                                 //  Split the string at the hyphens; iterate
@@ -965,9 +978,9 @@ var grab2;
                                 //  after the first to capital case; then join it
                                 //  without spaces and make it the key for the
                                 //  equivalent object value from the attributes object
-                                obj[key] = attributes[a].value;
+                                o[key] = attrs[a].value;
                             });
-                            return obj;
+                            return o;
                         }
                         return this;
                     }
@@ -992,7 +1005,7 @@ var grab2;
                         //  location, and insert itself before the passed sibling,
                         //  returning itself
                         var i;
-                        if (typeof sibling === 'string' && sibling.length) {
+                        if (validString(sibling)) {
                             this.before(grab2(sibling));
                         } else if (sibling && sibling.uid) {
                             //  Remove the sibling from the DOM if it has a parent node
@@ -1009,7 +1022,7 @@ var grab2;
                 child: {
                     value: function (child) {
                         var children = [];
-                        if (typeof child === 'string' && child.length) {
+                        if (validString(child)) {
                             if (child.includes(',')) {
                                 this.children.each(function (ch) {
                                     child.split(',').forEach(function (c) {
@@ -1029,24 +1042,19 @@ var grab2;
                             }
                         }
                         if (children.length)
-                            return children.length === 1 ? grab2(children[0]) : collect(children);
+                            return children.length === 1 ? new Element(children[0]) : new Collection(children);
                         return null;
                     }
                 },
                 children: {
                     get: function () {
-                        return collect(this.element.children);
-                    }
-                },
-                classList: {
-                    get: function () {
-                        return this.element.classList;
+                        return new Collection(this.element.children);
                     }
                 },
                 clear: {
                     value: function (event) {
                         var e;
-                        if (typeof event === 'string' && event.length) {
+                        if (validString(event)) {
                             for (e in Object.assign({}, this.events)) {
                                 if (this.events[e].event === event) {
                                     if (event === 'hover') {
@@ -1086,7 +1094,7 @@ var grab2;
                         //  an object of key/value pairs; and updates the element's css
                         //  appropriately, returning itself
                         var p;
-                        if (typeof property === 'string' && property.length) {
+                        if (validString(property)) {
                             this.element.style[property] = value;
                         } else if (validLiteral(property)) {
                             for (p in property)
@@ -1102,21 +1110,21 @@ var grab2;
                         //  become the '*' label or the data attributes 'data-*'; if
                         //  the method is used to set data, it will return itself,
                         //  otherwise it will return an object of attributes and values
-                        var attributes = this.element.attributes,
+                        var attrs = this.element.attributes,
                             d,
-                            obj = {};
-                        if (typeof data === 'string' && data.length && typeof value === 'string' && value.length) {
+                            o = {};
+                        if (validString(data) && validString(value)) {
                             this.element.setAttribute('data-' + data, value);
                         } else if (validLiteral(data)) {
                             for (d in data)
                                 this.element.setAttribute('data-' + d, data[d]);
                         } else if (!data) {
-                            Object.keys(attributes).forEach(function (a) {
-                                var attribute = attributes[a].name,
-                                    key = attribute.replace(/^data-/g, '').split('-').map(function (s, i) {
+                            Object.keys(attrs).forEach(function (a) {
+                                var attr = attrs[a].name,
+                                    key = attr.replace(/^data-/g, '').split('-').map(function (s, i) {
                                         return i ? s[0].toUpperCase() + s.slice(1).toLowerCase() : s;
                                     }).join('');
-                                if (/^data-[A-Z-]+$/ig.test(attribute))
+                                if (/^data-[A-Z-]+$/ig.test(attr))
                                     //  If the attribute matches 'data-*', remove the
                                     //  'data-' substring and split the string at the
                                     //  hyphens; iterate through each substring,
@@ -1124,9 +1132,9 @@ var grab2;
                                     //  capital case; then join it without spaces and
                                     //  make it the key for the equivalent object value
                                     //  from the attributes object
-                                    obj[key] = attributes[a].value;
+                                    o[key] = attrs[a].value;
                             });
-                            return obj;
+                            return o;
                         }
                         return this;
                     }
@@ -1136,7 +1144,7 @@ var grab2;
                         return this.values.display;
                     },
                     set: function (value) {
-                        if (typeof value === 'string') {
+                        if (validString(value)) {
                             this.element.style.display = value;
                             this.values.display = this.element.style.display; // Return last valid display setting
                         }
@@ -1161,13 +1169,12 @@ var grab2;
                         //  The find method searches the elements children for a matching dom
                         //  element, returning a new grab object
                         var children = [];
-                        if (typeof child === 'string' && child.length) {
+                        if (validString(child)) {
                             //  Select all children nodes that match the child argument
                             //  for matches of the passed child argument
                             children = this.element.querySelectorAll(child);
-                            if (children.length === 1)
-                                return create(children[0]);
-                            return collect(children);
+                            if (children)
+                                return children.length === 1 ? new Element(children[0]) : new Collection(children);
                         }
                         return null;
                     }
@@ -1186,9 +1193,7 @@ var grab2;
                 getClass: {
                     value: function () {
                         //  The getClass method returns an array of element classes
-                        return Object.keys(this.element.classList).map(function (i) {
-                            return this.element.classList[i];
-                        }.bind(this));
+                        return this.element.className.split(' ');
                     }
                 },
                 height: {
@@ -1197,7 +1202,7 @@ var grab2;
                     },
                     set: function (value) {
                         var h = getValue('height', value);
-                        if (typeof h === 'number' && Number.isFinite(h)) {
+                        if (validNumber(h)) {
                             this.values.height = h;
                             this.element.style.height = h + 'px';
                         }
@@ -1215,15 +1220,16 @@ var grab2;
                 hover: {
                     value: function (enter, exit) {
                         var id = getUid();
-                        if ((enter && typeof enter === 'function') || (exit && typeof exit === 'function'))
+                        if (validFunction(enter) || validFunction(exit)) {
                             this.events[id] = {event: 'hover', fn: {}};
-                        if (enter && typeof enter === 'function') {
-                            this.events[id].fn = {enter: enter.bind(this)};
-                            this.element.addEventListener('mouseenter', this.events[id].fn.enter);
-                        }
-                        if (exit && typeof exit === 'function') {
-                            Object.assign(this.events[id].fn, {exit: exit.bind(this)});
-                            this.element.addEventListener('mouseleave', this.events[id].fn.exit);
+                            if (validFunction(enter)) {
+                                this.events[id].fn = {enter: enter.bind(this)};
+                                this.element.addEventListener('mouseenter', this.events[id].fn.enter);
+                            }
+                            if (validFunction(exit)) {
+                                Object.assign(this.events[id].fn, {exit: exit.bind(this)});
+                                this.element.addEventListener('mouseleave', this.events[id].fn.exit);
+                            }
                         }
                         return this;
                     }
@@ -1243,7 +1249,7 @@ var grab2;
                         return this.element.id;
                     },
                     set: function (value) {
-                        if (typeof value === 'string' && !/^\d/g.test(value) && /[\da-z-_]+/ig.test(value))
+                        if (validString(value) && /^[a-z][\da-zA-Z-_]+$/g.test(value))
                             this.element.id = value;
                         return value;
                     }
@@ -1254,7 +1260,7 @@ var grab2;
                     },
                     set: function (value) {
                         var l = getValue('left', value);
-                        if (typeof l === 'number' && Number.isFinite(l)) {
+                        if (validNumber(l)) {
                             this.values.left = l;
                             this.element.style.left = l + 'px';
                         }
@@ -1262,12 +1268,12 @@ var grab2;
                     }
                 },
                 off: {
-                    value: function (eid) {
+                    value: function (id) {
                         var e;
-                        if (typeof eid === 'string' && eid.length) {
-                            this.element.removeEventListener(this.events[eid].event, this.events[eid].fn);
-                            delete this.events[eid];
-                        } else if (!eid) {
+                        if (validString(id)) {
+                            this.element.removeEventListener(this.events[id].event, this.events[id].fn);
+                            delete this.events[id];
+                        } else if (!id) {
                             for (e in Object.assign({}, this.events))
                                 this.off(e);
                         }
@@ -1277,7 +1283,7 @@ var grab2;
                 on: {
                     value: function (event, fn) {
                         var id = getUid();
-                        if (typeof event === 'string' && event.length && fn && typeof fn === 'function') {
+                        if (validString(event) && validFunction(fn)) {
                             this.events[id] = {event: event, fn: fn.bind(this)};
                             this.element.addEventListener(event, this.events[id].fn);
                             return id;
@@ -1286,13 +1292,13 @@ var grab2;
                     }
                 },
                 prepend: {
-                    value: function () {
+                    value: function (child) {
                         //  The prepend method will remove the child from its current DOM location
                         //  and prepend it inside of itself, returning itself
                         var i;
-                        if (typeof child === 'string' && child.length) {
-                            child = this.prepend(grab2(child));
-                        } else if (child && child.uid) {
+                        if (validString(child)) {
+                            this.prepend(grab2(child));
+                        } else if (validElement(child)) {
                             if (child.element.parentNode)
                                 child.exit();
                             this.element.prepend(child.element);
@@ -1308,50 +1314,36 @@ var grab2;
                         //  The remove method removes children from the owner's children nodes,
                         //  returning itself
                         var i;
-                        if (typeof child === 'string' && child.length) {
-                            if (child.includes(',')) {
-                                this.remove(grab2(child));
-                            } else {
-
-                            }
-                        }
-                        if (Array.isArray(child)) {
-                            for (i = 0; i < child.length; i = i + 1) {
-                                this.remove(child[i]);
-                            }
+                        if (!child || child.element.parentNode !== this.element)
                             return this;
-                        } else if (aux.isObject(child) && child.length) {  // Collection of children
-                            for (i = 0; i < child.length; i = i + 1) {
-                                this.remove(child[i]);
-                            }
-                            return this;
-                        } else if (child.nodeType > 0) { // DOM object
-                            this.element.removeChild(_grab(child).element);
-                            return this;
-                        } else if (child && child.uid) { // Grab object
+                        if (validString(child)) {
+                            this.remove(grab2(child));
+                        } else if (validElement(child)) {
                             this.element.removeChild(child.element);
-                            return this;
+                        } else if (child.nodeType) {
+                            this.element.removeChild(child);
+                        } else if (child.length) {
+                            for (i = 0; i < child.length; i = i + 1)
+                                this.remove(child[i]);
                         }
-                        return null;
+                        return this;
                     }
                 },
                 removeClass: {
                     value: function (className) {
                         //  The removeClass method removes a passed string, or array of
                         //  strings as css classes on the element, returning itself
-                        var c;
-                        if (typeof className === 'string' && className.length) {
+                        var i;
+                        if (validString(className)) {
                             if (className.includes(',')) {
                                 className = className.split(',');
                             } else {
                                 this.element.classList.remove(className.replace(/\s/g, ''));
                             }
                         }
-                        if (Array.isArray(className)) {
-                            for (c = 0; c < className.length; c = c + 1)
-                                if (typeof className[c] === 'string' && className[c].length)
-                                    this.element.classList.remove(className[c].replace(/\s/g, ''));
-                        }
+                        if (Array.isArray(className))
+                            for (i = 0; i < className.length; i = i + 1)
+                                this.removeClass(className[i]);
                         return this;
                     }
                 },
@@ -1376,7 +1368,7 @@ var grab2;
                     },
                     set: function (value) {
                         var o = getValue('opacity', value);
-                        if (typeof o === 'number' && Number.isFinite(o) && 0 <= o && o <= 1) {
+                        if (validNumber(o) && 0 <= o && o <= 1) {
                             this.values.opacity = o;
                             this.element.style.opacity = o;
                         }
@@ -1395,19 +1387,17 @@ var grab2;
                     value: function (className) {
                         //  The toggleClass method toggles a passed string, or array of
                         //  strings as css classes on the element, returning itself
-                        var c;
-                        if (typeof className === 'string' && className.length) {
+                        var i;
+                        if (validString(className)) {
                             if (className.includes(',')) {
                                 className = className.split(',');
                             } else {
                                 this.element.classList.toggle(className.replace(/\s/g, ''));
                             }
                         }
-                        if (Array.isArray(className)) {
-                            for (c = 0; c < className.length; c = c + 1)
-                                if (typeof className[c] === 'string' && className[c].length)
-                                    this.element.classList.toggle(className[c].replace(/\s/g, ''));
-                        }
+                        if (Array.isArray(className))
+                            for (i = 0; i < className.length; i = i + 1)
+                                this.toggleClass(className[i]);
                         return this;
                     }
                 },
@@ -1417,7 +1407,7 @@ var grab2;
                     },
                     set: function (value) {
                         var t = getValue('top', value);
-                        if (typeof t === 'number' && Number.isFinite(t)) {
+                        if (validNumber(t)) {
                             this.values.top = t;
                             this.element.style.top = t + 'px';
                         }
@@ -1434,7 +1424,7 @@ var grab2;
                         display: getStyle(element, 'display'),
                         height: getValue('height', getStyle(element, 'height')),
                         left: getValue('left', getStyle(element, 'left')),
-                        opacity: getStyle(element, 'opacity'),
+                        opacity: getValue(getStyle(element, 'opacity')),
                         top: getValue('top', getStyle(element, 'top')),
                         visibility: getStyle(element, 'visibility'),
                         width: getValue('width', getStyle(element, 'width')),
@@ -1446,7 +1436,7 @@ var grab2;
                         return this.values.visibility;
                     },
                     set: function (value) {
-                        if (typeof value === 'string') {
+                        if (validString(value)) {
                             this.element.style.visibility = value;
                             this.values.visibility = this.element.style.visibility; // get last valid visibility
                         }
@@ -1459,7 +1449,7 @@ var grab2;
                     },
                     set: function (value) {
                         var w = getValue('width', value);
-                        if (typeof w === 'number' && Number.isFinite(w)) {
+                        if (validNumber(w)) {
                             this.values.width = w;
                             this.element.style.width = w + 'px';
                         }
@@ -1472,7 +1462,7 @@ var grab2;
                     },
                     set: function (value) {
                         var z = parseInt(value, 10);
-                        if (typeof z === 'number' && Number.isFinite(z)) {
+                        if (validNumber(z)) {
                             this.values.zIndex = z;
                             this.element.style.zIndex = z;
                         }
@@ -1480,27 +1470,22 @@ var grab2;
                     }
                 }
             });
-            return grab;
         }
-        function collect (items) {
-            var collection = {},
-                i;
-            for (i = 0; i < items.length; i = i + 1) {
-                if (items[i].uid) {
-                    Object.defineProperty(collection, i, {value: items[i]});
-                } else {
-                    Object.defineProperty(collection, i, {value: create(items[i], i)});
-                }
-            }
-            Object.defineProperties(collection, {
+        function Collection (items) {
+            var i;
+            for (i = 0; i < items.length; i = i + 1)
+                Object.defineProperty(this, i, {value: validElement(items[i]) ? items[i] : new Element(items[i], i)});
+            Object.defineProperties(this, {
                 concat: {
-                    value: function (coll) {
-                        var j, arr = [];
-                        for (j = 0; j < this.length; j = j + 1)
-                            arr.push(this[j]);
-                        for (j = 0; j < coll.length; j = j + 1)
-                            arr.push(coll[j]);
-                        return collect(arr);
+                    value: function (collection) {
+                        var j,
+                            a = [];
+                        if (validCollection(collection)) {
+                            for (j = 0; j < this.length + collection.length; j = j + 1)
+                                a.push(j < this.length ? this[j] : collection[j]);
+                            return new Collection(a);
+                        }
+                        return null;
                     }
                 },
                 each: {
@@ -1513,11 +1498,12 @@ var grab2;
                 },
                 filter: {
                     value: function (fn) {
-                        var j, arr = [];
+                        var j,
+                            a = [];
                         for (j = 0; j < this.length; j = j + 1)
                             if (fn.apply(null, [this[j], j]))
-                                arr.push(this[j]);
-                        return collect(arr);
+                                a.push(this[j]);
+                        return new Collection(a);
                     }
                 },
                 length: {
@@ -1526,34 +1512,34 @@ var grab2;
                 slice: {
                     value: function (start, count) {
                         var j,
-                            arr = [],
-                            max = start + count > this.length ? this.length : start + count;
-                        for (j = start; j < max; j = j + 1)
-                            
-                        return collect(arr);
+                            a = [],
+                            m = start + count > this.length ? this.length : start + count;
+                        for (j = start; j < m; j = j + 1)
+                            a.push(this[j]);
+                        return new Collection(a);
                     }
                 },
                 splice: {
                     value: function (start, count, value) {
                         var j,
-                            arr = [],
-                            max = start + count > this.length ? this.length : start + count;
-                        for (j = start; j < max + value.length; j = j + 1)
-                            arr.push(j < max ? this[j] : value[j - max]);
-                        if (max < this.length);
-                            for (j = max; j < this.length; j = j + 1)
-                                arr.push(this[j]);
-                        return collect(arr);
+                            a = [],
+                            m = start + count > this.length ? this.length : start + count;
+                        for (j = start; j < m + value.length; j = j + 1)
+                            a.push(j < m ? this[j] : value[j - m]);
+                        if (m < this.length);
+                            for (j = m; j < this.length; j = j + 1)
+                                a.push(this[j]);
+                        return new Collection(a);
                     }
                 }
             });
-            return collection;
         }
+        
         grab2 = function (selector) {
             var selected;
             if (typeof selector === 'string') {
                 if (/^<[a-z][\da-z]*>$/g.test(selector)) {
-                    return create(document.createElement(selector.slice(1, -1)));
+                    return new Element(document.createElement(selector.slice(1, -1)));
                 } else if (/^#/g.test(selector)) {
                     selected = document.getElementById(selector.slice(1));
                 } else if (/^\./g.test(selector)) {
@@ -1568,20 +1554,27 @@ var grab2;
                     });
                 }
                 if (selected && selected.length) {
-                    return selected.length === 1 ? create(selected[0]) : collect(selected);
+                    return selected.length === 1 ? new Element(selected[0]) : new Collection(selected);
                 } else if (selected.nodeType) {
-                    return create(selected);
+                    return new Element(selected);
                 }
             } else if (selector.nodeType) {
-                return create(selector);
+                return new Element(selector);
             } else if (Array.isArray(selector)) {
-                return collect(selector);
+                return new Collection(selector);
             } else if (selected && selected.length) {
-                return collect(selector);
+                return new Collection(selector);
             }
             return null;
         }
     }());
+
+
+
+
+
+
+
     window.grab = function (selector) {
         function _selector (element, string) {
             var tag = string.match(/^[A-Z]+/ig),
