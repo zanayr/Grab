@@ -1493,17 +1493,58 @@ var grab2;
                 }
             }
             Object.defineProperties(collection, {
+                concat: {
+                    value: function (coll) {
+                        var j, arr = [];
+                        for (j = 0; j < this.length; j = j + 1)
+                            arr.push(this[j]);
+                        for (j = 0; j < coll.length; j = j + 1)
+                            arr.push(coll[j]);
+                        return collect(arr);
+                    }
+                },
                 each: {
                     value: function (fn) {
-                        var n;
-                        for (n = 0; n < this.length; n = n + 1)
-                            if (this.hasOwnProperty(n))
-                                fn.apply(null, [this[n], n]);
+                        var j;
+                        for (j = 0; j < this.length; j = j + 1)
+                            fn.apply(null, [this[j], j]);
                         return this;
+                    }
+                },
+                filter: {
+                    value: function (fn) {
+                        var j, arr = [];
+                        for (j = 0; j < this.length; j = j + 1)
+                            if (fn.apply(null, [this[j], j]))
+                                arr.push(this[j]);
+                        return collect(arr);
                     }
                 },
                 length: {
                     value: i
+                },
+                slice: {
+                    value: function (start, count) {
+                        var j,
+                            arr = [],
+                            max = start + count > this.length ? this.length : start + count;
+                        for (j = start; j < max; j = j + 1)
+                            
+                        return collect(arr);
+                    }
+                },
+                splice: {
+                    value: function (start, count, value) {
+                        var j,
+                            arr = [],
+                            max = start + count > this.length ? this.length : start + count;
+                        for (j = start; j < max + value.length; j = j + 1)
+                            arr.push(j < max ? this[j] : value[j - max]);
+                        if (max < this.length);
+                            for (j = max; j < this.length; j = j + 1)
+                                arr.push(this[j]);
+                        return collect(arr);
+                    }
                 }
             });
             return collection;
