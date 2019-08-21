@@ -913,12 +913,9 @@ var grab2;
                     },
                     set: function (value) {
                         if (validNumber(value)) {
-                            if (value >= this.target) {
+                            this.values.current = value;
+                            if (value === this.target)
                                 this.values.complete = 1;
-                                this.values.current = this.target;
-                            } else {
-                                this.values.current = value;
-                            }
                         } 
                     }
                 },
@@ -1125,7 +1122,7 @@ var grab2;
             }
 
             //  Loop Function  //
-            function loop () {
+            function loop (timestamp) {
                 var cycles = 0;
                 if (_loop.state) {
                     getWaiting();
@@ -1397,13 +1394,9 @@ var grab2;
                         var translated = {},
                             property;
                         for (property in values) {
-                            if (values.hasOwnProperty(property) && /^border[A-Z]*|A-Z]*color|height|left|opacity|top|width$/ig.test(property)) {
-                                this[property] = getStyle(this.element, property);
-                                if (/^[A-Z]*color$/ig.test(property)) {
-                                    translated[property] = color(values[property]);
-                                } else {
-                                    translated[property] = getValue(property, values[property]);
-                                }
+                            if (values.hasOwnProperty(property) && /^[A-Z]*color|height|left|opacity|top|width$/ig.test(property)) {
+                                this[property] = getStyle(this.element, property); // <-- do i still need this?
+                                translated[property] = /^[A-Z]*color$/ig.test(property) ? color(values[property]) : getValue(property, values[property]);
                             }
                             loop.add(this, translated, duration, easing, complete);
                         }
@@ -1733,7 +1726,6 @@ var grab2;
                         return this.values.left;
                     },
                     set: function (value) {
-                        console.log(value);
                         var l = getValue('left', value);
                         if (validNumber(l)) {
                             this.values.left = l;
@@ -2048,7 +2040,6 @@ var grab2;
             return null;
         }
         loop = new Loop();
-        loop.start();
     }());
 
 
