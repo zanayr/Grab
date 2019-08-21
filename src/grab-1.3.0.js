@@ -368,7 +368,7 @@ var grab2;
             } else if (value) {
                 return ['rgba'].concat(Object.keys(value).sort().reverse().map(function (channel) {
                     if (/^alpha|blue|green|red$/ig.test(channel))
-                        return value[channel];
+                        return value[channel] || 0;
                 }));
             }
             return null;
@@ -1114,6 +1114,7 @@ var grab2;
                     updates = [];
                 for (i = 0, len = _loop.updates.length; i < len; i = i + 1) {
                     if (_loop.updates[i].animation.complete) {
+                        console.log('here');
                         _loop.events.dispatch(_loop.updates[i].eventId);
                     } else {
                         updates.push(_loop.updates[i]);
@@ -1199,7 +1200,8 @@ var grab2;
                         removeDuplicates(object, property);
                         if (/[A-Z]*color$/ig.test(property)) {
                             Object.keys(object[property]).forEach(function (channel, j) {
-                                _loop.waiting.push(new ChannelUpdate(object, property, channel, object[property][channel], values[property][channel], args[0], args[1], eventId, j));
+                                if (object[property][channel] !== values[property][channel])
+                                    _loop.waiting.push(new ChannelUpdate(object, property, channel, object[property][channel], values[property][channel], args[0], args[1], eventId, j));
                             });
                         } else {
                             _loop.waiting.push(new Update(object, property, object[property], values[property], args[0], args[1], eventId, i));
@@ -1364,6 +1366,8 @@ var grab2;
                         if (!this.events[id])
                             return false;
                         setTimeout(function () {
+                            if (!this.events[id])
+                                return;
                             this.events[id].f();
                             delete this.events[id];
                         }.bind(this), 0);
