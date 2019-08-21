@@ -982,11 +982,16 @@ var grab2;
                 }
             });
         }
-        function Update (object, property, target, duration, easing, id) {
+        function Update (object, property, target, duration, easing, e, u) {
             Object.defineProperties(this, {
                 animation: {
                     get: function () {
                         return this.values.animation;
+                    }
+                },
+                eventId: {
+                    get: function () {
+                        return this.values.eventId
                     }
                 },
                 next: {
@@ -1018,9 +1023,10 @@ var grab2;
                 values: {
                     value: {
                         animation: new Animation(object[property], target, duration, easing),
+                        eventId: e,
                         object: object,
                         property: property,
-                        uid: id
+                        uid: getUid(u)
                     }
                 }
             });
@@ -1048,16 +1054,19 @@ var grab2;
             writable: true
         });
 
+        
         function Loop () {
             var _loop = this;
             //  Auxillary Functions  //
-            function getArgs (args, start) {
+            function getArgs (args) {
                 var i,
+                    j,
                     arr = [],
                     defaults = {0: 1000, 1: 'linear', 2: null},
-                    validation = {0: validNumber, 1: validString, 2: validFunction};
-                for (i = start; i < args.length; i = i + 1)
-                    arr.push(validation[i - start](args[i]) ? args[i] : defaults[i - start]);
+                    validation = [validNumber, validString, validFunction];
+                for (i = 2; i < args.length; i = i + 1)
+                    for (j = 0; j < validation.length; j = j + 1)
+                        arr.push(validation[j](args[i]) ? args[i] : defaults[j]);
                 return arr;
             }
             function getWaiting () {
@@ -1107,10 +1116,13 @@ var grab2;
                     iLen,
                     jLen,
                     updates = [];
-                for (i = 0, iLen = _loop.updates.length; i < iLen; i = i + 1)
-                    for (j = 0, jLen = _loop.garbage.length; j < jLen; j = j + 1)
+                for (i = 0, iLen = _loop.updates.length; i < iLen; i = i + 1) {
+                    for (j = 0, jLen = _loop.garbage.length; j < jLen; j = j + 1) {
+                        _loop.events.dispatch(_loop.garbage[i].eventId);
                         if (_loop.updates[i].uid !== _loop.garbage[j].uid)
                             updates.push(_loop.updates[i]);
+                    }
+                }
                 _loop.updates = updates;
                 _loop.garbage.length = 0;
                 return null;
@@ -1173,35 +1185,29 @@ var grab2;
                 return null;
             }
             
-
+            function add (object, values) {
+                var args = getArgs(arguments),
+                    eventId = getUid().replace(/-/g, '_').toUpperCase();
+                if (validLiteral(values)) {
+                    Object.keys(values).forEach(function (property, i) {
+                        if (/[A-Z]*color$/ig.test(property)) {
+                            Object.keys(object[property]).forEach(function (channel, j) {
+                                _loop.waiting.push(new ChannelUpdate(object, property, channel, values[property][channel], args[0], args[1], eventId, j));
+                            });
+                        } else {
+                            _loop.waiting.push(new Update(object, property, values[property], args[0], args[1], eventId, i));
+                        }
+                    });
+                    if (validFunction(args[2]))
+                        _loop.events.register(eventId, args[2]);
+                }
+                if (!this.state)
+                    start();
+                return null;
+            }
             Object.defineProperties(this, {
                 add: {
-                    value: function (object, values) {
-                        var i,
-                            j,
-                            args = getArgs(arguments, 2),
-                            property,
-                            channel;
-                        if (validLiteral(values)) {
-                            i = 0;
-                            //  <-- look for duplicates here
-                            for (property in values) {
-                                if (/[A-Z]*color$/ig.test(property)) {
-                                    j = 0;
-                                    for (channel in object[property]) {
-                                        this.waiting.push(new ChannelUpdate(object, property, channel, values[property][channel], args[0], args[1], getUid(j)));
-                                        j = j + 1;
-                                    }
-                                } else {
-                                    this.waiting.push(new Update(object, property, values[property], args[0], args[1], getUid(i)));
-                                    i = i + 1;
-                                }
-                            }
-                            if (!this.state)
-                                start();
-                            return null;
-                        }
-                    }
+                    value: add
                 },
                 delta: {
                     get: function () {
@@ -1345,6 +1351,26 @@ var grab2;
                     }
                 }
             });
+            Object.defineProperties(this.events, {
+                events: {
+                    value: {}
+                },
+                dispatch: {
+                    value: function (id, args) {
+                        if (!this.events[id])
+                            return false;
+                        this.events[id].f(args);
+                        delete this.events[id];
+                        return true;
+                    }
+                },
+                register: {
+                    value: function (id, fn) {
+                        this.events[id] = {f: fn};
+                        return id;
+                    }
+                }
+            })
         }
 
         
