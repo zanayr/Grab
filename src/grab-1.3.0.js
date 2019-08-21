@@ -113,11 +113,11 @@ var grab2;
             }
         }
         //  Chroma Object Function  //
-        function colorObject (arr) {
-            var obj = {};
+        function Chroma (arr) {
             //  Getter and Setters  //
-            Object.defineProperties(obj, {
+            Object.defineProperties(this, {
                 alpha: {
+                    enumerable: true,
                     get: function () {
                         return this.values.alpha;
                     },
@@ -128,6 +128,7 @@ var grab2;
                     }
                 },
                 blue: {
+                    enumerable: true,
                     get: function () {
                         return this.values.blue;
                     },
@@ -138,6 +139,7 @@ var grab2;
                     }
                 },
                 green: {
+                    enumerable: true,
                     get: function () {
                         return this.values.green;
                     },
@@ -148,6 +150,7 @@ var grab2;
                     }
                 },
                 red: {
+                    enumerable: true,
                     get: function () {
                         return this.values.red;
                     },
@@ -157,7 +160,14 @@ var grab2;
                         return value;
                     }
                 },
+                toRgba: {
+                    enumerable: false,
+                    value: function () {
+                        return 'rgba(' + this.red + ', ' + this.green + ', ' + this.blue + ', ' + this.alpha + ')';
+                    }
+                },
                 values: {
+                    enumerable: false,
                     value: {
                         alpha: typeof arr[3] === 'number' && Number.isFinite(arr[3]) ? arr[3] : 1,
                         blue: arr[2],
@@ -166,9 +176,6 @@ var grab2;
                     }
                 }
             });
-            if (arr === null)
-                return null;
-            return obj;
         }
         //  Auxillary Functions  //
         function fromHsl (values) {
@@ -267,18 +274,16 @@ var grab2;
             return true;
         }
         function validChroma (obj) {
-            var k;
-            for (k in obj)
-                if (!/^alpha|blue|green|red$/i.test(k))
-                    return false;
-            return validRgb([obj.red, obj.green, obj.blue, obj.alpha]);
+            if (!obj)
+                return false;
+            return Object.getPrototypeOf(obj) === Chroma.prototype;
         }
 
         //  CHROMA  FUNCTION  //
         color = function (model) {
             var parsed = color.parse(model);
             if (parsed && parsed.length > 1)
-                return colorObject(from[parsed[0]](parsed.slice(1)));
+                return new Chroma(from[parsed[0]](parsed.slice(1)));
             return null;
         };
         //  Parse Method  //
@@ -360,17 +365,17 @@ var grab2;
                 }
             } else if (validChroma(value)) {
                 return ['rgba'].concat(parse([value.red, value.green, value.blue, value.alpha]));
+            } else if (value) {
+                return ['rgba'].concat(Object.keys(value).sort().reverse().map(function (channel) {
+                    if (/^alpha|blue|green|red$/ig.test(channel))
+                        return value[channel];
+                }));
             }
             return null;
         };
-        //  Rgba Method  //
-        color.rgba = function (obj) {
-            var color = color.parse(obj);
-            return 'rgba(' + color[0] + ', ' + color[1] + ', ' + color[2] + ', ' + color[3] + ')';
-        };
         //  Validate Method  //
         color.validate = function (value) {
-            var parsed = color.parse(value);
+            var parsed = this.parse(value);
             if (parsed && parsed.length > 1)
                 return true;
             return false;
@@ -982,7 +987,7 @@ var grab2;
                 }
             });
         }
-        function Update (object, property, target, duration, easing, e, u) {
+        function Update (object, property, origin, target, duration, easing, e, u) {
             Object.defineProperties(this, {
                 animation: {
                     get: function () {
@@ -993,12 +998,6 @@ var grab2;
                     get: function () {
                         return this.values.eventId
                     }
-                },
-                next: {
-                    value: function (interpolation) {
-                        return this.animation.complete ? this.animation.current : this.animation.last + (this.animation.current - this.animation.last) * interpolation;
-                    },
-                    writable: true
                 },
                 object: {
                     get: function () {
@@ -1022,7 +1021,7 @@ var grab2;
                 },
                 values: {
                     value: {
-                        animation: new Animation(object[property], target, duration, easing),
+                        animation: new Animation(origin, target, duration, easing),
                         eventId: e,
                         object: object,
                         property: property,
@@ -1031,23 +1030,26 @@ var grab2;
                 }
             });
         }
-        function ChannelUpdate (object, property, channel, target, duration, easing, id) {
-            Update.call(this, object, property, target, duration, easing, id);
+        Update.prototype.next = function (interpolation) {
+            return this.animation.complete ? this.animation.current : this.animation.last + (this.animation.current - this.animation.last) * interpolation;
+        };
+        function ChannelUpdate (object, property, channel, origin, target, duration, easing, id) {
+            Update.call(this, object, property, origin, target, duration, easing, id);
             this.values.channel = channel;
             Object.defineProperties(this, {
                 channel: {
                     get: function () {
                         return this.values.channel;
                     }
-                },
-                next: function (interpolation) {
-                    var color = {};
-                    color[this.channel] = this.animation.complete ? this.animation.current : this.animation.last + (this.animation.current - this.animation.last) * interpolation;
-                    return color;
                 }
             });
         }
         ChannelUpdate.prototype = Object.create(Update.prototype);
+        ChannelUpdate.prototype.next = function (interpolation) {
+            var color = {};
+            color[this.channel] = this.animation.complete ? this.animation.current : this.animation.last + (this.animation.current - this.animation.last) * interpolation;
+            return color;
+        };
         Object.defineProperty(ChannelUpdate.prototype, 'constructor', {
             value: ChannelUpdate,
             enumerable: false,
@@ -1118,7 +1120,6 @@ var grab2;
                     }
                 }
                 _loop.updates = updates;
-                _loop.garbage.length = 0;
                 return null;
             }
             function stop () {
@@ -1177,18 +1178,31 @@ var grab2;
                 }
                 return null;
             }
-            
+            function removeDuplicates (object, property) {
+                var i,
+                    len,
+                    updates = [];
+                    for (i = 0, len = _loop.updates.length; i < len; i = i + 1) {
+                        if (object.uid === _loop.updates[i].object.uid && property === _loop.updates[i].property)
+                            continue;
+                        updates.push(_loop.updates[i]);
+                    }
+                    _loop.updates = updates;
+                    return null;
+
+            }
             function add (object, values) {
                 var args = getArgs(arguments),
                     eventId = getUid().replace(/-/g, '_').toUpperCase();
                 if (validLiteral(values)) {
                     Object.keys(values).forEach(function (property, i) {
+                        removeDuplicates(object, property);
                         if (/[A-Z]*color$/ig.test(property)) {
                             Object.keys(object[property]).forEach(function (channel, j) {
-                                _loop.waiting.push(new ChannelUpdate(object, property, channel, values[property][channel], args[0], args[1], eventId, j));
+                                _loop.waiting.push(new ChannelUpdate(object, property, channel, object[property][channel], values[property][channel], args[0], args[1], eventId, j));
                             });
                         } else {
-                            _loop.waiting.push(new Update(object, property, values[property], args[0], args[1], eventId, i));
+                            _loop.waiting.push(new Update(object, property, object[property], values[property], args[0], args[1], eventId, i));
                         }
                     });
                     if (validFunction(args[2]))
@@ -1243,9 +1257,6 @@ var grab2;
                         if (validNumber(value))
                             this.values.framesThisSecond = value;
                     }
-                },
-                garbage: {
-                    value: []
                 },
                 lastFramesPerSecond: {
                     get: function () {
@@ -1350,7 +1361,6 @@ var grab2;
                 },
                 dispatch: {
                     value: function (id) {
-                        console.log(this.events, id);
                         if (!this.events[id])
                             return false;
                         setTimeout(function () {
@@ -1481,9 +1491,9 @@ var grab2;
                     set: function (value) {
                         var c;
                         if (color.validate(value)) {
-                            c = color(value);
+                            c = validLiteral(value) ? color(Object.assign(Object.assign({}, this.values.backgroundColor.values), value)) : color(value);
                             this.values.backgroundColor = c;
-                            this.element.style.backgroundColor = color.rgba(c);
+                            this.element.style.backgroundColor = c.toRgba();
                         }
                         return value;
                     }
@@ -1571,9 +1581,9 @@ var grab2;
                     set: function (value) {
                         var c;
                         if (color.validate(value)) {
-                            c = color(value);
+                            c = validLiteral(value) ? color(Object.assign(Object.assign({}, this.values.color.values), value)) : color(value);
                             this.values.color = c;
-                            this.element.style.color = color.rgba(c);
+                            this.element.style.color = c.toRgba();
                         }
                     }
                 },
@@ -1908,7 +1918,7 @@ var grab2;
                 },
                 update: {
                     value: function (property, value) {
-                        this[property] = getValue(property, value);
+                        this[property] = value;
                     }
                 },
                 values: {
