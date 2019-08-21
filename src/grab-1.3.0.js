@@ -1092,10 +1092,6 @@ var grab2;
                     //  greater than or eaqual to 1, it has reached its target
                     progress = animation.time / animation.duration;
                     animation.current = progress >= 1 ? animation.target : animation.vector * _loop.easingFunctions[animation.easing](progress) + animation.origin;
-                    //  if the animation is set to complete, push it into the
-                    //  garbage array
-                    if (animation.complete)
-                        _loop.garbage.push(_loop.updates[i]);
                 }
                 return null;
             }
@@ -1112,15 +1108,13 @@ var grab2;
             }
             function collect () {
                 var i,
-                    j,
-                    iLen,
-                    jLen,
+                    len,
                     updates = [];
-                for (i = 0, iLen = _loop.updates.length; i < iLen; i = i + 1) {
-                    for (j = 0, jLen = _loop.garbage.length; j < jLen; j = j + 1) {
-                        _loop.events.dispatch(_loop.garbage[i].eventId);
-                        if (_loop.updates[i].uid !== _loop.garbage[j].uid)
-                            updates.push(_loop.updates[i]);
+                for (i = 0, len = _loop.updates.length; i < len; i = i + 1) {
+                    if (_loop.updates[i].animation.complete) {
+                        _loop.events.dispatch(_loop.updates[i].eventId);
+                    } else {
+                        updates.push(_loop.updates[i]);
                     }
                 }
                 _loop.updates = updates;
@@ -1160,8 +1154,7 @@ var grab2;
                         }
                     }
                     render(_loop.delta / _loop.timestep);
-                    if (_loop.garbage.length)
-                        collect();
+                    collect();
                     if (_loop.updates.length || _loop.waiting.length) {
                         _loop.frameId = window.requestAnimationFrame(loop);
                     } else {
@@ -1356,11 +1349,14 @@ var grab2;
                     value: {}
                 },
                 dispatch: {
-                    value: function (id, args) {
+                    value: function (id) {
+                        console.log(this.events, id);
                         if (!this.events[id])
                             return false;
-                        this.events[id].f(args);
-                        delete this.events[id];
+                        setTimeout(function () {
+                            this.events[id].f();
+                            delete this.events[id];
+                        }.bind(this), 0);
                         return true;
                     }
                 },
