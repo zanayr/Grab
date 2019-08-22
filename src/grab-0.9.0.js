@@ -203,13 +203,6 @@ var grab;
         rgba: fromRgba,
         x11: fromX11
     }
-
-
-
-
-
-
-
     //  AUXILLARY FUNCTIONS  //
     //  The `validCollection` function should return true if a passed object is a
     //  `GrabCollection` prototype
@@ -516,7 +509,6 @@ var grab;
             return v.toString(16);
         });
     }
-
     //  GRAB COLOR OBJECT  //
     //  The `GrabColor` function returns a new `GrabColor` prototype and is used for
     //  all color properties and animations
@@ -591,7 +583,6 @@ var grab;
             }
         });
     }
-
     //  GRAB ANIMATION OBJECT  //
     //  The `GrabAnimation` function returns a `GrabAnimation` object that is used in
     //  loop's `update` and `render` functions; the function should be passed origin,
@@ -761,7 +752,6 @@ var grab;
     GrabUpdate.prototype.next = function (interpolation) {
         return this.animation.complete ? this.animation.current : this.animation.last + (this.animation.current - this.animation.last) * interpolation;
     };
-
     //  GRAB CHANNEL UPDATE OBJECT  //
     //  The `GrabChannelUpdate` object "inherits" from the `GrabUpdate` prototype and
     //  returns a prototypical `GrabChannelUpdate` object
@@ -796,8 +786,6 @@ var grab;
         enumerable: false,
         writable: true
     });
-
-    
     //  GRAB LOOP OBJECT //
     //  The `GrabLoop` function should return a prototypical `GrabLoop` object; there
     //  should only be one `GrabLoop` object created and held in the `loop` variable
@@ -883,7 +871,6 @@ var grab;
             window.cancelAnimationFrame(_loop.frameId);
             return null;
         }
-
         //  The private `loop` function is the Grab Library's animation loop and should
         //  loop though all updates, updating, render udpates and garbage collecting
         //  complete updates
@@ -938,7 +925,6 @@ var grab;
                 }
             }
         }
-
         //  The private `start` function should check if the loop is not active, if not
         //  it will set up the initial frame of the loop before calling another loop
         function start () {
@@ -1165,7 +1151,6 @@ var grab;
             }
         })
     }
-
     //  GRAB ELEMENT  //
     function GrabElement (element, u) {
         var styles = window.getComputedStyle(element, '');
@@ -1792,7 +1777,6 @@ var grab;
             }
         });
     }
-
     //  GRAB COLLECTION  //
     function GrabCollection (items) {
         var i;
