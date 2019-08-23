@@ -1049,13 +1049,13 @@ var chroma, grab;
             },
             classes: {
                 //  The `classes` property returns an array of all CSS class selectors
-                //  on the DOM element
+                //  on the DOM object
                 get: function () {
                     return this.element.className.split(' ');
                 }
             },
             height: {
-                //  The `height` property gets and sets the DOM element's height value
+                //  The `height` property gets and sets the DOM object height style
                 get: function () {
                     return this.properties.height;
                 },
@@ -1069,7 +1069,7 @@ var chroma, grab;
                 }
             },
             hide: {
-                //  The `hide` method will set the DOM element visibility to `hidden`
+                //  The `hide` method will set the DOM object visibility to `hidden`
                 //  and return itself
                 value: function () {
                     this.visibility = 'hidden';
@@ -1077,7 +1077,7 @@ var chroma, grab;
                 }
             },
             hover: {
-                //  The `hover` method sets a hover event on a DOM element and stores
+                //  The `hover` method sets a hover event on the DOM object and stores
                 //  it into the `events` property
                 value: function (enter, exit) {
                     var id = uniqueId();
@@ -1096,7 +1096,7 @@ var chroma, grab;
                 }
             },
             html: {
-                //  The `html` property gets and sets the DOM element's `innerHTML`
+                //  The `html` property gets and sets the DOM object `innerHTML`
                 //  property
                 get: function () {
                     return this.element.innerHTML;
@@ -1108,7 +1108,7 @@ var chroma, grab;
                 }
             },
             id: {
-                //  The `id` property gets and sets the DOM element's id selector
+                //  The `id` property gets and sets the DOM object id selector
                 get: function () {
                     return this.element.id;
                 },
@@ -1119,7 +1119,7 @@ var chroma, grab;
                 }
             },
             left: {
-                //  The `left` property gets and sets the DOM element's left styling
+                //  The `left` property gets and sets the DOM object left style
                 get: function () {
                     return this.properties.left;
                 },
@@ -1134,7 +1134,7 @@ var chroma, grab;
             },
             off: {
                 //  The `off` method when passed a valid id, removes an event listener
-                //  from the DOM element, if no value is passed, all event listeners
+                //  from the DOM object, if no value is passed, all event listeners
                 //  are removed
                 value: function (id) {
                     var e;
@@ -1149,7 +1149,7 @@ var chroma, grab;
                 }
             },
             on: {
-                //  The `on` method sets an event listener on the DOM element with the
+                //  The `on` method sets an event listener on the DOM object with the
                 //  passed event string and callback function and returns the event id
                 value: function (event, fn) {
                     var id = uniqueId();
@@ -1162,6 +1162,9 @@ var chroma, grab;
                 }
             },
             parse: {
+                //  The `parse` method parses a passed property string and value for
+                //  the appropriate property and valid value, if no valid value or
+                //  property is passed, null is returned
                 value: function (property, value) {
                     if (validStringValue(property)) {
                         if (/^border[A-Z]*|height|left|top|width$/ig.test(property)) {
@@ -1192,7 +1195,7 @@ var chroma, grab;
                 }
             },
             properties: {
-                //  The `properties` object is a store of all property values
+                //  The `properties` property stores all property values
                 value: {
                     backgroundColor: chroma(styles.backgroundColor) || {channels: {}},
                     color: chroma(styles.color) || {channels: {}},
@@ -1207,15 +1210,16 @@ var chroma, grab;
                 }
             },
             prepend: {
+                //  The `prepend` method inserts a DOM object to the front of its
+                //  children, it removes the child from its current parent if a
+                //  `parentNode` is present, returning itself
                 value: function (child) {
-                    //  The prepend method will remove the child from its current DOM location
-                    //  and prepend it inside of itself, returning itself
                     var i;
                     if (validStringValue(child)) {
                         this.prepend(grab(child));
-                    } else if (validElement(child)) {
+                    } else if (validGrabElement(child)) {
                         if (child.element.parentNode)
-                            child.exit();
+                            child.element.parentNode.removeChild(child.element);
                         this.element.prepend(child.element);
                     } else if (child.length) {
                         for (i = 0; i < child.length; i = i + 1)
@@ -1225,6 +1229,7 @@ var chroma, grab;
                 }
             },
             opacity: {
+                //  The `opacity` property gets and sets the DOM object opacity style
                 get: function () {
                     return this.properties.opacity;
                 },
@@ -1238,11 +1243,12 @@ var chroma, grab;
                 }
             },
             remove: {
+                //  The `remove` method removes a child element from its children
                 value: function (child) {
-                    //  The remove method removes children from the owner's children nodes,
-                    //  returning itself
                     var i,
                         len;
+                    //  First check to make sure that this element is indeed the parent
+                    //  of the passed child
                     if (!child || child.element.parentNode !== this.element)
                         return this;
                     if (validStringValue(child)) {
@@ -1259,9 +1265,9 @@ var chroma, grab;
                 }
             },
             removeClass: {
+                //  The `removeClass` method removes a passed string, or array of
+                //  strings as class selectors from the DOM object, returning itself
                 value: function (className) {
-                    //  The removeClass method removes a passed string, or array of
-                    //  strings as css classes on the element, returning itself
                     var i,
                         len;
                     if (validStringValue(className)) {
@@ -1287,17 +1293,17 @@ var chroma, grab;
                 }
             },
             toggle: {
+                //  The `toggle` method sets the DOM object display property to the
+                //  opposite of its current value, returning itself
                 value: function () {
-                    //  The toggle method sets the element's display to either
-                    //  `none` or `block`, returning itself
                     this.display = this.display === 'none' ? 'block' : 'none';
                     return this;
                 }
             },
             toggleClass: {
+                //  The `toogleClass` method toggles a passed string, or array of
+                //  strings as class selectors for the DOM object, returning itself
                 value: function (className) {
-                    //  The toggleClass method toggles a passed string, or array of
-                    //  strings as css classes on the element, returning itself
                     var i;
                     if (validString(className)) {
                         if (className.includes(',')) {
@@ -1313,12 +1319,13 @@ var chroma, grab;
                 }
             },
             top: {
+                //  The `top` property get and sets the DOM object top style
                 get: function () {
                     return this.properties.top
                 },
                 set: function (value) {
                     var t = this.parse('top', value);
-                    if (validNumber(t)) {
+                    if (validNumberValue(t)) {
                         this.properties.top = t;
                         this.element.style.top = t + 'px';
                     }
@@ -1326,32 +1333,38 @@ var chroma, grab;
                 }
             },
             uniqueId: {
+                //  The `uniqueId` property hold the `GrabElement` unique id
                 value: uniqueId(u)
             },
             update: {
+                //  The `update` method updates the `GrabElement` with the passed
+                //  property and value
                 value: function (property, value) {
                     this[property] = value;
                 }
             },
             visibility: {
+                //  The `visibility` property gets and sets the DOM object visibility
+                //  style
                 get: function () {
                     return this.properties.visibility;
                 },
                 set: function (value) {
                     if (validString(value)) {
                         this.element.style.visibility = value;
-                        this.properties.visibility = this.element.style.visibility; // get last valid visibility
+                        this.properties.visibility = this.element.style.visibility; // get last valid value
                     }
                     return value;
                 }
             },
             width: {
+                //  The `width` property gets and sets the DOM object width style
                 get: function () {
                     return this.properties.width;
                 },
                 set: function (value) {
                     var w = this.parse('width', value);
-                    if (validNumber(w)) {
+                    if (validNumberValue(w)) {
                         this.properties.width = w;
                         this.element.style.width = w + 'px';
                     }
@@ -1359,12 +1372,13 @@ var chroma, grab;
                 }
             },
             zIndex: {
+                //  The `zIndex` property gets and sets the DOM object z-index style
                 get: function () {
                     return this.properties.zIndex;
                 },
                 set: function (value) {
                     var z = parseInt(value, 10);
-                    if (validNumber(z)) {
+                    if (validNumberValue(z)) {
                         this.properties.zIndex = z;
                         this.element.style.zIndex = z;
                     }
