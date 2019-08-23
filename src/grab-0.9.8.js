@@ -1,5 +1,5 @@
 var chroma, grab;
-//  Chroma Library
+//  ChromaColor Library
 (function () {
     var dictionary = {
         snow: [255, 250, 250], ghostwhite: [248, 248, 255], whitesmoke: [245, 245, 245],
@@ -53,10 +53,15 @@ var chroma, grab;
         silver: [192, 192, 192], teal: [0, 128, 128]
     };
     //  Validation Functions  //
-    function validChroma (obj) {
+    function validChromaChannel (obj) {
         if (typeof obj !== 'object' || obj === null)
             return false;
-        return Object.getPrototypeOf(obj) === Chroma.prototype;
+        return Object.getPrototypeOf(obj) === ChromaChannel.prototype;
+    }
+    function validChromaColor (obj) {
+        if (typeof obj !== 'object' || obj === null)
+            return false;
+        return Object.getPrototypeOf(obj) === ChromaColor.prototype;
     }
     function validHsx (arr) {
         var i;
@@ -160,7 +165,7 @@ var chroma, grab;
                     return validRgb(match) ? true : false;
                 }
             }
-        } else if (validChroma(value)) {
+        } else if (validChromaColor(value) || validChromaChannel(value)) {
             return true;
         }
         return false;
@@ -242,7 +247,7 @@ var chroma, grab;
                     return validRgb(match) ? ['rgba'].concat(match) : null;
                 }
             }
-        } else if (validChroma(model)) {
+        } else if (validChromaColor(model) || validChromaChannel(model)) {
             return ['rgba'].concat(parse([model.red, model.green, model.blue, model.alpha]));
         }
         return null;
@@ -475,8 +480,14 @@ var chroma, grab;
                 return toX11(channels);
         }
     }
-    //  Chroma Object  //
-    function Chroma (model, red, green, blue, alpha) {
+    function ChromaChannel (alpha, blue, green, red) {
+        this.alpha = typeof alpha === 'number' && Number.isFinite(alpha) ? alpha : 1;
+        this.blue = blue;
+        this.green = green;
+        this.red = red;
+    }
+    //  ChromaColor Object  //
+    function ChromaColor (model, red, green, blue, alpha) {
         Object.defineProperties(this, {
             alpha: {
                 get: function () {
@@ -499,12 +510,7 @@ var chroma, grab;
                 }
             },
             channels: {
-                value: {
-                    alpha: typeof alpha === 'number' && Number.isFinite(alpha) ? alpha : 1,
-                    blue: blue,
-                    green: green,
-                    red: red
-                }
+                value: new ChromaChannel(alpha, blue, green, red)
             },
             green: {
                 get: function () {
@@ -545,6 +551,11 @@ var chroma, grab;
                     if (typeof model === 'string' && /^hexa?|hsla?|hsva?|rgba?|x11$/ig.test(model))
                         return to(model, this.channels);
                     return null;
+                }
+            },
+            toChannels: {
+                value: function () {
+                    return new ChromaChannel(this.channels.alpha, this.channels.blue, this.channels.green, this.channels.red);
                 }
             },
             toHex: {
@@ -599,18 +610,18 @@ var chroma, grab;
             }
         });
     }
-    //  Chroma Function  //
+    //  ChromaColor Function  //
     chroma = function (model) {
         var parsed,
             channels;
         if (validModel(model)) {
             parsed = parseModel(model);
             channels = from(parsed);
-            return new Chroma(parsed[0], channels[0], channels[1], channels[2], channels[3]);
+            return new ChromaColor(parsed[0], channels[0], channels[1], channels[2], channels[3]);
         }
         return null;
     };
-    //  Chroma Methods  //
+    //  ChromaColor Methods  //
     chroma.contrast = function (color1, color2) {
         var c1 = chroma(color1),
             c2 = chroma(color2);
@@ -751,15 +762,15 @@ var chroma, grab;
         function collect () {
             var i,
                 len,
-                updates = [];
+                remaining = [];
             for (i =0, len = loop.updates.length; i < len; i = i + 1) {
                 if (loop.updates[i].complete) {
                     loop.events.dispatch(loop.updates[i].eventId);
                 } else {
-                    updates.push(loop.updates[i]);
+                    remaining.push(loop.updates[i]);
                 }
             }
-            loop.updates = updates;
+            loop.updates = remaining;
             return null;
         }
         function grabLoop (timestamp) {
@@ -813,74 +824,54 @@ var chroma, grab;
         //  The `GrabColorAnimation` function returns a `GrabColorAnimation` object that is used
         //  to update a `GrabElement` animation
         function GrabColorAnimation (origin, target) {
-            // Object.defineProperties(this, {
-            //     origin: {
-            //         get: function () {
-            //             return this.values.origin;
-            //         }
-            //     },
-            //     render: {
-            //         value: function (interpolation) {
-            //             if (validNumberValue(interpolation))
-            //                 return this.values.current = this.values.last + (this.values.current - this.values.last) * interpolation;
-            //         }
-            //     },
-            //     target: {
-            //         get: function () {
-            //             return this.values.target;
-            //         }
-            //     },
-            //     update: {
-            //         value: function (e) {
-            //             if (validNumberValue(e)) {
-            //                 this.values.last = this.value.current;
-            //                 this.values.current = this.vector * e + this.values.origin;
-            //             }
-            //         }
-            //     },
-            //     values: {
-            //         //  The `values` property stores the animation property values
-            //         value: {
-            //             current: origin,
-            //             last: undefined,
-            //             origin: origin,
-            //             target: target
-            //         }
-            //     },
-            //     vector: {
-            //         get: function () {
-            //             return this.target - this.origin;
-            //         }
-            //     }
-            // });
+            Object.defineProperties(this, {
+                render: {
+                    value: function (interpolation) {
+                        var channel;
+                        if (validNumberValue(interpolation))
+                            for (channel in this.values.current)
+                                this.values.current[channel] = this.values.last[channel] + (this.values.current[channel] - this.values.last[channel]) * interpolation;
+                            return this.values.current;
+                    }
+                },
+                update: {
+                    value: function (e) {
+                        var channel;
+                        if (validNumberValue(e)) {
+                            for (channel in this.values.current) {
+                                this.values.last[channel] = this.values.current[channel];
+                                this.values.current[channel]  = (this.values.target[channel] - this.values.origin[channel]) * e + this.values.origin[channel];
+                            }
+                        }
+                    }
+                },
+                values: {
+                    //  The `values` property stores the animation property values
+                    value: {
+                        current: origin.toChannels(),
+                        last: {},
+                        origin: origin.toChannels(),
+                        target: target.toChannels()
+                    }
+                }
+            });
         }
         //  GRAB ANIMATION OBJECT  //
         //  The `GrabAnimation` function returns a `GrabAnimation` object that is used
         //  to update a `GrabElement` animation
         function GrabAnimation (origin, target) {
             Object.defineProperties(this, {
-                origin: {
-                    get: function () {
-                        return this.values.origin;
-                    }
-                },
                 render: {
                     value: function (interpolation) {
-                        // console.log(interpolation);
                         if (validNumberValue(interpolation))
                             return this.values.current = this.values.last + (this.values.current - this.values.last) * interpolation;
-                    }
-                },
-                target: {
-                    get: function () {
-                        return this.values.target;
                     }
                 },
                 update: {
                     value: function (easing) {
                         if (validNumberValue(easing)) {
                             this.values.last = this.values.current;
-                            this.values.current = this.vector * easing + this.values.origin;
+                            this.values.current = (this.values.target - this.values.origin) * easing + this.values.origin;
                         }
                     }
                 },
@@ -891,11 +882,6 @@ var chroma, grab;
                         last: undefined,
                         origin: origin,
                         target: target
-                    }
-                },
-                vector: {
-                    get: function () {
-                        return this.values.target - this.values.origin;
                     }
                 }
             });
@@ -973,8 +959,7 @@ var chroma, grab;
             function getUpdateArgs (args) {
                 var i,
                     j,
-                    arr = [],
-                defaults = {0: 1000, 1: grabDefault.easing, 2: null},
+                    arr = [1000, grabDefault.easing, null],
                 validation = [validNumberValue, validStringValue, validFunction];
                 //  Iterate though the length of arguments, sans the first two values (the
                 //  `GrabElement` and values object being the first two) and set deafult
@@ -982,8 +967,7 @@ var chroma, grab;
                 for (i = 2; i < args.length; i = i + 1)
                     for (j = 0; j < validation.length; j = j + 1)
                         if (validation[j](args[i]))
-                            arr.push(args[i] || defaults[j]);
-                        // arr.push(validation[j](args[i]) ? args[i] : defaults[j]);
+                            arr[j] = args[i];
                 return arr;
             }
             Object.defineProperties(this, {
@@ -994,8 +978,8 @@ var chroma, grab;
                         if (values && validLiteral(values)) {
                             Object.keys(values).forEach(function (property) {
                                 // <- remove duplicates here
-                                if (/^[A-Z]*color$/g.test(property)) {
-                                    update.animations[property] = new GrabColorAnimation(object[property], values[property]);
+                                if (/^[A-Z]*color$/ig.test(property)) {
+                                    update.animations[property] = new GrabColorAnimation(object[property], chroma(values[property]));
                                 } else {
                                     update.animations[property] = new GrabAnimation(object[property], values[property]);
                                 }
@@ -1189,7 +1173,7 @@ var chroma, grab;
                     if (values && validLiteral(values)) {
                         for (property in values)
                             if (/^[A-Z]*color|height|left|opacity|top|width$/ig.test(property))
-                                translated[property] = /^A-Z*color$/.test(property) ? chroma(values[property]) : this.parse(property, values[property]);
+                                translated[property] = /^[A-Z]*color$/ig.test(property) ? chroma(values[property]) : this.parse(property, values[property]);
                         loop.add(this, translated, duration, easing, complete);
                     }
                     return this;
@@ -1271,7 +1255,7 @@ var chroma, grab;
                         //  If the valid color model is an object literal, it will be
                         //  merged into a copy of the current `backgroundColor`
                         //  property's `channels` property; this is for animations
-                        color = validLiteral(value) ? chroma(Object.assign(Object.assign({}, this.properties.backgroundColor.channels), value)) : chroma(value);
+                        color = chroma(value);
                         this.properties.backgroundColor = color;
                         this.element.style.backgroundColor = color.toModel(); // <-- !!! Don't forget to add this to chroma
                     }
