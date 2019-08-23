@@ -675,10 +675,22 @@ var chroma, grab;
         return typeof value === 'string' && value.length;
     }
     //  AUXILLARY FUNCTIONS  //
+    //  The `copyObject` functions returns a shallow copy of an object
     function copyObject (value) {
         if (typeof value !== 'object' || value === null)
             return {};
         return Object.assign({}, value);
+    }
+    //  The `uniqueId` function returns a 32 character hexidecimal unique
+    //  identification string
+    function uniqueId (z) {
+        if (!validNumber(z));
+            z = 0;
+        return ('xxxxxxxx-xxxx-' + z % 10 + 'xxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0,
+                v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
     }
     //  Loop
     (function () {
@@ -1009,6 +1021,103 @@ var chroma, grab;
                     return this;
                 }
             },
+            fadeIn: {
+                value: function () {
+                    //  Do something
+                }
+            },
+            fadeOut: {
+                value: function () {
+                    //  Do something
+                }
+            },
+            find: {
+                //  The `find` method searches an element and all its decendents for
+                //  the matching selector, returning either a new `GrabCollection` or
+                //  `GrabElement` of the matched selector, if there are no matches or
+                //  an invalid selector was passed, it will return an empty
+                //  `GrabCollection` object
+                value: function (selector) {
+                    var children = [];
+                    if (validStringValue(selector)) {
+                        children = this.element.querySelectorAll(selector);
+                        if (children)
+                            return children.length > 1 ? new GrabCollection(children) : new GrabElement(children[0]);
+                    }
+                    return new GrabCollection([]);
+                }
+            },
+            classes: {
+                //  The `classes` property returns an array of all CSS class selectors
+                //  on the DOM element
+                get: function () {
+                    return this.element.className.split(' ');
+                }
+            },
+            height: {
+                //  The `height` property gets and sets the DOM element's height value
+                get: function () {
+                    return this.values.height;
+                },
+                set: function (value) {
+                    var h = this.parse('height', value);
+                    if (validNumberValue(h)) {
+                        this.values.height = h;
+                        this.element.style.height = h + 'px';
+                    }
+                    return value;
+                }
+            },
+            hide: {
+                //  The `hide` method will set the DOM element visibility to `hidden`
+                //  and return itself
+                value: function () {
+                    this.visibility = 'hidden';
+                    return this;
+                }
+            },
+            hover: {
+                //  The `hover` method sets a hover event on a DOM element and stores
+                //  it into the `events` property
+                value: function (enter, exit) {
+                    var id = uniqueId();
+                    if (validFunction(enter) || validFunction(exit)) {
+                        this.events[id] = {event: 'hover', fn: {}};
+                        if (validFunction(enter)) {
+                            this.events[id].fn = {enter: enter.bind(this)};
+                            this.element.addEventListener('mouseenter', this.events[id].fn.enter);
+                        }
+                        if (validFunction(exit)) {
+                            Object.assign(this.events[id].fn, {exit: exit.bind(this)});
+                            this.element.addEventListener('mouseleave', this.events[id].fn.exit);
+                        }
+                    }
+                    return this;
+                }
+            },
+            html: {
+                //  The `html` property gets and sets the DOM element's `innerHTML`
+                //  property
+                get: function () {
+                    return this.element.innerHTML;
+                },
+                set: function (value) {
+                    if (validString(value))
+                        this.element.innerHTML = value;
+                    return value;
+                }
+            },
+            id: {
+                //  The `id` property gets and sets the DOM element's id selector
+                get: function () {
+                    return this.element.id;
+                },
+                set: function (value) {
+                    if (validStringValue(value) && /^[a-z][\da-zA-Z-_]+$/g.test(value))
+                        this.element.id = value;
+                    return value;
+                }
+            },
             properties: {
                 //  The `properties` object is a store of all property values
                 value: {
@@ -1175,7 +1284,7 @@ var chroma, grab;
                 //  An array-like object has been created by `grab`, if the object has
                 //  a single value, return a single `GrabElement`, else return a new
                 //  `GrabCollection` object
-                return selected.length === 1 ? new GrabElement(selected[0]) : new GrabCollection(selected);
+                return selected.length > 1 ? new GrabCollection(selected) : new GrabElement(selected[0]);
             } else if (selected.nodeType) {
                 // A DOM object has been created by `grab`
                 return new GrabElement(selected);
