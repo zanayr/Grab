@@ -627,7 +627,7 @@ var chroma, grab;
 }());
 //  Grab Library
 (function () {
-    var rhythym;
+    var loop;
     //  VALIDATION FUNCTIONS  //
     function validGrabCollection (value) {
         if (typeof value !== 'object' || value === null)
@@ -674,7 +674,13 @@ var chroma, grab;
     function validStringValue (value) {
         return typeof value === 'string' && value.length;
     }
-    //  Rhythm Library
+    //  AUXILLARY FUNCTIONS  //
+    function copyObject (value) {
+        if (typeof value !== 'object' || value === null)
+            return {};
+        return Object.assign({}, value);
+    }
+    //  Loop
     (function () {
 
     }());
@@ -809,7 +815,7 @@ var chroma, grab;
                         //  property's `channels` property; this is for animations
                         color = validLiteral(value) ? chroma(Object.assign(Object.assign({}, this.properties.backgroundColor.channels), value)) : chroma(value);
                         this.properties.backgroundColor = color;
-                        this.element.style.backgroundColor = color.toModel();
+                        this.element.style.backgroundColor = color.toModel(); // <-- !!! Don't forget to add this to chroma
                     }
                     return value;
                 }
@@ -872,12 +878,143 @@ var chroma, grab;
                     return new GrabCollection(this.element.children);
                 }
             },
+            clear: {
+                //  The `clear` method clears all event listeners on an element that
+                //  match the passed event string, if no string is passed, all events
+                //  will be cleared, returning itself
+                value: function (event) {
+                    var e;
+                    if (validStringValue(event)) {
+                        for (e in copyObject(this.events)) {
+                            if (this.events[e].event === event) {
+                                if (event === 'hover') {
+                                    this.element.removeEventListener('mouseenter', this.events[e].fn.enter);
+                                    this.element.removeEventListener('mouseleave', this.events[e].fn.exit);
+                                } else {
+                                    this.element.removeEventListener(this.events[e].event, this.events[e].fn);
+                                }
+                                delete this.events[e];
+                            }
+                        }
+                    } else if (!event) {
+                        for (e in copyObject(this.events)) {
+                            if (event === 'hover') {
+                                this.element.removeEventListener('mouseenter', this.events[e].fn.enter);
+                                this.element.removeEventListener('mouseleave', this.events[e].fn.exit);
+                            } else {
+                                this.element.removeEventListener(this.events[e].event, this.events[e].fn);
+                            }
+                            delete this.events[e];
+                        }
+                    }
+                    return this;
+                }
+            },
+            color: {
+                //  The `color` property gets and sets the DOM object's font color
+                //  style; the `color` property uses the chroma library to parse colors
+                get: function () {
+                    return this.properties.color;
+                },
+                set: function (value) {
+                    var color;
+                    //  Check if a valid color model has been passed
+                    if (chroma.validate(value)) {
+                        //  If the valid color model is an object literal, it will be
+                        //  merged into a copy of the current `color` property's
+                        //  `channels` property; this is for animations
+                        color = validLiteral(value) ? chroma(Object.assign(Object.assign({}, this.properties.backgroundColor.channels), value)) : chroma(value);
+                        this.properties.color = color;
+                        this.element.style.color = color.toModel(); // <-- !!! Don't forget to add this to chroma
+                    }
+                    return value;
+                }
+            },
+            css: {
+                //  The `css` method is passed a property string and sets the
+                //  appropriate element's property with the passed value; the `css`
+                //  method can also be passed an object of property/value pairs and
+                //  will iterate though them, returning itself
+                value: function (property, value) {
+                    var p;
+                    if (validStringValue(property) && this.element.style.hasOwnProperty(property)) {
+                        this.element.style[property] = value;
+                    } else if (validLiteral(property)) {
+                        for (p in property)
+                            this.css(property, property[p]);
+                    }
+                    return this;
+                }
+            },
+            data: {
+                //  The `data` method, when passed a valid data and value value,
+                //  will add a new data attribute and value to its DOM object; when no
+                //  values are passed, the `data` method will return all data values on
+                //  the DOM object, returning itself
+                value: function (datum, value) {
+                    var data,
+                        dt,
+                        all = {};
+                    if (validStringValue(datum) && validStringValue(value)) {
+                        this.element.setAttribute('data-' + datum.replace(/\s/, '-').trim().toLowerCase(), value);
+                    } else if (validLiteral(datum)) {
+                        for (data in datum)
+                            this.data(data, datum[data]);
+                    } else if (!datum) {
+                        data = this.element.attributes;
+                        Object.keys(data).forEach(function (a) {
+                            dt = data[a].name;
+                            var key = dt.replace(/^data-/g, '').split('-').map(function (s, i) {
+                                return i ? s[0].toUpperCase() + s.slice(1).toLowerCase() : s;
+                            }).join('');
+                            //  If the attribute matches 'data-*', remove the 'data-'
+                            //  substring and split the string at the hyphens; iterate
+                            //  through each substring, changing any substring after
+                            //  the first to Capital Case; then join it without spaces
+                            //  and make it the key for the equivalent object value
+                            //  from the attributes object
+                            if (/^data-[A-Z-]+$/ig.test(dt))
+                                all[key] = data[a].value;
+                        });
+                        return all;
+                    }
+                    return this;
+                }
+            },
+            display: {
+                get: function () {
+                    return this.properties.display;
+                },
+                set: function (value) {
+                    if (validStringValue(value)) {
+                        this.element.style.display = value;
+                        this.properties.display = this.element.style.display; // Get the last valid value
+                    }
+                    return value;
+                }
+            },
             element: {
+                //  The `element` property stores the DOM object for the `GrabElement`
                 value: element
             },
+            events: {
+                //  The `events` object is a store of all the events set on the object
+                value: {}
+            },
+            exit: {
+                //  The `exit` method removes the element from its parent
+                value: function () {
+                    if (this.element.parentNode)
+                        this.element.parentNode.removeChild(this.element);
+                    return this;
+                }
+            },
             properties: {
+                //  The `properties` object is a store of all property values
                 value: {
-                    backgroundColor: chroma(styles['backgroundColor']) || {channels: {}}
+                    backgroundColor: chroma(styles.backgroundColor) || {channels: {}},
+                    color: chroma(styles.color) || {channels: {}},
+                    display: styles.display || 'block'
                 }
             },
             selector: {
