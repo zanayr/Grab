@@ -627,7 +627,11 @@ var chroma, grab;
 }());
 //  Grab Library
 (function () {
-    var loop;
+    var loop,
+        grabDefault = {
+            easing: 'linear',
+            fps: 60
+        };
     //  VALIDATION FUNCTIONS  //
     function validGrabCollection (value) {
         if (typeof value !== 'object' || value === null)
@@ -694,7 +698,441 @@ var chroma, grab;
     }
     //  Loop
     (function () {
-
+        var easingFunctions = {
+            linear: function (d) {
+                return d;
+            }, 
+            easeInQuad: function (d) {
+                return Math.pow(d, 2);
+            },
+            easeInCubic: function (d) {
+                return Math.pow(d, 3);
+            },
+            easeInQuart: function (d) {
+                return Math.pow(d, 4);
+            },
+            easeInQuint: function (d) {
+                return Math.pow(d, 5);
+            },
+            easeOutQuad: function (d) {
+                return 1 - Math.pow(1 - d, 2);
+            },
+            easeOutCubic: function (d) {
+                return 1 - Math.pow(1 - d, 3);
+            },
+            easeOutQuart: function (d) {
+                return 1 - Math.pow(1 - d, 4);
+            },
+            easeOutQuint: function (d) {
+                return 1 - Math.pow(1 - d, 5);
+            }
+        };
+        function waiting () {
+            if (loop.waiting.length) {
+                loop.updates = loop.updates.concat(loop.waiting);
+                loop.waiting.length = 0;
+            }
+            return null;
+        }
+        function update () {
+            var i,
+                len;
+            for (i = 0, len = loop.updates.length; i < len; i = i + 1)
+                loop.updates[i].update(loop.timestep);
+            return null;
+        }
+        function render (interpolation) {
+            var i,
+                len;
+            for (i = 0, len = loop.updates.length; i < len; i = i + 1)
+                loop.updates[i].render(interpolation);
+            return null;
+        }
+        function collect () {
+            var i,
+                len,
+                updates = [];
+            for (i =0, len = loop.updates.length; i < len; i = i + 1) {
+                if (loop.updates[i].complete) {
+                    loop.events.dispatch(loop.updates[i].eventId);
+                } else {
+                    updates.push(loop.updates[i]);
+                }
+            }
+            loop.updates = updates;
+            return null;
+        }
+        function grabLoop (timestamp) {
+            var cycles = 0;
+            if (loop.state) {
+                waiting();
+                if (timestamp < loop.lastFrameTime + loop.timestep) {
+                    loop.frameId = window.requestAnimationFrame(grabLoop);
+                    return;
+                }
+                loop.delta = loop.delta + (timestamp - loop.lastFrameTime);
+                loop.lastFrameTime = timestamp;
+                if (timestamp > loop.lastFrameTime + 1000) {
+                    loop.framesPerSecond = 0.25 * loop.framesThisSecond + 0.75 * loop.framesPerSecond;
+                    loop.lastFramesPerSecond = timestamp;
+                    loop.framesThisSecond = 0;
+                }
+                loop.framesThisSecond = loop.framesThisSecond + 1;
+                while (loop.delta >= loop.timestep) {
+                    update();
+                    loop.delta = loop.delta - loop.timestep;
+                    cycles = cycles + 1;
+                    if (cycles >= 240) {
+                        loop.delta = 0;
+                        break;
+                    }
+                }
+                render(loop.delta / loop.timestep);
+                collect();
+                if (loop.updates.length || loop.waiting.length) {
+                    loop.frameId = window.requestAnimationFrame(grabLoop);
+                } else {
+                    loop.state = 0;
+                    window.cancelAnimationFrame(loop.frameId);
+                }
+            }
+        }
+        function start () {
+            if (!loop.state) {
+                loop.frameId = window.requestAnimationFrame(function (timestamp) {
+                    loop.state = 1;
+                    render(1);
+                    loop.lastFrameTime = timestamp;
+                    loop.lastFramesPerSecond = timestamp;
+                    loop.framesThisSecond = 0;
+                    loop.frameId = window.requestAnimationFrame(grabLoop);
+                });
+            }
+        }
+        //  GRAB COLOR ANIMATION OBJECT  //
+        //  The `GrabColorAnimation` function returns a `GrabColorAnimation` object that is used
+        //  to update a `GrabElement` animation
+        function GrabColorAnimation (origin, target) {
+            // Object.defineProperties(this, {
+            //     origin: {
+            //         get: function () {
+            //             return this.values.origin;
+            //         }
+            //     },
+            //     render: {
+            //         value: function (interpolation) {
+            //             if (validNumberValue(interpolation))
+            //                 return this.values.current = this.values.last + (this.values.current - this.values.last) * interpolation;
+            //         }
+            //     },
+            //     target: {
+            //         get: function () {
+            //             return this.values.target;
+            //         }
+            //     },
+            //     update: {
+            //         value: function (e) {
+            //             if (validNumberValue(e)) {
+            //                 this.values.last = this.value.current;
+            //                 this.values.current = this.vector * e + this.values.origin;
+            //             }
+            //         }
+            //     },
+            //     values: {
+            //         //  The `values` property stores the animation property values
+            //         value: {
+            //             current: origin,
+            //             last: undefined,
+            //             origin: origin,
+            //             target: target
+            //         }
+            //     },
+            //     vector: {
+            //         get: function () {
+            //             return this.target - this.origin;
+            //         }
+            //     }
+            // });
+        }
+        //  GRAB ANIMATION OBJECT  //
+        //  The `GrabAnimation` function returns a `GrabAnimation` object that is used
+        //  to update a `GrabElement` animation
+        function GrabAnimation (origin, target) {
+            Object.defineProperties(this, {
+                origin: {
+                    get: function () {
+                        return this.values.origin;
+                    }
+                },
+                render: {
+                    value: function (interpolation) {
+                        // console.log(interpolation);
+                        if (validNumberValue(interpolation))
+                            return this.values.current = this.values.last + (this.values.current - this.values.last) * interpolation;
+                    }
+                },
+                target: {
+                    get: function () {
+                        return this.values.target;
+                    }
+                },
+                update: {
+                    value: function (easing) {
+                        if (validNumberValue(easing)) {
+                            this.values.last = this.values.current;
+                            this.values.current = this.vector * easing + this.values.origin;
+                        }
+                    }
+                },
+                values: {
+                    //  The `values` property stores the animation property values
+                    value: {
+                        current: origin,
+                        last: undefined,
+                        origin: origin,
+                        target: target
+                    }
+                },
+                vector: {
+                    get: function () {
+                        return this.values.target - this.values.origin;
+                    }
+                }
+            });
+        }
+        function GrabUpdate (object, duration, easing, uniqueId) {
+            Object.defineProperties(this, {
+                animations: {
+                    value: {}
+                },
+                complete: {
+                    get: function () {
+                        return this.values.time >= this.values.duration
+                    }
+                },
+                duration: {
+                    get: function () {
+                        return  this.values.duration;
+                    }
+                },
+                eventId: {
+                    get: function () {
+                        return this.values.eventId;
+                    }
+                },
+                object: {
+                    get: function () {
+                        return this.store.object;
+                    }
+                },
+                render: {
+                    value: function (interpolation) {
+                        var property;
+                        if (validNumberValue(interpolation)) {
+                            for (property in this.animations)
+                                this.object[property] = this.animations[property].render(interpolation);
+                            return true;
+                        }
+                        return false;
+                    }
+                },
+                store: {
+                    value: {
+                        object: object
+                    }
+                },
+                uniqueId: {
+                    get: function () {
+                        return this.values.uniqueId;
+                    }
+                },
+                update: {
+                    value: function (step) {
+                        var property;
+                        if (validNumberValue(step)) {
+                            this.values.time = this.values.time + step;
+                            for (property in this.animations)
+                                this.animations[property].update(this.values.time / this.values.duration >= 1 ? 1 : easingFunctions[this.values.easing](this.values.time / this.values.duration));
+                            return true;
+                        }
+                        return false;
+                    }
+                },
+                values: {
+                    value: {
+                        duration: duration,
+                        easing: easing,
+                        eventId: uniqueId.replace(/-/g, '-').toUpperCase(),
+                        time: 0,
+                        uniqueId: uniqueId
+                    }
+                }
+            });
+        }
+        function Loop () {
+            function getUpdateArgs (args) {
+                var i,
+                    j,
+                    arr = [],
+                defaults = {0: 1000, 1: grabDefault.easing, 2: null},
+                validation = [validNumberValue, validStringValue, validFunction];
+                //  Iterate though the length of arguments, sans the first two values (the
+                //  `GrabElement` and values object being the first two) and set deafult
+                //  values for all missing parameters
+                for (i = 2; i < args.length; i = i + 1)
+                    for (j = 0; j < validation.length; j = j + 1)
+                        if (validation[j](args[i]))
+                            arr.push(args[i] || defaults[j]);
+                        // arr.push(validation[j](args[i]) ? args[i] : defaults[j]);
+                return arr;
+            }
+            Object.defineProperties(this, {
+                add: {
+                    value: function (object, values) {
+                        var args = getUpdateArgs(arguments),
+                            update = new GrabUpdate(object, args[0], args[1], uniqueId());
+                        if (values && validLiteral(values)) {
+                            Object.keys(values).forEach(function (property) {
+                                // <- remove duplicates here
+                                if (/^[A-Z]*color$/g.test(property)) {
+                                    update.animations[property] = new GrabColorAnimation(object[property], values[property]);
+                                } else {
+                                    update.animations[property] = new GrabAnimation(object[property], values[property]);
+                                }
+                            });
+                            if (validFunction(args[2]))
+                                this.events.register(update.eventId, args[2]);
+                            this.waiting.push(update);
+                            if (!this.state)
+                                start();
+                            return true;
+                        }
+                        return false;
+                    }
+                },
+                delta: {
+                    get: function () {
+                        return this.values.delta;
+                    },
+                    set: function (value) {
+                        if (validNumberValue(value))
+                            this.values.delta = value;
+                        return value;
+                    }
+                },
+                events: {
+                    value: {}
+                },
+                frameId: {
+                    get: function () {
+                        return this.values.frameId;
+                    },
+                    set: function (value) {
+                        if (validNumberValue(value))
+                            this.values.frameId = value;
+                    }
+                },
+                framesPerSecond: {
+                    get: function () {
+                        return this.values.framesPerSecond;
+                    },
+                    set: function (value) {
+                        if (validNumberValue(value))
+                            this.values.framesPerSecond = value;
+                    }
+                },
+                framesThisSecond: {
+                    get: function () {
+                        return this.values.framesThisSecond;
+                    },
+                    set: function (value) {
+                        if (validNumberValue(value))
+                            this.values.framesThisSecond = value;
+                    }
+                },
+                lastFramesPerSecond: {
+                    get: function () {
+                        return this.values.lastFramesPerSecond;
+                    },
+                    set: function (value) {
+                        if (validNumberValue(value))
+                            this.values.lastFramesPerSecond = value;
+                    }
+                },
+                lastFrameTime: {
+                    get: function () {
+                        return this.values.lastFrameTime;
+                    },
+                    set: function (value) {
+                        this.values.lastFrameTime = value;
+                    }
+                },
+                maxFramesPerSecond: {
+                    get: function () {
+                        return this.values.maxFramesPerSecond;
+                    },
+                    set: function (value) {
+                        if (validNumberValue(value))
+                            this.values.maxFramesPerSecond;
+                    }
+                },
+                state: {
+                    get: function () {
+                        return this.values.state;
+                    },
+                    set: function (value) {
+                        if (value === 0 || value === 1)
+                            this.values.state = value;
+                    }
+                },
+                timestep: {
+                    get: function () {
+                        return 1000 / this.maxFramesPerSecond;
+                    }
+                },
+                updates: {
+                    value: [],
+                    writable: true
+                },
+                values: {
+                    value: {
+                        delta: 0,
+                        frameId: 0,
+                        framesPerSecond: 0,
+                        framesThisSecond: 0,
+                        lastFrameTime: 0,
+                        maxFramesPerSecond: grabDefault.fps,
+                        state: 0
+                    }
+                },
+                waiting: {
+                    value: []
+                }
+            });
+            Object.defineProperties(this.events, {
+                events: {
+                    value: {}
+                },
+                dispatch: {
+                    value: function (id) {
+                        if (!this.events[id])
+                            return false;
+                        setTimeout(function () {
+                            this.events[id].f();
+                            delete this.events[id];
+                        }.bind(this), 0);
+                        return true;
+                    }
+                },
+                register: {
+                    value: function (id, fn) {
+                        this.events[id] = {f: fn};
+                        return id;
+                    }
+                }
+            });
+        }
+        loop = new Loop();
     }());
     //  GRAB ELEMENT OBJECT  //
     //  The `GrabElement` function returns a single `GrabElement` object and several
@@ -746,7 +1184,15 @@ var chroma, grab;
                 //  The `animate` method pass a list of values and parameters to the
                 //  `rhythm` library to be updated and rendered, returning itself
                 value: function (values, duration, easing, complete) {
-
+                    var translated = {},
+                        property;
+                    if (values && validLiteral(values)) {
+                        for (property in values)
+                            if (/^[A-Z]*color|height|left|opacity|top|width$/ig.test(property))
+                                translated[property] = /^A-Z*color$/.test(property) ? chroma(values[property]) : this.parse(property, values[property]);
+                        loop.add(this, translated, duration, easing, complete);
+                    }
+                    return this;
                 }
             },
             append: {
@@ -1188,9 +1634,9 @@ var chroma, grab;
                                 return parseFloat(value, 10);
                             }
                         }
-                    } else if (validNumberValue(value)) {
-                        return value;
                     }
+                    if (validNumberValue(value))
+                        return value;
                     return null;
                 }
             },
