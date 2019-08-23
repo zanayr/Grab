@@ -1,7 +1,12 @@
-.DS_Store
-*.html
-*.css
-*.txt
+#FOLDERS
 /env/
 /last/
 /tests/
+
+#FILES
+*.txt
+*.html
+*.css
+
+#MISC
+.DS_Store
