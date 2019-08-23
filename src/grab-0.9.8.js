@@ -764,7 +764,7 @@ var chroma, grab;
                 len,
                 remaining = [];
             for (i =0, len = loop.updates.length; i < len; i = i + 1) {
-                if (loop.updates[i].complete) {
+                if (loop.updates[i].complete || !Object.keys(loop.updates[i].animations).length) {
                     loop.events.dispatch(loop.updates[i].eventId);
                 } else {
                     remaining.push(loop.updates[i]);
@@ -922,6 +922,15 @@ var chroma, grab;
                         return false;
                     }
                 },
+                remove: {
+                    value: function (animation) {
+                        if (this.animations.hasOwnProperty(animation)) {
+                            delete this.animations[animation];
+                            return true;
+                        }
+                        return false;
+                    }
+                },
                 store: {
                     value: {
                         object: object
@@ -956,6 +965,23 @@ var chroma, grab;
             });
         }
         function Loop () {
+            function getDuplicate (id, updt) {
+                var i,
+                    len,
+                    duplicates = [],
+                    property;
+                for (i = 0, len = loop.updates.length; i < len; i = i + 1)
+                    if (id === loop.updates[i].object.uniqueId)
+                        duplicates.push(loop.updates[i]);
+                for (i = 0, len = duplicates.length; i < len; i = i + 1) {
+                    for (property in duplicates[i].animations)
+                        if (Object.keys(updt.animations).includes(property))
+                            duplicates[i].remove(property);
+                    if (loop.events[duplicates[i].eventId])
+                        loop.events.remove(duplicates[i].eventId);
+                }
+            }
+
             function getUpdateArgs (args) {
                 var i,
                     j,
@@ -977,15 +1003,15 @@ var chroma, grab;
                             update = new GrabUpdate(object, args[0], args[1], uniqueId());
                         if (values && validLiteral(values)) {
                             Object.keys(values).forEach(function (property) {
-                                // <- remove duplicates here
                                 if (/^[A-Z]*color$/ig.test(property)) {
                                     update.animations[property] = new GrabColorAnimation(object[property], chroma(values[property]));
                                 } else {
                                     update.animations[property] = new GrabAnimation(object[property], values[property]);
                                 }
                             });
+                            getDuplicate(object.uniqueId, update);
                             if (validFunction(args[2]))
-                                this.events.register(update.eventId, args[2]);
+                                this.events.add(update.eventId, args[2]);
                             this.waiting.push(update);
                             if (!this.state)
                                 start();
@@ -1108,10 +1134,21 @@ var chroma, grab;
                         return true;
                     }
                 },
-                register: {
+                remove: {
+                    value: function (id) {
+                        if (!this.events[id])
+                            return false;
+                        delete this.events[id];
+                        return true;
+                    }
+                },
+                add: {
                     value: function (id, fn) {
-                        this.events[id] = {f: fn};
-                        return id;
+                        if (validStringValue(id) && validFunction(fn)) {
+                            this.events[id] = {f: fn};
+                            return id;
+                        }
+                        return null;
                     }
                 }
             });
