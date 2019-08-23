@@ -453,8 +453,8 @@ var chroma, grab;
         var scores = {},
             nearest = 'snow';
         Object.keys(dictionary).forEach(function (color) {
-            var channels = dictionary[color];
-            scores[color] = (Math.abs(channels.red - channels[0]) + Math.abs(channels.green - channels[1]) + Math.abs(channels.blue - channels[2])) / 3;
+            var x11 = dictionary[color];
+            scores[color] = (Math.abs(channels.red - x11[0]) + Math.abs(channels.green - x11[1]) + Math.abs(channels.blue - x11[2])) / 3;
         });
         Object.keys(scores).forEach(function(score) {
             if (scores[nearest] > scores[score])
@@ -645,6 +645,29 @@ var chroma, grab;
     function validNumberValue (value) {
         return typeof value === 'number' && Number.isFinite(value);
     }
+    //  The `validLiteral` function should return true if a passed object is in fact
+    //  an object literal
+    function validLiteral (value) {
+        var test = value,
+            check = true;
+        //  Return false if the passed object is not an object or is null
+        if (typeof value !== 'object' || value === null) {
+            return false;
+        } else {
+            //  While `check` is true, check if the prototype of `test` is null, if it
+            //  is, break out and return true if the prototype of the passed object is
+            //  the last `test` prototype
+            return (function () {
+                while (check) {
+                    if (Object.getPrototypeOf(test = Object.getPrototypeOf(test)) === null) {
+                        check = false;
+                        break;
+                    }
+                }
+                return Object.getPrototypeOf(value) === test;
+            }());
+        }
+    }
     function validString (value) {
         return typeof value === 'string';
     }
@@ -733,6 +756,7 @@ var chroma, grab;
                         if (child !== null)
                             this.append(grab(child));
                     }
+                    return this;
                 }
             },
             attr: {
@@ -787,10 +811,83 @@ var chroma, grab;
                         this.properties.backgroundColor = color;
                         this.element.style.backgroundColor = color.toModel();
                     }
+                    return value;
+                }
+            },
+            before: {
+                //  The `before` method removes itself from its current DOM location,
+                //  inserting itself before the passed sibling's DOM location,
+                //  returning itself
+                value: function (sibling) {
+                    if (validGrabElement(sibling)) {
+                        //  Remove self from the DOM if it has a parent node
+                        if (this.element.parentNode)
+                            this.element.parentNode.removeChild(this.element);
+                        sibling.element.parentNode.insertBefore(this.element, sibling.element);
+                    } else {
+                        //  If the passed sibling is not a valid `GrabElement` object,
+                        //  pass it to `grab` and retry the `before` method, ignoring
+                        //  null values
+                        if (sibling !== null)
+                            this.before(grab(sibling));
+                    }
+                    return this;
+                }
+            },
+            child: {
+                //  The `child` method uses a string "selector" to search a
+                //  `GrabElement` object's children for a matching child element,
+                //  returning a new `GrabCollection` or single `GrabElement` object,
+                //  and returning an empty `GrabCollection` if no matches are found
+                value: function (selector) {
+                    var children = [];
+                    if (validStringValue(selector)) {
+                        if (selector.includes(',')) {
+                            this.children.each(function (child) {
+                                selector.split(',').forEach(function (c) {
+                                    child.selector.match(/(#?\.?[a-z][\da-z]*)/ig).forEach(function (m) {
+                                        if (m === c)
+                                            children.push(child);
+                                    });
+                                });
+                            });
+                        } else {
+                            this.children.each(function (child) {
+                                child.selector.match(/(#?\.?[a-z][\da-z]*)/ig).forEach(function (m) {
+                                    if (m === selector)
+                                        children.push(child);
+                                });
+                            });
+                        }
+                        if (children.length)
+                            return children.length > 1 ? new GrabCollection(children) : new GrabElement(children[0]);
+                    }
+                    return new GrabCollection([]);
+                }
+            },
+            children: {
+                //  The `children` property returns a new `GrabCollection` of all child
+                //  elements
+                get: function () {
+                    return new GrabCollection(this.element.children);
                 }
             },
             element: {
                 value: element
+            },
+            properties: {
+                value: {
+                    backgroundColor: chroma(styles['backgroundColor']) || {channels: {}}
+                }
+            },
+            selector: {
+                //  The `selector` property returns a string of the element's css
+                //  selectors
+                get: function () {
+                    var id = this.id ? '#' + this.id : '',
+                        classes = this.element.className.length > 0 ? '.' + this.element.className.replace(/\s/g, '.') : '';
+                    return this.element.tagName.toLowerCase() + id + classes;
+                }
             }
         });
     }
