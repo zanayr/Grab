@@ -684,7 +684,7 @@ var chroma, grab;
     //  The `uniqueId` function returns a 32 character hexidecimal unique
     //  identification string
     function uniqueId (z) {
-        if (!validNumber(z));
+        if (!validNumberValue(z));
             z = 0;
         return ('xxxxxxxx-xxxx-' + z % 10 + 'xxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g, function(c) {
             var r = Math.random() * 16 | 0,
@@ -1057,12 +1057,12 @@ var chroma, grab;
             height: {
                 //  The `height` property gets and sets the DOM element's height value
                 get: function () {
-                    return this.values.height;
+                    return this.properties.height;
                 },
                 set: function (value) {
                     var h = this.parse('height', value);
                     if (validNumberValue(h)) {
-                        this.values.height = h;
+                        this.properties.height = h;
                         this.element.style.height = h + 'px';
                     }
                     return value;
@@ -1118,12 +1118,163 @@ var chroma, grab;
                     return value;
                 }
             },
+            left: {
+                //  The `left` property gets and sets the DOM element's left styling
+                get: function () {
+                    return this.properties.left;
+                },
+                set: function (value) {
+                    var l = this.parse('left', value);
+                    if (validNumberValue(l)) {
+                        this.properties.left = l;
+                        this.element.style.left = l + 'px';
+                    }
+                    return l;
+                }
+            },
+            off: {
+                //  The `off` method when passed a valid id, removes an event listener
+                //  from the DOM element, if no value is passed, all event listeners
+                //  are removed
+                value: function (id) {
+                    var e;
+                    if (validStringValue(id)) {
+                        this.element.removeEventListener(this.events[id].event, this.events[id].fn);
+                        delete this.events[id];
+                    } else if (!id) {
+                        for (e in copyObject(this.events))
+                            this.off(e);
+                    }
+                    return null;
+                }
+            },
+            on: {
+                //  The `on` method sets an event listener on the DOM element with the
+                //  passed event string and callback function and returns the event id
+                value: function (event, fn) {
+                    var id = uniqueId();
+                    if (validString(event) && validFunction(fn)) {
+                        this.events[id] = {event: event, fn: fn.bind(this)};
+                        this.element.addEventListener(event, this.events[id].fn);
+                        return id;
+                    }
+                    return null;
+                }
+            },
+            parse: {
+                value: function (property, value) {
+                    if (validStringValue(property)) {
+                        if (/^border[A-Z]*|height|left|top|width$/ig.test(property)) {
+                            if (/^-?\d+\.?\d*px$/g.test(value)) {
+                                return parseFloat(value, 10);
+                            } else if (/^-?\d+\.?\d*vw$/g.test(value)) {
+                                return window.innerWidth * (parseFloat(value, 10) / 100);
+                            } else if (/^-?\d+\.?\d*vh$/g.test(value)) {
+                                return window.innerHeight * (parseFloat(value, 10) / 100);
+                            } else if (/^\d+\.?\d*%$/g.test(value)) {
+                                if (/^height|top/ig.test(property)) {
+                                    return this.element.parentNode.offsetHeight * (parseFloat(value, 10) / 100);
+                                } else if (/^left|width$/ig.test(property)) {
+                                    return this.element.parentNode.offsetWidth * (parseFloat(value, 10) / 100);
+                                }
+                            }
+                        } else if (property === 'opacity') {
+                            if (/^\d{1,3}\.?\d*%$/g.test(value)) {
+                                return parseFloat(value, 10) / 100;
+                            } else if (/^\d+\.?\d*$/g.test(value)) {
+                                return parseFloat(value, 10);
+                            }
+                        }
+                    } else if (validNumberValue(value)) {
+                        return value;
+                    }
+                    return null;
+                }
+            },
             properties: {
                 //  The `properties` object is a store of all property values
                 value: {
                     backgroundColor: chroma(styles.backgroundColor) || {channels: {}},
                     color: chroma(styles.color) || {channels: {}},
-                    display: styles.display || 'block'
+                    display: styles.display,
+                    height: parseFloat(styles.height, 10),
+                    left: parseFloat(styles.left, 10),
+                    opacity: parseFloat(styles.opacity, 10),
+                    top: parseFloat(styles.top, 10),
+                    visibility: styles.visibility,
+                    width: parseFloat(styles.width, 10),
+                    zIndex: styles.zIndex
+                }
+            },
+            prepend: {
+                value: function (child) {
+                    //  The prepend method will remove the child from its current DOM location
+                    //  and prepend it inside of itself, returning itself
+                    var i;
+                    if (validStringValue(child)) {
+                        this.prepend(grab(child));
+                    } else if (validElement(child)) {
+                        if (child.element.parentNode)
+                            child.exit();
+                        this.element.prepend(child.element);
+                    } else if (child.length) {
+                        for (i = 0; i < child.length; i = i + 1)
+                            this.prepend(child[i]);
+                    }
+                    return this;
+                }
+            },
+            opacity: {
+                get: function () {
+                    return this.properties.opacity;
+                },
+                set: function (value) {
+                    var o = this.parse('opacity', value);
+                    if (validNumberValue(o) && 0 <= o && o <= 1) {
+                        this.properties.opacity = o;
+                        this.element.style.opacity = o;
+                    }
+                    return value;
+                }
+            },
+            remove: {
+                value: function (child) {
+                    //  The remove method removes children from the owner's children nodes,
+                    //  returning itself
+                    var i,
+                        len;
+                    if (!child || child.element.parentNode !== this.element)
+                        return this;
+                    if (validStringValue(child)) {
+                        this.remove(grab(child));
+                    } else if (validGrabElement(child)) {
+                        this.element.removeChild(child.element);
+                    } else if (child.nodeType) {
+                        this.element.removeChild(child);
+                    } else if (child.length) {
+                        for (i = 0, len = child.length; i < len; i = i + 1)
+                            this.remove(child[i]);
+                    }
+                    return this;
+                }
+            },
+            removeClass: {
+                value: function (className) {
+                    //  The removeClass method removes a passed string, or array of
+                    //  strings as css classes on the element, returning itself
+                    var i,
+                        len;
+                    if (validStringValue(className)) {
+                        if (className.includes(',')) {
+                            className = className.split(',');
+                        } else {
+                            this.element.classList.remove(className.replace(/\s/g, ''));
+                        }
+                    }
+                    if (Array.isArray(className) && className.length)
+                        for (i = 0, len = className.length; i < len; i = i + 1)
+                            this.removeClass(className[i]);
+                    return this;
                 }
             },
             selector: {
@@ -1133,6 +1284,91 @@ var chroma, grab;
                     var id = this.id ? '#' + this.id : '',
                         classes = this.element.className.length > 0 ? '.' + this.element.className.replace(/\s/g, '.') : '';
                     return this.element.tagName.toLowerCase() + id + classes;
+                }
+            },
+            toggle: {
+                value: function () {
+                    //  The toggle method sets the element's display to either
+                    //  `none` or `block`, returning itself
+                    this.display = this.display === 'none' ? 'block' : 'none';
+                    return this;
+                }
+            },
+            toggleClass: {
+                value: function (className) {
+                    //  The toggleClass method toggles a passed string, or array of
+                    //  strings as css classes on the element, returning itself
+                    var i;
+                    if (validString(className)) {
+                        if (className.includes(',')) {
+                            className = className.split(',');
+                        } else {
+                            this.element.classList.toggle(className.replace(/\s/g, ''));
+                        }
+                    }
+                    if (Array.isArray(className))
+                        for (i = 0; i < className.length; i = i + 1)
+                            this.toggleClass(className[i]);
+                    return this;
+                }
+            },
+            top: {
+                get: function () {
+                    return this.properties.top
+                },
+                set: function (value) {
+                    var t = this.parse('top', value);
+                    if (validNumber(t)) {
+                        this.properties.top = t;
+                        this.element.style.top = t + 'px';
+                    }
+                    return value;
+                }
+            },
+            uniqueId: {
+                value: uniqueId(u)
+            },
+            update: {
+                value: function (property, value) {
+                    this[property] = value;
+                }
+            },
+            visibility: {
+                get: function () {
+                    return this.properties.visibility;
+                },
+                set: function (value) {
+                    if (validString(value)) {
+                        this.element.style.visibility = value;
+                        this.properties.visibility = this.element.style.visibility; // get last valid visibility
+                    }
+                    return value;
+                }
+            },
+            width: {
+                get: function () {
+                    return this.properties.width;
+                },
+                set: function (value) {
+                    var w = this.parse('width', value);
+                    if (validNumber(w)) {
+                        this.properties.width = w;
+                        this.element.style.width = w + 'px';
+                    }
+                    return value;
+                }
+            },
+            zIndex: {
+                get: function () {
+                    return this.properties.zIndex;
+                },
+                set: function (value) {
+                    var z = parseInt(value, 10);
+                    if (validNumber(z)) {
+                        this.properties.zIndex = z;
+                        this.element.style.zIndex = z;
+                    }
+                    return value;
                 }
             }
         });
