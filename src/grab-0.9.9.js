@@ -1,5 +1,5 @@
 var chroma, grab;
-//  ChromaColor Library
+//  Chroma Library
 (function () {
     var dictionary = {
         snow: [255, 250, 250], ghostwhite: [248, 248, 255], whitesmoke: [245, 245, 245],
@@ -636,32 +636,58 @@ var chroma, grab;
         return validModel(value);
     };
 }());
-//  Grab Library
+
+/* GRAB-1.0.0.js
+Grab is a DOM manipulation library that I developed as a project to learn more about
+how the DOM worked and can be changed, updated and animated. This library includes it's
+own animation engine and abstraction layer to hide all the complicated features of the
+DOM. For now I've kept the library to basic features and will slowly add new features.
+
+Read Me: https://github.com/zanayr/Grab/blob/master/README.md
+
+By Ryan Fickenscher 7/6/19
+https://github.com/zanayr
+*/
 (function () {
+    //  The scoped varibales `loop` and `drabDefault` container the `Loop` object and
+    //  grab's default values, respectively
     var loop,
         grabDefault = {
             easing: 'linear',
             fps: 60
         };
-    //  VALIDATION FUNCTIONS  //
+    
+
+    /*  VALIDATION FUNCTIONS
+    Validation functions should be used in grab to validate values and objects that are
+    passed to properties and methods  */
+    //  The `validGrabCollection` function should return `ture` if the passed value has
+    //  `GrabCollection.prototype` as its prototype, and return `false` if it does not
     function validGrabCollection (value) {
         if (typeof value !== 'object' || value === null)
             return false;
         return Object.getPrototypeOf(value) === GrabCollection.prototype;
     }
+    //  The `validGrabElement` function should return `ture` if the passed value has
+    //  `GrabElement.prototype` as its prototype, and return `false` if it does not
     function validGrabElement (value) {
         if (typeof value !== 'object' || value === null)
             return false;
         return Object.getPrototypeOf(value) === GrabElement.prototype;
     }
+    //  The `validFunction` function should return `true` if the passed value is of
+    //  type `Function` and has `Function.prototype` as its prototype, and return
+    //  `false` if it does not
     function validFunction (value) {
         return typeof value === 'function' && Object.getPrototypeOf(value) === Function.prototype;
     }
+    //  The `validNumberValue` function should return `true` if the passed value is of
+    //  type `Number` and has a valid value, and return `false` if it does not
     function validNumberValue (value) {
         return typeof value === 'number' && Number.isFinite(value);
     }
-    //  The `validLiteral` function should return true if a passed object is in fact
-    //  an object literal
+    //  The `validLiteral` function should return `true` if the passed value is an
+    //  object literal, and return `false` if it is not
     function validLiteral (value) {
         var test = value,
             check = true;
@@ -683,20 +709,29 @@ var chroma, grab;
             }());
         }
     }
+    //  The `validString` function should return `true` if the passed value is of type
+    //  `String`, and return `false` if it does not
     function validString (value) {
         return typeof value === 'string';
     }
+    //  The `validStringValue` function should return `true` if the passed value is of
+    //  type `String` and has a length, and return `false` if it does not
     function validStringValue (value) {
         return typeof value === 'string' && value.length;
     }
-    //  AUXILLARY FUNCTIONS  //
-    //  The `copyObject` functions returns a shallow copy of an object
+
+
+    /*  AUXILLARY FUNCTIONS
+    Auxillary functions should be used in grab to encapsulate common tasks and abstract
+    them away in order to avoid bugs  */
+    //  The `copyObject` function should return a shallow copy of an object as a new
+    //  object literal of enumerable properties and methods
     function copyObject (value) {
         if (typeof value !== 'object' || value === null)
             return {};
         return Object.assign({}, value);
     }
-    //  The `uniqueId` function returns a 32 character hexidecimal unique
+    //  The `uniqueId` function should return a unique 32 character hexidecimal
     //  identification string
     function uniqueId (z) {
         if (!validNumberValue(z));
@@ -707,7 +742,12 @@ var chroma, grab;
             return v.toString(16);
         });
     }
-    //  Loop
+
+
+    /*  GRAB ANIMATION LOOP  //
+    Grab uses an interpolated loop to animate `GrabElement` objects in the DOM; the
+    `Loop` object is stored in the `loop` variable and has only one public method, the
+    `add` method that is used in a `GrabElement` object's `animate` method */
     (function () {
         var easingFunctions = {
             linear: function (d) {
@@ -738,6 +778,8 @@ var chroma, grab;
                 return 1 - Math.pow(1 - d, 5);
             }
         };
+        //  The `waiting` function should check if there are any `GrabUpdate` objects
+        //  waiting to be added to the `updates` array
         function waiting () {
             if (loop.waiting.length) {
                 loop.updates = loop.updates.concat(loop.waiting);
@@ -1209,7 +1251,7 @@ var chroma, grab;
                         property;
                     if (values && validLiteral(values)) {
                         for (property in values)
-                            if (/^[A-Z]*color|height|left|opacity|top|width$/ig.test(property))
+                            if (/^[A-Z]*color|height|left|opacity|rotate|top|width$/ig.test(property))
                                 translated[property] = /^[A-Z]*color$/ig.test(property) ? chroma(values[property]) : this.parse(property, values[property]);
                         loop.add(this, translated, duration, easing, complete);
                     }
@@ -1654,6 +1696,12 @@ var chroma, grab;
                             } else if (/^\d+\.?\d*$/g.test(value)) {
                                 return parseFloat(value, 10);
                             }
+                        } else if (property === 'rotate') {
+                            if (/^\d+\.?\d*deg$/ig.test(value)) {
+                                return parseFloat(value, 10) % 360;
+                            } else if (/^\d+\.?\d*rad$/ig.test(value)) {
+                                return (parseFloat(value, 10) * (Math.PI / 180)) % 360;
+                            }
                         }
                     }
                     if (validNumberValue(value))
@@ -1670,6 +1718,7 @@ var chroma, grab;
                     height: parseFloat(styles.height, 10),
                     left: parseFloat(styles.left, 10),
                     opacity: parseFloat(styles.opacity, 10),
+                    rotate: styles.transform !== 'none' ? Math.asin(parseFloat(styles.transform.match(/(-?\d+\.?\d*)/g)[0])) * (Math.PI / 180) : 0,
                     top: parseFloat(styles.top, 10),
                     visibility: styles.visibility,
                     width: parseFloat(styles.width, 10),
@@ -1748,6 +1797,18 @@ var chroma, grab;
                         for (i = 0, len = className.length; i < len; i = i + 1)
                             this.removeClass(className[i]);
                     return this;
+                }
+            },
+            rotate: {
+                get: function () {
+                    return this.properties.rotate;
+                },
+                set: function (value) {
+                    var d = this.parse('rotate', value);
+                    if (validNumberValue(d)) {
+                        this.properties.rotate = d % 360;
+                        this.element.style.transform = 'rotate(' + (d % 360) + 'deg)';
+                    }
                 }
             },
             selector: {
