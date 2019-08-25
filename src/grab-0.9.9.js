@@ -787,6 +787,9 @@ https://github.com/zanayr
             }
             return null;
         }
+        //  The `update` function should loop through all `GrabUpdate` objects stored
+        //  in the `updates` array, calling their `update` method and passing the
+        //  `timestep` property
         function update () {
             var i,
                 len;
@@ -794,6 +797,9 @@ https://github.com/zanayr
                 loop.updates[i].update(loop.timestep);
             return null;
         }
+        //  The `udpate` function should loop through all `GrabUpdate` objects stored
+        //  in the `updates` array, calling their `render` method and passing the
+        //  interpolated value
         function render (interpolation) {
             var i,
                 len;
@@ -801,6 +807,11 @@ https://github.com/zanayr
                 loop.updates[i].render(interpolation);
             return null;
         }
+        //  The `collect` function should loop through all `GrabUpdate` obejcts stored
+        //  in the `updates` array, checking if the update is either complete or
+        //  without animations, if true, the function will dispatch the update's
+        //  `eventId`, if false, the function will push the update into a temporary
+        //  array and assign it to the `updates` array
         function collect () {
             var i,
                 len,
@@ -815,22 +826,35 @@ https://github.com/zanayr
             loop.updates = remaining;
             return null;
         }
-        function grabLoop (timestamp) {
+        //  The `main` function is the animation loop of the grab library, it
+        //  should first check the state, if active, it will cycle through the function
+        function main (timestamp) {
             var cycles = 0;
             if (loop.state) {
+                //  Check for waiting updates
                 waiting();
+                //  Check if the `main` function has been called too early
                 if (timestamp < loop.lastFrameTime + loop.timestep) {
-                    loop.frameId = window.requestAnimationFrame(grabLoop);
+                    loop.frameId = window.requestAnimationFrame(main);
                     return;
                 }
+                //  Update the `delta` and `lastFrameTime` properties
                 loop.delta = loop.delta + (timestamp - loop.lastFrameTime);
                 loop.lastFrameTime = timestamp;
+                //  Check if the loop is moving too slow
                 if (timestamp > loop.lastFrameTime + 1000) {
+                    //  If `main` is cycling too slowly, update the `framesPerSecond`
+                    //  property to be slightly smaller
                     loop.framesPerSecond = 0.25 * loop.framesThisSecond + 0.75 * loop.framesPerSecond;
                     loop.lastFramesPerSecond = timestamp;
                     loop.framesThisSecond = 0;
                 }
+                //  Update the `framesThisSecond` property
                 loop.framesThisSecond = loop.framesThisSecond + 1;
+                //  While the `delta` property is greater than the `timestep` property
+                //  loop through the `update` function, updating the `delta` property
+                //  and cycles count each time, if the cycles surpass 239, break out
+                //  of the loop and continue through the `main` function
                 while (loop.delta >= loop.timestep) {
                     update();
                     loop.delta = loop.delta - loop.timestep;
@@ -840,16 +864,22 @@ https://github.com/zanayr
                         break;
                     }
                 }
+                //  Call the `render` fucntion with the interpolated value
                 render(loop.delta / loop.timestep);
+                //  Check for completed or empty updates
                 collect();
+                //  If there are updates wating or remaining, call `main` again, else
+                //  cancel the last animation frame and set the `state` property to
+                //  inactive
                 if (loop.updates.length || loop.waiting.length) {
-                    loop.frameId = window.requestAnimationFrame(grabLoop);
+                    loop.frameId = window.requestAnimationFrame(main);
                 } else {
                     loop.state = 0;
                     window.cancelAnimationFrame(loop.frameId);
                 }
             }
         }
+        //  The `start` function bootstraps the first frame of the `main` loop
         function start () {
             if (!loop.state) {
                 loop.frameId = window.requestAnimationFrame(function (timestamp) {
@@ -858,16 +888,18 @@ https://github.com/zanayr
                     loop.lastFrameTime = timestamp;
                     loop.lastFramesPerSecond = timestamp;
                     loop.framesThisSecond = 0;
-                    loop.frameId = window.requestAnimationFrame(grabLoop);
+                    loop.frameId = window.requestAnimationFrame(main);
                 });
             }
         }
-        //  GRAB COLOR ANIMATION OBJECT  //
-        //  The `GrabColorAnimation` function returns a `GrabColorAnimation` object that is used
-        //  to update a `GrabElement` animation
+        /*  GRAB COLOR ANIMATION OBJECT
+        The `GrabColorAnimation` function returns a `GrabColorAnimation` object that is
+        used for animating a color property of a `GrabElement`  */
         function GrabColorAnimation (origin, target) {
             Object.defineProperties(this, {
                 render: {
+                    //  The `render` method when passed a valid interpolated value,
+                    //  should update the current channel value of an animation
                     value: function (interpolation) {
                         var channel;
                         if (validNumberValue(interpolation))
@@ -877,18 +909,20 @@ https://github.com/zanayr
                     }
                 },
                 update: {
-                    value: function (e) {
+                    //  The `update` method when passed a valid easing value, should
+                    //  update the current channel value of an animation
+                    value: function (easing) {
                         var channel;
-                        if (validNumberValue(e)) {
+                        if (validNumberValue(easing)) {
                             for (channel in this.values.current) {
                                 this.values.last[channel] = this.values.current[channel];
-                                this.values.current[channel]  = (this.values.target[channel] - this.values.origin[channel]) * e + this.values.origin[channel];
+                                this.values.current[channel]  = (this.values.target[channel] - this.values.origin[channel]) * easing + this.values.origin[channel];
                             }
                         }
                     }
                 },
                 values: {
-                    //  The `values` property stores the animation property values
+                    //  The `values` property stores the `ChromaChannel` object
                     value: {
                         current: origin.toChannels(),
                         last: {},
@@ -898,18 +932,22 @@ https://github.com/zanayr
                 }
             });
         }
-        //  GRAB ANIMATION OBJECT  //
-        //  The `GrabAnimation` function returns a `GrabAnimation` object that is used
-        //  to update a `GrabElement` animation
+        /*  GRAB ANIMATION OBJECT
+        The `GrabAnimation` function returns a `GrabAnimation` object that is
+        used for animating a property of a `GrabElement`  */
         function GrabAnimation (origin, target) {
             Object.defineProperties(this, {
                 render: {
+                    //  The `render` method when passed a valid interpolated value,
+                    //  should update the current value of an animation
                     value: function (interpolation) {
                         if (validNumberValue(interpolation))
                             return this.values.current = this.values.last + (this.values.current - this.values.last) * interpolation;
                     }
                 },
                 update: {
+                    //  The `update` method when passed a valid easing value, should
+                    //  update the current value of an animation
                     value: function (easing) {
                         if (validNumberValue(easing)) {
                             this.values.last = this.values.current;
@@ -918,7 +956,7 @@ https://github.com/zanayr
                     }
                 },
                 values: {
-                    //  The `values` property stores the animation property values
+                    //  The `values` property stores the animation values
                     value: {
                         current: origin,
                         last: undefined,
@@ -928,31 +966,44 @@ https://github.com/zanayr
                 }
             });
         }
+        /*  GRAB UPDATE OBJECT
+        The `GrabUpdate` function returns a `GrabUpdate` object that is used for
+        updating a `GrabElement` in the `main` loop  */
         function GrabUpdate (object, duration, easing, uniqueId) {
             Object.defineProperties(this, {
+                //  The `animations` property stores all `GrabAnimation` objects
                 animations: {
                     value: {}
                 },
+                //  The `complete` property returns true if the progressed time value
+                //  is greater than or equal to the update `duration`
                 complete: {
                     get: function () {
-                        return this.values.time >= this.values.duration
+                        return this.values.time >= this.values.duration;
                     }
                 },
+                //  The `duration` property returns the `duration` value of the update
                 duration: {
                     get: function () {
                         return  this.values.duration;
                     }
                 },
+                //  The `eventId` property return the update's `eventId` value
                 eventId: {
                     get: function () {
                         return this.values.eventId;
                     }
                 },
+                //  The `object` property should return a reference to the
+                //  `GrabElement` object
                 object: {
                     get: function () {
                         return this.store.object;
                     }
                 },
+                //  The `render` method if passed a valid interpolation, should iterate
+                //  over all animations, passing the interpolated value to the
+                //  animation's `render` method
                 render: {
                     value: function (interpolation) {
                         var property;
@@ -964,6 +1015,8 @@ https://github.com/zanayr
                         return false;
                     }
                 },
+                //  The `remove` method, if passed a valid `GrabAnimations` object,
+                //  should remove the passed animation from the update element
                 remove: {
                     value: function (animation) {
                         if (this.animations.hasOwnProperty(animation)) {
@@ -973,16 +1026,24 @@ https://github.com/zanayr
                         return false;
                     }
                 },
+                //  The `store` propety, stores the `GrabElement` object refenece
                 store: {
                     value: {
                         object: object
                     }
                 },
+                //  The `uniqueId` property should return the unique id string of the
+                //  `GrabUpdate` object
                 uniqueId: {
                     get: function () {
                         return this.values.uniqueId;
                     }
                 },
+                //  The `update` method, if passed a valid `step` parameter, should
+                //  update the `time` property and then iterate over all animations,
+                //  checking if the animation has completed, if not, the update's
+                //  easing function is called and passed to the animation's `update`
+                //  method
                 update: {
                     value: function (step) {
                         var property;
@@ -995,6 +1056,7 @@ https://github.com/zanayr
                         return false;
                     }
                 },
+                //  The `values` property stores all update values
                 values: {
                     value: {
                         duration: duration,
@@ -1006,7 +1068,12 @@ https://github.com/zanayr
                 }
             });
         }
+        /* LOOP OBJECT
+        The `Loop` function returns a `Loop` object, used for grab animations  */
         function Loop () {
+            //  The `getDumlicate` function, if passed a valid id and update, should
+            //  check the `updates` array for any duplicate animations in every
+            //  `GrabUpdate`
             function getDuplicate (id, updt) {
                 var i,
                     len,
@@ -1023,7 +1090,9 @@ https://github.com/zanayr
                         loop.events.remove(duplicates[i].eventId);
                 }
             }
-
+            //  The `getUpdateArgs` function, if passed a valid arguments object,
+            //  should return an organized array of parameters to pass to a new
+            //  `GrabUpdate` object
             function getUpdateArgs (args) {
                 var i,
                     j,
@@ -1039,6 +1108,8 @@ https://github.com/zanayr
                 return arr;
             }
             Object.defineProperties(this, {
+                //  The `add` method us used in a `GrabElement` object's `animate`
+                //  method
                 add: {
                     value: function (object, values) {
                         var args = getUpdateArgs(arguments),
