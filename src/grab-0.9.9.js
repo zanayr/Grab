@@ -1533,7 +1533,7 @@ https://github.com/zanayr
                         this.element.style[property] = value;
                     } else if (validLiteral(property)) {
                         for (p in property)
-                            this.css(property, property[p]);
+                            this.css(p, property[p]);
                     }
                     return this;
                 }
