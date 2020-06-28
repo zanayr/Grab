@@ -2,11 +2,13 @@
 /env/
 /last/
 /tests/
+/dev/
 
 #FILES
 *.txt
 *.html
 *.css
+doc.md
 
 #MISC
 .DS_Store
