@@ -1,4 +1,14 @@
-// Auxillary Functions
+/**
+ * @author Ryan Fickenscher | https://github.com/zanayr
+ * @description Grab is a small document manipulation library that abstracts away the 80% of repetitive code I've written for personal projects.
+ * @license TBA
+ */
+const events = {channels: {}, reducers: {}};
+
+// AUXILLARY FUNCTIONS
+/**
+ * @returns a unique id with 28 hexadecimal characters
+ */
 function uniqueId () {
     return ('xxxxxxxx-xxxx-xxxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g, function(c) {
         var r = Math.random() * 16 | 0,
@@ -6,6 +16,10 @@ function uniqueId () {
         return v.toString(16);
     });
 }
+/**
+ * @param {Object} value is an object literal
+ * @returns a boolean value if passed a valid object literal
+ */
 function isLiteral(value) {
     var test = value,
         checking = 1;
@@ -22,13 +36,21 @@ function isLiteral(value) {
     })();
 }
 
-// Event Delegation
-const events = {channels: {}, reducers: {}};
+
+// EVENT DELEGATION
+/**
+ * Remove an channel from the events object
+ * @param {string} channel is a valid event string name
+ */
 function release(channel) {
     document.removeEventListener(event, events.reducers[channel]);
     delete evetns.channels[channel];
     delete evetns.reducers[channel];
 }
+/**
+ * Delegate an event
+ * @param {string} channel is a valid event string name
+ */
 function delegate(channel) {
     const reducer = e => {
         for (let id in events.channels[channel]) {
@@ -41,7 +63,11 @@ function delegate(channel) {
     document.addEventListener(channel, reducer);
 }
 
-// Grab Collection Object
+// GRAB CLASSES
+/**
+ * GrabCollection should return a new GrabCollection object when passed an arary of 
+ * GrabElements
+ */
 class GrabCollection {
     constructor(collection=[]) {
         let count = 0;
@@ -55,11 +81,17 @@ class GrabCollection {
         this.length = count;
     }
     
-
-    // Event Handling
+    //  EVENT METHODS
+    /**
+     * Clear all event channels from all elements in the collection
+     */
     clear() {
         return this.each(element => element.clear());
     }
+    /**
+     * Remove an event channel from all elements in the collection
+     * @param {string} channel is a valid event name
+     */
     off(channel) {
         return this.each(element => element.off(channel));
     }
@@ -261,6 +293,10 @@ class GrabElement {
     }
 }
 
+/**
+ * Grab a DOM element and return a Grab object
+ * @param  {...any} args can be a list of items, and array of items a single string, HTML object or Grab object
+ */
 function grab(...args) {
     if (!args) return null;
     if (args.length === 1) {
@@ -278,6 +314,8 @@ function grab(...args) {
             return new GrabCollection(Object.keys(args[0]).map(key => new GrabElement(args[0][key])));
         } else if (Array.isArray(args[0])) {
             const items = [];
+            // Iterate through each element, grab it, check if it have a length, and
+            // push each item to the items array
             for (let i = 0, len = args[0].length; i < len; i++) {
                 let item = grab(args[0][i]); // grab item here, not in postcedent
                 if (!item) continue;
@@ -290,6 +328,7 @@ function grab(...args) {
             return new GrabCollection(items);
         }
     } else if (args.length > 1) {
+        // Convert args into an array and pass it to grab
         return grab(args.map(arg => arg));
     }
     return null;
