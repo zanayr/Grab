@@ -1,58 +1,4 @@
-class GrabCollection {
-    constructor(collection=[]) {
-        let count = 0;
-        if (collection instanceof GrabCollection || Array.isArray(collection)) {
-            for (let i = 0, len = collection.length; i < len; i++) {
-                this[i] = collection[i];
-                count++;
-            }
-        }
-        this.length = count;
-    }
-    add(element) {
-        this[this.length] = element;
-        this.length++;
-        return this;
-    }
-    concat(collection) {
-        const result = [];
-        if (collection instanceof GrabCollection || Array.isArray(collection)) {
-            for (let i = 0, len = this.length + collection.length; i < len; i++)
-                result.push(i < this.length ? this[i] : collection[i - collection.length]);
-            return new GrabCollection(result);
-        }
-        return null;
-    }
-    each(fn) {
-        if (typeof fn === 'function')
-            for (let i = 0; i < this.length; i++)
-                fn.apply(null, [this[i], i]);
-        return this;
-    }
-    filter(fn) {
-        const result = [];
-        if (typeof fn === 'function') {
-            for (let i = 0; i < this.length; i++) {
-                if (fn.apply(null, [this[i], i]))
-                    result.push(this[i]);
-            }
-            return new GrabCollection(result);
-        }
-        return null;
-    }
-    map(fn) {
-        const result = [];
-        if (typeof fn === 'function')
-            for (let i = 0; i < this.length; i++)
-                result.push(fn.apply(null, [this[i], i]));
-        return new GrabCollection(result);
-    }
-    remove(index) {
-        delete this[index];
-        this.length--;
-        return this;
-    }
-}
+// Auxillary Functions
 function uniqueId () {
     return ('xxxxxxxx-xxxx-xxxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g, function(c) {
         var r = Math.random() * 16 | 0,
@@ -87,7 +33,7 @@ function delegate(channel) {
     const reducer = e => {
         for (let id in events.channels[channel]) {
             const event = events.channels[channel][id];
-            if (id === e.target.getAttribute('data-grab-id')) return event.fn.apply(event.ref, [e]);
+            if (id === e.target.getAttribute('data-grab-id')) return event.fn(e, event.ref);
         }
     };
     events.channels[channel] = {};
@@ -95,15 +41,114 @@ function delegate(channel) {
     document.addEventListener(channel, reducer);
 }
 
+// Grab Collection Object
+class GrabCollection {
+    constructor(collection=[]) {
+        let count = 0;
+        if (Array.isArray(collection)) {
+            for (let i = 0, len = collection.length; i < len; i++) {
+                if (!(collection[i] instanceof GrabElement)) continue;
+                this[i] = collection[i];
+                count++;
+            }
+        }
+        this.length = count;
+    }
+    
+
+    // Event Handling
+    clear() {
+        return this.each(element => element.clear());
+    }
+    off(channel) {
+        return this.each(element => element.off(channel));
+    }
+    on(channel, callback) {
+        return this.each(element => element.on(channel, callback));
+    }
+
+    // Attribute Manipulation
+    attributes(name, value) {
+        return this.each(element => element.attributes(name, value));
+    }
+    data(data, value) {
+        return this.each(element => element.data(data, value));
+    };
+
+    // Class Manipulation
+    add(className) {
+        return this.each(element => element.add(className));
+    }
+    remove(className) {
+        return this.each(element => element.remove(className));
+    }
+    toggle(className) {
+        return this.each(element => element.toggle(className));
+    }
+
+    // Collection Manipulation Methods
+    addElement(element) {
+        this[this.length] = element;
+        this.length++;
+        return this;
+    }
+    removeElement(index) {
+        delete this[index];
+        this.length--;
+        return this;
+    }
+
+    // Collection Iteration Methods
+    concat(collection) {
+        const result = [];
+        if (collection instanceof GrabCollection || Array.isArray(collection)) {
+            for (let i = 0, len = this.length + collection.length; i < len; i++)
+                result.push(i < this.length ? this[i] : collection[i - collection.length]);
+            return new GrabCollection(result);
+        }
+        return null;
+    }
+    each(fn) {
+        if (typeof fn === 'function')
+            for (let i = 0; i < this.length; i++)
+                fn.apply(null, [this[i], i]);
+        return this;
+    }
+    filter(fn) {
+        const result = [];
+        if (typeof fn === 'function') {
+            for (let i = 0; i < this.length; i++) {
+                if (fn.apply(null, [this[i], i]))
+                    result.push(this[i]);
+            }
+            return new GrabCollection(result);
+        }
+        return null;
+    }
+    map(fn) {
+        const result = [];
+        if (typeof fn === 'function')
+            for (let i = 0; i < this.length; i++)
+                result.push(fn.apply(null, [this[i], i]));
+        return new GrabCollection(result);
+    }
+}
 
 class GrabElement {
-    constructor(node) {
-        if (node.length) node = node[0];
+    constructor(htmlElement) {
+        const node = htmlElement instanceof HTMLElement ? htmlElement : undefined;
+        if (!node) throw Error('Error');
         const id = uniqueId();
         node.setAttribute('data-grab-id', id);
-        this.__grabId = id;
-        this.node = node;
         Object.defineProperties(this, {
+            __grabId: {
+                enumerable: false,
+                value: id,
+            },
+            __node: {
+                enumerable: false,
+                value: node,
+            },
             attributeList: {
                 get: () => {
                     const result = {};
@@ -114,10 +159,10 @@ class GrabElement {
                         result[key] = attribute.value;
                     }
                     return result;
-                }
+                },
             },
             classList: {
-                get: () => this.node.classList
+                get: () => this.node.classList,
             },
             dataList: {
                 get: () => {
@@ -131,25 +176,29 @@ class GrabElement {
                         }
                     }
                     return result;
-                }
+                },
             },
             grabId: {
-                get: () => this.__grabId
+                get: () => this.__grabId,
             },
             href: {
                 get: () => this.node.href,
-                set: value => this.node.href = value
+                set: value => this.node.href = value,
             },
             html: {
                 get: () => this.node.innerHTML,
-                set: value => this.node.innerHTML = value
+                set: value => this.node.innerHTML = value,
             },
             id: {
                 get: () => this.node.id,
-                set: value => this.node.id = value
+                set: value => this.node.id = value,
+            },
+            node: {
+                get: () => this.__node,
             }
         })
     }
+
     // Event Handling
     clear() {
         Object.keys(events.channels).forEach(channel => {
@@ -167,17 +216,11 @@ class GrabElement {
         events.channels[channel][this.grabId] = {fn: callback, ref: this};
         return this;
     }
-    once(channel, callback) {
-        this.on(channel, e => {
-            callback(e);
-            this.off(channel);
-        });
-        return this;
-    }
+
     // Attribute Manipulation
     attributes(name, value) {
         if (typeof name === 'string' && name.length && value) {
-            if (!/^[a-z]+$/ig.test(data)) return this;
+            if (/^data-/.test(name) || !/^[a-z-]+$/ig.test(name)) return this;
             this.node.setAttribute(`${name.replace(/\s/g, '-').trim().toLowerCase()}`, `${value}`);
         } else if (isLiteral(name)) {
             for (let key in name) {
@@ -189,7 +232,7 @@ class GrabElement {
     }
     data(data, value) {
         if (typeof data === 'string' && data.length && value) {
-            if (!/^[a-z]+$/ig.test(data)) return this;
+            if (!/^[a-z]+$/ig.test(data) || data === 'grabId') return this;
             this.node.setAttribute(`data-${data.replace(/\s/g, '-').trim().toLowerCase()}`, `${value}`);
         } else if (isLiteral(data)) {
             for (let key in data) {
@@ -199,6 +242,7 @@ class GrabElement {
         }
         return this;
     };
+
     // Class Manipulation
     add(className) {
         if (typeof className === 'string' && className.length)
@@ -217,21 +261,36 @@ class GrabElement {
     }
 }
 
-
 function grab(...args) {
+    if (!args) return null;
     if (args.length === 1) {
         if (typeof args[0] === 'string' && args[0].length) {
             if (/^<[a-z]+>$/ig.test(args[0])) return new GrabElement(document.createElement(args[0].replace(/<|>/g, '')));
-            return new GrabElement(document.querySelectorAll(args[0]));
-        } else if (args[0] instanceof GrabElement || GrabCollection) {
-            return args[0];
+            return grab(document.querySelectorAll(args[0]));
+        } else if (args[0] instanceof GrabElement) {
+            return new GrabElement(args[0].node);
+        } else if (args[0] instanceof GrabCollection) {
+            return args[0].map(element => element);
         } else if (args[0] instanceof HTMLElement) {
-            return new GrabElement(args[0]);
-        } else if (args[0] instanceof HTMLCollection) {
-            // return new GrabCollection(Object.keys(args[0]).map(key => new GrabElement(args[0][key])));
+             return new GrabElement(args[0]);
+        } else if (args[0] instanceof HTMLCollection || args[0] instanceof NodeList) {
+            if (args[0].length === 1) return new GrabElement(args[0][0]);
+            return new GrabCollection(Object.keys(args[0]).map(key => new GrabElement(args[0][key])));
+        } else if (Array.isArray(args[0])) {
+            const items = [];
+            for (let i = 0, len = args[0].length; i < len; i++) {
+                let item = grab(args[0][i]); // grab item here, not in postcedent
+                if (!item) continue;
+                if (item.length) {
+                    for (let key in item) items.push(grab(item[key]));
+                    continue;
+                }
+                items.push(item);
+            }
+            return new GrabCollection(items);
         }
     } else if (args.length > 1) {
-        // return new GrabCollection(args.map(arg => grab(arg)));
+        return grab(args.map(arg => arg));
     }
     return null;
 }
