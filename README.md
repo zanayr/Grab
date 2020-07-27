@@ -40,7 +40,7 @@ const fromArr = grab.element(['#id', '.class-name', document.querySelector('#id 
 A `GrabElement` is the basic object of the grab module. It encapsulates the methods and state of each passed DOM element node.
 
 #### State
-When a grab element is instanciated, it is given a unique ID, used for event delegation, and an owned html node. These are protected in the `__node` and `__grabId` properties.
+When a grab element is instanciated, it is given a unique ID, used for event delegation, and an owned html node.
 
 *attributeList*
 Get an object literal of name/value pairs of attributes.
@@ -58,6 +58,9 @@ Get an object literal of name/value pairs of `data-` prefixed attributes.
 Things to note:
 - To set a `data-` prefixed attribute, use the `setDatum` method
 
+*grabId*
+Get the unique ID owned by the `GrabElement`.
+
 *href*
 Get and set the `href` attribute value.
 
@@ -67,11 +70,14 @@ Get and set the `innerHTML` attribute value.
 *id*
 Get and set the `id` attribute value.
 
+*node*
+Get the html node owned by the `GrabElement`.
+
 #### Behavior
 Methods on `GrabElemet` objects help to add some dynamicism and can be chained since they all return the obejct itself.
 
 *addEvent*
-The `addEvent` method sets an event delegate on the owned html node.
+The `addEvent` method sets an event delegate. Pass a valid browser event and event hander function.
 ```
 grabElement.addEvent('click', handle_OnClick);
 ```
@@ -80,19 +86,19 @@ Things to note:
 - Existing events on an `GrabElement` will be replaced by `addEvent`
 
 *removeEvent*
-The `removeEvent` method removes an event delegate on the owned html node.
+The `removeEvent` method removes an event delegate. Pass a valid browser event.
 ```
 grabElement.remove('click');
 ```
 
 *removeAllEvents*
-The `removeAllEvents` method removes all event delegates on the owned html node.
+The `removeAllEvents` method removes all event delegates.
 ```
 grabElement.removeAllEvents();
 ```
 
 *setAttribute*
-The `setAttribute` method sets a valid attribute on the owned html node.
+The `setAttribute` method sets an attribute on the owned html node.
 ```
 grabElement.setAttribute('foo', 'bar');
 /// <div foo="bar"></div>
@@ -266,7 +272,7 @@ const mappedElements = grabElements.map((element, i) => element.setDatum('index'
 Things to note:
 - The `map` method returns a shallow copy of all elements
 
-*sort* (yet to be implemented)
+*sort*
 Iterate over each element, passing two elements into a sorting function. The sorting function should return a Boolean value of true if the element is to be inserted before the compared element.
 ```
 grabElements.sort((a, b) => a.grabId > b.grabId);

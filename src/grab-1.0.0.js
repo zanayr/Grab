@@ -124,7 +124,17 @@ export class GrabCollection {
                 count++;
             }
         }
-        this.length = count;
+        Object.defineProperties(this, {
+            __length: {
+                enumerable: false,
+                value: count,
+            },
+            length: {
+                enumerable: false,
+                get: () => this.__length,
+                writable: false,
+            },
+        });
     }
     /**
      * `addEvent` cycles through owned elements, adding each to a delegated event
@@ -201,10 +211,13 @@ export class GrabCollection {
      * `addElement` adds a new `GrabElement` to the collection
      * @param {*} element is a `GrabElement`
      */
-    addElement(element) {
-        if (collection[i] instanceof GrabElement) {
+    addElement(selector) {
+        const e = element(selector);
+        // Check if the passed selecter was able to grab a valid element, and it is an
+        // instance of `GrabElement`
+        if (e != null && e instanceof GrabElement) {
             this[this.length] = element;
-            this.length++;
+            this.__length++;
         }
         return this;
     }
@@ -214,8 +227,9 @@ export class GrabCollection {
      */
     removeElement(index) {
         if (this[index]) {
-            delete this[index];
-            this.length--;
+            for (let i = index, len = this.length; i < len; i++) this[i] = this[i + 1];
+            delete this[this.length];
+            this.__length--;
         }
         return this;
     }
@@ -227,8 +241,7 @@ export class GrabCollection {
     concat(collection=[]) {
         const result = [];
         if (collection instanceof GrabCollection || Array.isArray(collection)) {
-            for (let i = 0, len = this.length + collection.length; i < len; i++)
-                result.push(i < this.length ? this[i] : collection[i - collection.length]);
+            for (let i = 0, len = this.length + collection.length; i < len; i++) result.push(i < this.length ? this[i] : collection[i - collection.length]);
             return new GrabCollection(result);
         }
         return this.map(el => el); // return a copy if an invalid collection is passed
@@ -240,8 +253,7 @@ export class GrabCollection {
      */
     each(fn) {
         if (typeof fn === 'function')
-            for (let i = 0; i < this.length; i++)
-                fn.apply(null, [this[i], i]);
+            for (let i = 0; i < this.length; i++) fn.apply(null, [this[i], i]);
         return this;
     }
     /**
@@ -253,8 +265,7 @@ export class GrabCollection {
         const result = [];
         if (typeof fn === 'function') {
             for (let i = 0; i < this.length; i++) {
-                if (fn.apply(null, [this[i], i]))
-                    result.push(this[i]);
+                if (fn.apply(null, [this[i], i])) result.push(this[i]);
             }
             return new GrabCollection(result);
         }
@@ -268,9 +279,13 @@ export class GrabCollection {
     map(fn) {
         const result = [];
         if (typeof fn === 'function')
-            for (let i = 0; i < this.length; i++)
-                result.push(fn.apply(null, [this[i], i]));
+            for (let i = 0; i < this.length; i++) result.push(fn.apply(null, [this[i], i]));
         return new GrabCollection(result);
+    }
+    sort(fn) {
+        if (typeof fn === 'function')
+            for (let i = 0, len = this.length; i < len - 1; i++) fn.apply(null, [this[i], this[i + 1]]);
+        return this;
     }
 }
 
@@ -312,6 +327,7 @@ export class GrabElement {
                     // Convert the attribute name to "camel case"
                     // Add the paired value to the `result` object
                     for (let attribute of this.node.attributes) {
+                        if (/^data-/ig.test(attribute.name)) continue; // skip all `data-` prefixed attributes
                         let key = attribute.name.split('-').map((string, i) => {
                             return i ? string[0].toUpperCase() + string.slice(1).toLowerCase() : string.toLowerCase();
                         }).join('');
@@ -420,7 +436,7 @@ export class GrabElement {
             for (let key in name) {
                 // If the passed key begins with a `data-` or if it's an invalid
                 // attribute name, skip
-                if (/^data-/.test(name) || !/^[a-z]+$/ig.test(key)) continue;
+                if (/^data/.test(name) || !/^[a-z]+$/ig.test(key)) continue;
                 // Replace "camel case" keys with hyphen seperated keys
                 this.node.setAttribute(`${key.replace(/([A-Z])/g, ' $1').replace(/\s/g, '-').trim().toLowerCase()}`, `${name[key]}`);
             }
@@ -455,8 +471,12 @@ export class GrabElement {
      * @returns itself for method chaining
      */
     addClass(className) {
-        if (typeof className === 'string' && className.length)
+        if (typeof className === 'string' && className.length) {
             this.node.classList.add(className);
+        } else if (Array.isArray(className) && className.length) {
+            for (let i = 0, len = className.length; i < len; i++)
+                this.node.classList.add(className[i]);
+        }
         return this;
     }
     /**
@@ -466,8 +486,12 @@ export class GrabElement {
      * @returns itself for method chaining
      */
     removeClass(className) {
-        if (typeof className === 'string' && className.length)
+        if (typeof className === 'string' && className.length) {
             this.node.classList.remove(className);
+        } else if (Array.isArray(className) && className.length) {
+            for (let i = 0, len = className.length; i < len; i++)
+                this.node.classList.remove(className[i]);
+        }
         return this;
     }
     /**
@@ -477,8 +501,11 @@ export class GrabElement {
      * @returns itself for method chaining
      */
     toggleClass(className) {
-        if (typeof className === 'string' && className.length)
+        if (typeof className === 'string' && className.length) {
             this.node.classList.toggle(className);
+        } else if (Array.isArray(className) && className.length) {
+            for (let i = 0, len = className.length; i < len; i++) his.node.classList.toggle(className[i]);
+        }
         return this;
     }
 }
