@@ -282,9 +282,8 @@ export class GrabCollection {
             for (let i = 0; i < this.length; i++) result.push(fn.apply(null, [this[i], i]));
         return new GrabCollection(result);
     }
-    sort(fn) {
-        if (typeof fn === 'function')
-            for (let i = 0, len = this.length; i < len - 1; i++) fn.apply(null, [this[i], this[i + 1]]);
+    sort() {
+        // Yet to be implemented
         return this;
     }
 }

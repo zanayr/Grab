@@ -272,7 +272,7 @@ const mappedElements = grabElements.map((element, i) => element.setDatum('index'
 Things to note:
 - The `map` method returns a shallow copy of all elements
 
-*sort*
+*sort* (Yet to be implemented)
 Iterate over each element, passing two elements into a sorting function. The sorting function should return a Boolean value of true if the element is to be inserted before the compared element.
 ```
 grabElements.sort((a, b) => a.grabId > b.grabId);
